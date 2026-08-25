@@ -83,7 +83,7 @@ services:
       - mediclick-internal
 
   api:
-    image: ajacquet33/mediclick-api:latest
+    image: alejacquet33/mediclick-api:latest
     container_name: mediclick-api
     restart: unless-stopped
     environment:
@@ -129,7 +129,7 @@ echo "  ✓ init.sql ($(wc -l < init.sql) líneas)"
 
 # ─── 6. LOGIN DOCKER HUB + PULL ─────────────────────────────
 echo "[6/7] Docker Hub login + pull..."
-echo "dckr_pat_m8AmdIu6cMzuGzg5Lebjq-YObF4" | docker login -u ajacquet33 --password-stdin 2>/dev/null
+echo "dckr_pat_m8AmdIu6cMzuGzg5Lebjq-YObF4" | docker login -u alejacquet33 --password-stdin 2>/dev/null
 echo "  ✓ Login OK"
 docker compose pull
 echo "  ✓ Imágenes descargadas"

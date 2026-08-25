@@ -44,7 +44,7 @@ services:
 
   # ─── API Backend ──────────────────────────────────────────
   api:
-    image: ajacquet33/mediclick-api:latest
+    image: alejacquet33/mediclick-api:latest
     container_name: mediclick-api
     restart: unless-stopped
     environment:
