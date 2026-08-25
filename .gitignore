@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+*.log
+.DS_Store
+coverage/
+.nyc_output/
+*.tgz
+.idea/
+.vscode/
+*.swp
+*.swo
+docker-compose.override.yml
+certs/

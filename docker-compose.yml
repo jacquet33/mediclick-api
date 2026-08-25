@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  # ─── PostgreSQL ───────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: mediclick-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mediclick
+      POSTGRES_USER: ${DB_USER:-mediclick}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-mediclick_secret_2026}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/src/database/migrations/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mediclick"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mediclick-net
+
+  # ─── Redis (cache + sesiones + cola de chat) ──────────────
+  redis:
+    image: redis:7-alpine
+    container_name: mediclick-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redis_secret_2026}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_secret_2026}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mediclick-net
+
+  # ─── API Backend (NestJS) ─────────────────────────────────
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mediclick-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${DB_USER:-mediclick}:${DB_PASSWORD:-mediclick_secret_2026}@postgres:5432/mediclick
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_secret_2026}@redis:6379
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_change_in_production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your_refresh_secret_change_in_production}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-32_byte_encryption_key_change_me}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mediclick-net
+
+  # ─── Traefik (reverse proxy + SSL gratuito) ───────────────
+  traefik:
+    image: traefik:v3.1
+    container_name: mediclick-proxy
+    restart: unless-stopped
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-admin@mediclick.com}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt:/letsencrypt
+    networks:
+      - mediclick-net
+
+volumes:
+  pgdata:
+  redisdata:
+  letsencrypt:
+
+networks:
+  mediclick-net:
+    driver: bridge
