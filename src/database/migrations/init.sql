@@ -677,3 +677,25 @@ SELECT
 FROM organization_doctors od
 JOIN organizations o ON o.id = od.organization_id
 WHERE od.is_active = true;
+
+-- ═══════════════════════════════════════════════════════════
+-- OAUTH ACCOUNTS (Google / Apple Sign-In)
+-- ═══════════════════════════════════════════════════════════
+
+CREATE TABLE oauth_accounts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    doctor_id UUID NOT NULL REFERENCES doctors(id) ON DELETE CASCADE,
+    
+    provider VARCHAR(20) NOT NULL,              -- 'google' | 'apple'
+    provider_id VARCHAR(255) NOT NULL,          -- ID único del proveedor
+    email VARCHAR(255),
+    avatar_url TEXT,
+    
+    last_login_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    UNIQUE(provider, provider_id)
+);
+
+CREATE INDEX idx_oauth_doctor ON oauth_accounts(doctor_id);
+CREATE INDEX idx_oauth_provider ON oauth_accounts(provider, provider_id);
