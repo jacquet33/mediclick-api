@@ -165,7 +165,7 @@ export class AppointmentService {
     if (conflictCheck.hasConflict && !forceCreate) {
       // Devolver error con detalle de los conflictos
       const conflictMessages = conflictCheck.conflicts.map(c =>
-        `${c.startTime.substring(0, 5)}-${c.endTime.substring(0, 5)} en "${c.organization_name}" con ${c.patient_name} (${c.status})`
+        `${c.startTime.substring(0, 5)}-${c.endTime.substring(0, 5)} en "${c.organizationName}" con ${c.patientName} (${c.status})`
       );
 
       throw new ConflictException({
