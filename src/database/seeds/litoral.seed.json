@@ -1,0 +1,83 @@
+{
+  "rows": [
+    {
+      "name": "Colegio de Médicos de Entre Ríos",
+      "shortName": "CMER",
+      "kind": "mutual",
+      "province": "Entre Ríos",
+      "isNational": false,
+      "aliases": ["CMER", "Colegio de Médicos de Entre Ríos", "Colegio Medicos Entre Rios"]
+    },
+    {
+      "name": "COMRA",
+      "shortName": "COMRA",
+      "kind": "mutual",
+      "isNational": true,
+      "aliases": ["COMRA", "Confederación Médica de la República Argentina"]
+    },
+    {
+      "name": "Asociación Médica de Rosario",
+      "shortName": "AMR",
+      "kind": "mutual",
+      "province": "Santa Fe",
+      "isNational": false,
+      "aliases": ["AMR", "Asociación Médica de Rosario", "Asociacion Medica de Rosario"]
+    },
+    {
+      "name": "Colegio de Médicos de Santa Fe 1ra Circunscripción",
+      "shortName": "CMSF 1ra",
+      "kind": "mutual",
+      "province": "Santa Fe",
+      "isNational": false,
+      "aliases": ["CMSF 1ra", "Colegio de Médicos 1ra Circunscripción", "primera circunscripcion"]
+    },
+    {
+      "name": "Colegio de Médicos de Santa Fe 2da Circunscripción",
+      "shortName": "CMSF 2da",
+      "kind": "mutual",
+      "province": "Santa Fe",
+      "isNational": false,
+      "aliases": ["CMSF 2da", "Colegio de Médicos 2da Circunscripción", "segunda circunscripcion"]
+    },
+    {
+      "name": "Federación Médica de Entre Ríos",
+      "shortName": "FEMER",
+      "kind": "mutual",
+      "province": "Entre Ríos",
+      "isNational": false,
+      "aliases": ["FEMER", "Federación Médica de Entre Ríos"]
+    },
+    {
+      "name": "Federación Médica de Santa Fe",
+      "shortName": "FEMESA",
+      "kind": "mutual",
+      "province": "Santa Fe",
+      "isNational": false,
+      "aliases": ["FEMESA", "Federación Médica de Santa Fe"]
+    },
+    {
+      "name": "OSPRERA Entre Ríos",
+      "shortName": "OSPRERA ER",
+      "kind": "obra_social",
+      "province": "Entre Ríos",
+      "isNational": false,
+      "aliases": ["OSPRERA Entre Ríos", "osprera er"]
+    },
+    {
+      "name": "Mutual Jerárquicos Salud",
+      "shortName": "Jerárquicos",
+      "kind": "mutual",
+      "province": "Santa Fe",
+      "isNational": false,
+      "aliases": ["Jerárquicos Salud", "Jerarquicos", "Mutual Jerárquicos"]
+    },
+    {
+      "name": "ASSPE",
+      "shortName": "ASSPE",
+      "kind": "mutual",
+      "province": "Entre Ríos",
+      "isNational": false,
+      "aliases": ["ASSPE", "Asociación de Servicios Sociales para Empresarios"]
+    }
+  ]
+}

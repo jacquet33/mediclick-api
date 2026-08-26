@@ -31,6 +31,10 @@ import { GenericRestAdapter } from './modules/hub/adapters/generic-rest.adapter'
 import { ManualAdapter } from './modules/hub/adapters/manual.adapter';
 import { InsurerController } from './modules/insurers/insurer.controller';
 import { InsurerService } from './modules/insurers/insurer.service';
+import { NomenclatorController } from './modules/nomenclators/nomenclator.controller';
+import { NomenclatorService } from './modules/nomenclators/nomenclator.service';
+import { BillingController } from './modules/billing/billing.controller';
+import { BillingService } from './modules/billing/billing.service';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './common/guards/auth.guard';
@@ -77,6 +81,8 @@ class HealthController {
     BookingPageController,
     HubController,
     InsurerController,
+    NomenclatorController,
+    BillingController,
   ],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },
@@ -95,6 +101,8 @@ class HealthController {
     GenericRestAdapter,
     ManualAdapter,
     InsurerService,
+    NomenclatorService,
+    BillingService,
   ],
 })
 class AppModule {}
