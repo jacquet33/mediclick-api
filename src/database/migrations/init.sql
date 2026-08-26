@@ -6,6 +6,7 @@
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 -- ─── ENUMS ──────────────────────────────────────────────────
 
@@ -972,3 +973,346 @@ JOIN organization_doctors od ON od.id = bs.org_doctor_id
 JOIN doctors d ON d.id = od.doctor_id
 JOIN organizations o ON o.id = od.organization_id
 WHERE bs.is_enabled = true AND od.is_active = true;
+
+-- ═══════════════════════════════════════════════════════════
+-- HUB DE INTEGRACIÓN CON OBRAS SOCIALES
+-- ═══════════════════════════════════════════════════════════
+
+CREATE TYPE connector_kind AS ENUM ('api', 'portal', 'manual', 'offline');
+CREATE TYPE connector_health AS ENUM ('healthy', 'degraded', 'down', 'unknown');
+CREATE TYPE validation_result AS ENUM ('approved', 'rejected', 'pending', 'error', 'manual_review');
+
+-- ─── PADRÓN DE FINANCIADORES ────────────────────────────────
+-- Catálogo maestro nacional. Se carga una vez y se mantiene.
+
+CREATE TABLE insurers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- Identificación oficial
+    rnos_code VARCHAR(20) UNIQUE,              -- Código RNOS de SSSalud
+    cuit VARCHAR(13),
+    name VARCHAR(200) NOT NULL,
+    short_name VARCHAR(60),
+    kind VARCHAR(30) DEFAULT 'obra_social',    -- obra_social | prepaga | mutual | provincial
+
+    -- Alcance
+    province VARCHAR(100),                      -- NULL = nacional
+    is_national BOOLEAN DEFAULT true,
+
+    -- Branding
+    logo_url TEXT,
+    brand_color VARCHAR(7),
+
+    -- Estado
+    is_active BOOLEAN DEFAULT true,
+    affiliate_count INT,                        -- Para priorizar integraciones
+
+    aliases TEXT[],                             -- ["OSDE","O.S.D.E.","Organización de Servicios Directos"]
+
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_insurers_rnos ON insurers(rnos_code);
+CREATE INDEX idx_insurers_name ON insurers USING gin(to_tsvector('spanish', name));
+CREATE INDEX idx_insurers_province ON insurers(province) WHERE is_active;
+
+-- ─── PLANES POR FINANCIADOR ─────────────────────────────────
+
+CREATE TABLE insurer_plans (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    insurer_id UUID NOT NULL REFERENCES insurers(id) ON DELETE CASCADE,
+    code VARCHAR(50) NOT NULL,
+    name VARCHAR(200) NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    UNIQUE(insurer_id, code)
+);
+
+CREATE INDEX idx_plans_insurer ON insurer_plans(insurer_id);
+
+-- ─── CONECTORES ─────────────────────────────────────────────
+-- Cómo hablamos con cada financiador. Un financiador puede
+-- tener varios conectores con prioridad (fallback chain).
+
+CREATE TABLE connectors (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    insurer_id UUID NOT NULL REFERENCES insurers(id) ON DELETE CASCADE,
+
+    adapter_key VARCHAR(60) NOT NULL,          -- 'osde_api' | 'swiss_portal' | 'generic_manual'
+    kind connector_kind NOT NULL,
+    priority INT DEFAULT 100,                   -- Menor = se intenta primero
+
+    -- Capacidades que soporta este conector
+    can_validate_affiliate BOOLEAN DEFAULT false,
+    can_authorize_practice BOOLEAN DEFAULT false,
+    can_submit_batch BOOLEAN DEFAULT false,
+    can_query_status BOOLEAN DEFAULT false,
+
+    -- Config específica del adaptador (URLs, endpoints, selectores)
+    config JSONB DEFAULT '{}',
+
+    -- Salud del conector
+    health connector_health DEFAULT 'unknown',
+    last_success_at TIMESTAMPTZ,
+    last_failure_at TIMESTAMPTZ,
+    consecutive_failures INT DEFAULT 0,
+    avg_latency_ms INT,
+
+    -- Rate limiting
+    max_requests_per_minute INT DEFAULT 30,
+
+    is_enabled BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_connectors_insurer ON connectors(insurer_id, priority) WHERE is_enabled;
+CREATE INDEX idx_connectors_health ON connectors(health);
+
+-- ─── CREDENCIALES DEL PRESTADOR ─────────────────────────────
+-- Cada consultorio guarda sus credenciales de cada portal.
+-- Cifradas con pgcrypto usando la clave de la app.
+
+CREATE TABLE provider_credentials (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    insurer_id UUID NOT NULL REFERENCES insurers(id) ON DELETE CASCADE,
+
+    -- Identificación del prestador ante esa obra social
+    provider_code VARCHAR(60),                  -- Nro de prestador
+    provider_cuit VARCHAR(13),
+
+    -- Credenciales cifradas (bytea con pgp_sym_encrypt)
+    username_enc BYTEA,
+    password_enc BYTEA,
+    extra_enc BYTEA,                            -- JSON con tokens, certificados, etc.
+
+    -- Estado
+    is_valid BOOLEAN DEFAULT true,
+    last_verified_at TIMESTAMPTZ,
+    last_error TEXT,
+
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+    UNIQUE(organization_id, insurer_id)
+);
+
+CREATE INDEX idx_provider_creds_org ON provider_credentials(organization_id);
+
+-- ─── SOLICITUDES AL HUB ─────────────────────────────────────
+-- Toda operación contra una obra social pasa por acá.
+
+CREATE TABLE hub_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id),
+    insurer_id UUID NOT NULL REFERENCES insurers(id),
+    connector_id UUID REFERENCES connectors(id),
+
+    operation VARCHAR(40) NOT NULL,             -- validate | authorize | submit_batch | query
+    idempotency_key VARCHAR(100),
+
+    -- Entrada normalizada
+    payload JSONB NOT NULL,
+
+    -- Salida normalizada
+    result validation_result,
+    response JSONB,
+    authorization_code VARCHAR(60),
+    error_code VARCHAR(60),
+    error_message TEXT,
+
+    -- Trazabilidad
+    attempts INT DEFAULT 0,
+    latency_ms INT,
+    raw_response TEXT,                          -- Para debug de portales
+
+    -- Referencias
+    patient_id UUID REFERENCES patients(id),
+    appointment_id UUID REFERENCES appointments(id),
+
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    completed_at TIMESTAMPTZ
+);
+
+CREATE INDEX idx_hub_req_org ON hub_requests(organization_id, created_at DESC);
+CREATE INDEX idx_hub_req_insurer ON hub_requests(insurer_id, created_at DESC);
+CREATE UNIQUE INDEX idx_hub_req_idem ON hub_requests(idempotency_key) WHERE idempotency_key IS NOT NULL;
+CREATE INDEX idx_hub_req_pending ON hub_requests(operation) WHERE result = 'pending';
+
+-- ─── CACHÉ DE VALIDACIONES ──────────────────────────────────
+-- Un afiliado validado hace 10 minutos no se revalida.
+
+CREATE TABLE affiliate_cache (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    insurer_id UUID NOT NULL REFERENCES insurers(id) ON DELETE CASCADE,
+    affiliate_number VARCHAR(60) NOT NULL,
+    document_number VARCHAR(20),
+
+    is_valid BOOLEAN,
+    full_name VARCHAR(200),
+    plan_code VARCHAR(50),
+    plan_name VARCHAR(200),
+    coverage JSONB DEFAULT '{}',
+
+    validated_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL,
+
+    UNIQUE(insurer_id, affiliate_number)
+);
+
+CREATE INDEX idx_affiliate_cache_lookup ON affiliate_cache(insurer_id, affiliate_number);
+CREATE INDEX idx_affiliate_cache_doc ON affiliate_cache(insurer_id, document_number);
+CREATE INDEX idx_affiliate_cache_exp ON affiliate_cache(expires_at);
+
+-- ─── NOMENCLADORES ──────────────────────────────────────────
+
+CREATE TABLE nomenclators (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    insurer_id UUID REFERENCES insurers(id) ON DELETE CASCADE,
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+
+    name VARCHAR(200) NOT NULL,
+    source VARCHAR(60),                         -- 'nacional' | 'colegio' | 'convenio' | 'propio'
+    valid_from DATE NOT NULL,
+    valid_to DATE,
+    is_active BOOLEAN DEFAULT true,
+
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_nomenclators_insurer ON nomenclators(insurer_id, valid_from DESC);
+CREATE INDEX idx_nomenclators_org ON nomenclators(organization_id);
+
+CREATE TABLE nomenclator_items (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    nomenclator_id UUID NOT NULL REFERENCES nomenclators(id) ON DELETE CASCADE,
+
+    code VARCHAR(30) NOT NULL,
+    description TEXT NOT NULL,
+    specialty VARCHAR(100),
+
+    -- Valorización
+    professional_units DECIMAL(10,2),           -- Galenos / unidades
+    operative_units DECIMAL(10,2),
+    amount DECIMAL(12,2),                       -- Monto directo si aplica
+
+    -- Reglas
+    requires_authorization BOOLEAN DEFAULT false,
+    requires_diagnosis BOOLEAN DEFAULT true,
+    max_per_period INT,
+    period_days INT,
+    min_age INT,
+    max_age INT,
+    gender_restriction VARCHAR(10),
+
+    coinsurance DECIMAL(12,2),                  -- Coseguro a cargo del paciente
+
+    UNIQUE(nomenclator_id, code)
+);
+
+CREATE INDEX idx_nom_items_code ON nomenclator_items(nomenclator_id, code);
+CREATE INDEX idx_nom_items_search ON nomenclator_items USING gin(to_tsvector('spanish', description));
+
+-- ─── LOTES DE FACTURACIÓN ───────────────────────────────────
+
+CREATE TABLE billing_batches (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    insurer_id UUID NOT NULL REFERENCES insurers(id),
+
+    period_year INT NOT NULL,
+    period_month INT NOT NULL,
+    batch_number VARCHAR(40),
+
+    status VARCHAR(30) DEFAULT 'draft',         -- draft | audited | submitted | accepted | rejected | paid
+
+    total_items INT DEFAULT 0,
+    total_amount DECIMAL(14,2) DEFAULT 0,
+    accepted_amount DECIMAL(14,2),
+    rejected_amount DECIMAL(14,2),
+
+    submitted_at TIMESTAMPTZ,
+    resolved_at TIMESTAMPTZ,
+    export_url TEXT,
+    notes TEXT,
+
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_batches_org ON billing_batches(organization_id, period_year DESC, period_month DESC);
+CREATE INDEX idx_batches_status ON billing_batches(status);
+
+CREATE TABLE billing_items (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    batch_id UUID NOT NULL REFERENCES billing_batches(id) ON DELETE CASCADE,
+
+    patient_id UUID REFERENCES patients(id),
+    appointment_id UUID REFERENCES appointments(id),
+    medical_record_id UUID REFERENCES medical_records(id),
+    doctor_id UUID REFERENCES doctors(id),
+
+    service_date DATE NOT NULL,
+    nomenclator_code VARCHAR(30) NOT NULL,
+    description TEXT,
+    quantity INT DEFAULT 1,
+    unit_amount DECIMAL(12,2),
+    total_amount DECIMAL(12,2),
+
+    affiliate_number VARCHAR(60),
+    plan_code VARCHAR(50),
+    diagnosis_code VARCHAR(10),
+    authorization_code VARCHAR(60),
+
+    -- Auditoría interna antes de presentar
+    audit_status VARCHAR(20) DEFAULT 'pending', -- pending | ok | warning | blocked
+    audit_notes TEXT[],
+
+    -- Respuesta de la obra social
+    is_accepted BOOLEAN,
+    rejection_reason TEXT,
+
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_billing_items_batch ON billing_items(batch_id);
+CREATE INDEX idx_billing_items_audit ON billing_items(batch_id, audit_status);
+
+-- ─── TRIGGERS ───────────────────────────────────────────────
+
+CREATE TRIGGER trg_insurers_upd BEFORE UPDATE ON insurers FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER trg_connectors_upd BEFORE UPDATE ON connectors FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER trg_provider_creds_upd BEFORE UPDATE ON provider_credentials FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER trg_batches_upd BEFORE UPDATE ON billing_batches FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- ─── LIMPIEZA DE CACHÉ ──────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION cleanup_affiliate_cache()
+RETURNS void AS $$
+BEGIN
+    DELETE FROM affiliate_cache WHERE expires_at < NOW();
+END;
+$$ LANGUAGE plpgsql;
+
+-- ─── VISTA: cobertura del hub ───────────────────────────────
+
+CREATE VIEW v_hub_coverage AS
+SELECT
+    i.id AS insurer_id,
+    i.name,
+    i.short_name,
+    i.rnos_code,
+    i.province,
+    i.affiliate_count,
+    COUNT(c.id) FILTER (WHERE c.is_enabled) AS connector_count,
+    BOOL_OR(c.can_validate_affiliate AND c.is_enabled) AS supports_validation,
+    BOOL_OR(c.can_authorize_practice AND c.is_enabled) AS supports_authorization,
+    BOOL_OR(c.can_submit_batch AND c.is_enabled) AS supports_batch,
+    MIN(c.priority) FILTER (WHERE c.is_enabled) AS best_priority,
+    (ARRAY_AGG(c.kind ORDER BY c.priority) FILTER (WHERE c.is_enabled))[1] AS primary_kind,
+    (ARRAY_AGG(c.health ORDER BY c.priority) FILTER (WHERE c.is_enabled))[1] AS primary_health
+FROM insurers i
+LEFT JOIN connectors c ON c.insurer_id = i.id
+WHERE i.is_active
+GROUP BY i.id;

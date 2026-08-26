@@ -25,6 +25,10 @@ import { ScheduleService } from './modules/schedules/schedule.service';
 import { BookingController, PublicBookingController } from './modules/booking/booking.controller';
 import { BookingService } from './modules/booking/booking.service';
 import { BookingPageController } from './modules/booking/page.controller';
+import { HubController } from './modules/hub/hub.controller';
+import { HubService } from './modules/hub/hub.service';
+import { GenericRestAdapter } from './modules/hub/adapters/generic-rest.adapter';
+import { ManualAdapter } from './modules/hub/adapters/manual.adapter';
 import { JwtModule } from '@nestjs/jwt';
 
 @Controller('api/v1')
@@ -64,6 +68,7 @@ class HealthController {
     BookingController,
     PublicBookingController,
     BookingPageController,
+    HubController,
   ],
   providers: [
     DatabaseService,
@@ -77,6 +82,9 @@ class HealthController {
     ChatService,
     ScheduleService,
     BookingService,
+    HubService,
+    GenericRestAdapter,
+    ManualAdapter,
   ],
 })
 class AppModule {}
