@@ -35,6 +35,8 @@ import { NomenclatorController } from './modules/nomenclators/nomenclator.contro
 import { NomenclatorService } from './modules/nomenclators/nomenclator.service';
 import { BillingController } from './modules/billing/billing.controller';
 import { BillingService } from './modules/billing/billing.service';
+import { ReminderSettingsController } from './modules/reminders/reminder-settings.controller';
+import { ReminderSettingsService } from './modules/reminders/reminder-settings.service';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './common/guards/auth.guard';
@@ -83,6 +85,7 @@ class HealthController {
     InsurerController,
     NomenclatorController,
     BillingController,
+    ReminderSettingsController,
   ],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },
@@ -103,6 +106,7 @@ class HealthController {
     InsurerService,
     NomenclatorService,
     BillingService,
+    ReminderSettingsService,
   ],
 })
 class AppModule {}
