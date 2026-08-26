@@ -699,3 +699,276 @@ CREATE TABLE oauth_accounts (
 
 CREATE INDEX idx_oauth_doctor ON oauth_accounts(doctor_id);
 CREATE INDEX idx_oauth_provider ON oauth_accounts(provider, provider_id);
+
+-- ═══════════════════════════════════════════════════════════
+-- SISTEMA DE RESERVAS PÚBLICAS (link para pacientes)
+-- ═══════════════════════════════════════════════════════════
+
+CREATE TYPE booking_mode AS ENUM (
+    'open',              -- Reserva libre, sin requisitos
+    'approval',          -- Requiere que el médico apruebe
+    'deposit',           -- Requiere seña
+    'deposit_approval'   -- Seña + aprobación
+);
+
+CREATE TYPE payment_method AS ENUM ('transfer', 'cash', 'both');
+CREATE TYPE payment_status AS ENUM ('pending', 'proof_uploaded', 'confirmed', 'rejected', 'refunded');
+CREATE TYPE booking_status AS ENUM (
+    'pending_payment',   -- Esperando seña
+    'pending_approval',  -- Esperando aprobación del médico
+    'confirmed',         -- Confirmado
+    'rejected',          -- Rechazado por el médico
+    'cancelled',         -- Cancelado por el paciente
+    'expired'            -- Venció el tiempo para pagar
+);
+
+-- ─── CONFIGURACIÓN DE RESERVAS POR MÉDICO/ORG ──────────────
+
+CREATE TABLE booking_settings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    org_doctor_id UUID UNIQUE NOT NULL REFERENCES organization_doctors(id) ON DELETE CASCADE,
+    
+    -- ¿Está activa la reserva online?
+    is_enabled BOOLEAN DEFAULT false,
+    
+    -- Slug público para el link (ej: /reservar/dr-garcia)
+    public_slug VARCHAR(100) UNIQUE,
+    
+    -- Modalidad de reserva
+    booking_mode booking_mode DEFAULT 'open',
+    
+    -- ─── Seña ───
+    requires_deposit BOOLEAN DEFAULT false,
+    deposit_amount DECIMAL(10,2),
+    deposit_percentage INT,                          -- O un % del valor de consulta
+    consultation_fee DECIMAL(10,2),                  -- Valor de la consulta
+    payment_methods payment_method DEFAULT 'both',
+    
+    -- Datos bancarios para transferencia
+    bank_name VARCHAR(100),
+    bank_account_holder VARCHAR(200),
+    bank_cbu VARCHAR(30),
+    bank_alias VARCHAR(50),
+    
+    -- Tiempo límite para pagar la seña (minutos)
+    payment_deadline_minutes INT DEFAULT 120,
+    
+    -- ─── Política de no-show ───
+    charge_on_no_show BOOLEAN DEFAULT false,
+    no_show_fee DECIMAL(10,2),                       -- Cuánto cobra si no viene
+    keeps_deposit_on_no_show BOOLEAN DEFAULT true,   -- Se queda con la seña
+    
+    -- ─── Cancelación ───
+    min_hours_before_cancel INT DEFAULT 24,          -- Mínimo para cancelar sin cargo
+    refund_on_early_cancel BOOLEAN DEFAULT true,
+    
+    -- ─── Restricciones ───
+    max_days_in_advance INT DEFAULT 60,              -- Hasta cuándo se puede reservar
+    min_hours_in_advance INT DEFAULT 2,              -- Anticipación mínima
+    allow_new_patients BOOLEAN DEFAULT true,
+    requires_insurance_info BOOLEAN DEFAULT false,
+    
+    -- ─── Receta anticipada ───
+    -- Si el médico genera la receta antes de la consulta
+    allows_prepaid_prescription BOOLEAN DEFAULT false,
+    prescription_requires_payment BOOLEAN DEFAULT true,
+    
+    -- ─── Mensajes personalizados ───
+    welcome_message TEXT,
+    instructions TEXT,                               -- Instrucciones para el paciente
+    cancellation_policy_text TEXT,
+    
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_booking_settings_slug ON booking_settings(public_slug) WHERE is_enabled = true;
+CREATE INDEX idx_booking_settings_orgdoc ON booking_settings(org_doctor_id);
+
+-- ─── SOLICITUDES DE RESERVA (desde el link público) ────────
+
+CREATE TABLE booking_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    org_doctor_id UUID NOT NULL REFERENCES organization_doctors(id) ON DELETE CASCADE,
+    organization_id UUID NOT NULL REFERENCES organizations(id),
+    
+    -- Si el paciente ya existe en el sistema
+    patient_id UUID REFERENCES patients(id),
+    
+    -- Datos del solicitante (si es paciente nuevo)
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    dni VARCHAR(20),
+    email VARCHAR(255),
+    phone VARCHAR(20) NOT NULL,
+    date_of_birth DATE,
+    
+    -- Obra social
+    insurance_provider VARCHAR(200),
+    insurance_number VARCHAR(50),
+    
+    -- Turno solicitado
+    requested_date DATE NOT NULL,
+    requested_start_time TIME NOT NULL,
+    requested_end_time TIME NOT NULL,
+    reason TEXT,
+    is_first_visit BOOLEAN DEFAULT true,
+    
+    -- Estado
+    status booking_status DEFAULT 'pending_approval',
+    
+    -- Pago
+    deposit_required DECIMAL(10,2),
+    payment_status payment_status DEFAULT 'pending',
+    payment_method VARCHAR(20),                      -- transfer | cash
+    payment_proof_url TEXT,                          -- Comprobante subido
+    payment_reference VARCHAR(100),                  -- Nro de operación
+    payment_confirmed_at TIMESTAMPTZ,
+    payment_deadline TIMESTAMPTZ,
+    
+    -- Token de confirmación (para links de email/whatsapp)
+    confirmation_token VARCHAR(64) UNIQUE DEFAULT encode(gen_random_bytes(32), 'hex'),
+    
+    -- Turno creado si se aprueba
+    appointment_id UUID REFERENCES appointments(id),
+    
+    -- Revisión del médico
+    reviewed_at TIMESTAMPTZ,
+    reviewed_by UUID REFERENCES doctors(id),
+    rejection_reason TEXT,
+    
+    -- Metadata
+    source VARCHAR(50) DEFAULT 'public_link',        -- public_link, instagram, whatsapp
+    ip_address INET,
+    user_agent TEXT,
+    
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_booking_req_orgdoc ON booking_requests(org_doctor_id, status);
+CREATE INDEX idx_booking_req_date ON booking_requests(requested_date);
+CREATE INDEX idx_booking_req_token ON booking_requests(confirmation_token);
+CREATE INDEX idx_booking_req_phone ON booking_requests(phone);
+CREATE INDEX idx_booking_req_pending ON booking_requests(org_doctor_id) WHERE status IN ('pending_payment', 'pending_approval');
+
+-- ─── PAGOS / SEÑAS ──────────────────────────────────────────
+
+CREATE TABLE payments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id),
+    booking_request_id UUID REFERENCES booking_requests(id),
+    appointment_id UUID REFERENCES appointments(id),
+    patient_id UUID REFERENCES patients(id),
+    
+    amount DECIMAL(10,2) NOT NULL,
+    method VARCHAR(20) NOT NULL,                     -- transfer | cash
+    status payment_status DEFAULT 'pending',
+    
+    -- Comprobante
+    proof_url TEXT,
+    reference VARCHAR(100),
+    
+    -- Tipo de pago
+    payment_type VARCHAR(30) DEFAULT 'deposit',      -- deposit | consultation | no_show_fee
+    
+    -- Confirmación
+    confirmed_by UUID REFERENCES doctors(id),
+    confirmed_at TIMESTAMPTZ,
+    notes TEXT,
+    
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_payments_org ON payments(organization_id, created_at DESC);
+CREATE INDEX idx_payments_booking ON payments(booking_request_id);
+CREATE INDEX idx_payments_status ON payments(status);
+
+-- ─── SLOTS BLOQUEADOS TEMPORALMENTE ────────────────────────
+-- Cuando alguien está reservando, se bloquea el slot X minutos
+
+CREATE TABLE slot_holds (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    org_doctor_id UUID NOT NULL REFERENCES organization_doctors(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    
+    booking_request_id UUID REFERENCES booking_requests(id) ON DELETE CASCADE,
+    session_id VARCHAR(100),
+    
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_slot_holds ON slot_holds(org_doctor_id, date, start_time);
+CREATE INDEX idx_slot_holds_expiry ON slot_holds(expires_at);
+
+-- ─── TRIGGERS ───────────────────────────────────────────────
+
+CREATE TRIGGER trg_booking_settings_upd BEFORE UPDATE ON booking_settings
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER trg_booking_req_upd BEFORE UPDATE ON booking_requests
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER trg_payments_upd BEFORE UPDATE ON payments
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- ─── LIMPIEZA DE HOLDS VENCIDOS ────────────────────────────
+
+CREATE OR REPLACE FUNCTION cleanup_expired_holds()
+RETURNS void AS $$
+BEGIN
+    DELETE FROM slot_holds WHERE expires_at < NOW();
+    
+    UPDATE booking_requests
+    SET status = 'expired'
+    WHERE status = 'pending_payment'
+      AND payment_deadline < NOW();
+END;
+$$ LANGUAGE plpgsql;
+
+-- ─── VISTA: Perfil público del médico ──────────────────────
+
+CREATE VIEW v_public_doctor_profile AS
+SELECT
+    bs.public_slug,
+    bs.is_enabled,
+    bs.booking_mode,
+    bs.requires_deposit,
+    bs.deposit_amount,
+    bs.consultation_fee,
+    bs.payment_methods,
+    bs.bank_name,
+    bs.bank_account_holder,
+    bs.bank_cbu,
+    bs.bank_alias,
+    bs.payment_deadline_minutes,
+    bs.min_hours_before_cancel,
+    bs.max_days_in_advance,
+    bs.min_hours_in_advance,
+    bs.allow_new_patients,
+    bs.requires_insurance_info,
+    bs.welcome_message,
+    bs.instructions,
+    bs.cancellation_policy_text,
+    od.id AS org_doctor_id,
+    d.id AS doctor_id,
+    d.first_name || ' ' || d.last_name AS doctor_name,
+    d.specialty,
+    d.avatar_url,
+    d.medical_license,
+    o.id AS organization_id,
+    o.name AS org_name,
+    o.type AS org_type,
+    o.address,
+    o.city,
+    o.province,
+    o.phone AS org_phone,
+    o.logo_url,
+    o.primary_color
+FROM booking_settings bs
+JOIN organization_doctors od ON od.id = bs.org_doctor_id
+JOIN doctors d ON d.id = od.doctor_id
+JOIN organizations o ON o.id = od.organization_id
+WHERE bs.is_enabled = true AND od.is_active = true;

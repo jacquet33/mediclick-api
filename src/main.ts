@@ -1,4 +1,6 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import { Module, Controller, Get } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseService } from './database/database.service';
@@ -20,6 +22,9 @@ import { ChatController } from './modules/chat/chat.controller';
 import { ChatService } from './modules/chat/chat.service';
 import { ScheduleController } from './modules/schedules/schedule.controller';
 import { ScheduleService } from './modules/schedules/schedule.service';
+import { BookingController, PublicBookingController } from './modules/booking/booking.controller';
+import { BookingService } from './modules/booking/booking.service';
+import { BookingPageController } from './modules/booking/page.controller';
 import { JwtModule } from '@nestjs/jwt';
 
 @Controller('api/v1')
@@ -56,6 +61,9 @@ class HealthController {
     MedicalRecordController,
     ChatController,
     ScheduleController,
+    BookingController,
+    PublicBookingController,
+    BookingPageController,
   ],
   providers: [
     DatabaseService,
@@ -68,12 +76,14 @@ class HealthController {
     MedicalRecordService,
     ChatService,
     ScheduleService,
+    BookingService,
   ],
 })
 class AppModule {}
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: true });
+  app.useStaticAssets(join(__dirname, '..', 'public'));
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');
   console.log(`MediClick API v1.0.0 running on port ${port}`);
