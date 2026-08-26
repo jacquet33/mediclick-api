@@ -15,6 +15,20 @@ export interface AuthTokens {
   refreshToken: string;
 }
 
+export interface DoctorOrg {
+  org_doctor_id: string;
+  org_id: string;
+  org_name: string;
+  org_type: string;
+  role: string;
+  is_owner: boolean;
+}
+
+export interface AuthSession extends AuthTokens {
+  doctor: Record<string, unknown>;
+  organizations: DoctorOrg[];
+}
+
 export interface RegisterDto {
   email: string;
   password: string;
@@ -41,7 +55,7 @@ export class AuthService {
   ) {}
 
   /** Registro de nuevo doctor */
-  async register(dto: RegisterDto): Promise<AuthTokens> {
+  async register(dto: RegisterDto): Promise<AuthSession> {
     // Verificar duplicados
     const exists = await this.db.queryOne(
       'SELECT id FROM doctors WHERE email = $1 OR medical_license = $2',
@@ -77,12 +91,18 @@ export class AuthService {
 
     await this.updateRefreshToken(doctor.id, tokens.refreshToken);
 
+    const organizations = await this.db.queryMany(
+      `SELECT org_doctor_id, org_id, org_name, org_type, role, is_owner
+       FROM v_doctor_orgs WHERE doctor_id = $1`,
+      [doctor.id],
+    );
+
     this.logger.log(`Doctor registered: ${doctor.email}`);
-    return tokens;
+    return { ...tokens, doctor, organizations };
   }
 
   /** Login con email y password */
-  async login(dto: LoginDto): Promise<AuthTokens & { doctor: any }> {
+  async login(dto: LoginDto): Promise<AuthSession> {
     const doctor = await this.db.queryOne(
       `SELECT id, email, password_hash, first_name, last_name, role, 
               specialty, avatar_url, is_active, is_verified
@@ -115,7 +135,15 @@ export class AuthService {
 
     const { password_hash, ...safeDoctor } = doctor;
 
-    return { ...tokens, doctor: safeDoctor };
+    // La app necesita saber a qué consultorios pertenece para poder
+    // mandar el header x-organization-id en las siguientes llamadas
+    const organizations = await this.db.queryMany(
+      `SELECT org_doctor_id, org_id, org_name, org_type, role, is_owner
+       FROM v_doctor_orgs WHERE doctor_id = $1 ORDER BY org_name`,
+      [doctor.id],
+    );
+
+    return { ...tokens, doctor: safeDoctor, organizations };
   }
 
   /** Refresh de tokens */
