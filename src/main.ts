@@ -37,9 +37,12 @@ import { BillingController } from './modules/billing/billing.controller';
 import { BillingService } from './modules/billing/billing.service';
 import { ReminderSettingsController } from './modules/reminders/reminder-settings.controller';
 import { ReminderSettingsService } from './modules/reminders/reminder-settings.service';
+import { SubscriptionController } from './modules/subscriptions/subscription.controller';
+import { SubscriptionService } from './modules/subscriptions/subscription.service';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './common/guards/auth.guard';
+import { ProGuard } from './common/guards/pro.guard';
 
 import { Public } from './common/guards/auth.guard';
 
@@ -86,6 +89,7 @@ class HealthController {
     NomenclatorController,
     BillingController,
     ReminderSettingsController,
+    SubscriptionController,
   ],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },
@@ -107,6 +111,8 @@ class HealthController {
     NomenclatorService,
     BillingService,
     ReminderSettingsService,
+    SubscriptionService,
+    { provide: APP_GUARD, useClass: ProGuard },
   ],
 })
 class AppModule {}
