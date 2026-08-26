@@ -150,6 +150,32 @@ export class PatientService {
     return { message: 'Paciente desactivado' };
   }
 
+  /**
+   * Obras sociales con las que el consultorio realmente trabaja.
+   *
+   * Sale de lo que hay cargado en los pacientes, matcheado contra
+   * el padrón. Es lo que se ofrece al armar un lote — no tiene
+   * sentido mostrar las 300 si el médico atiende 6.
+   */
+  async insurersInUse(orgId: string) {
+    return this.db.queryMany(
+      `SELECT DISTINCT i.id, i.name, i.short_name, i.kind, i.province,
+              COUNT(p.id) AS patient_count
+       FROM patients p
+       JOIN insurers i ON (
+         LOWER(p.insurance_provider) = LOWER(i.name)
+         OR LOWER(p.insurance_provider) = LOWER(i.short_name)
+         OR p.insurance_provider = ANY(i.aliases)
+       )
+       WHERE p.organization_id = $1
+         AND p.is_active
+         AND p.insurance_provider IS NOT NULL
+       GROUP BY i.id
+       ORDER BY COUNT(p.id) DESC, i.name`,
+      [orgId],
+    );
+  }
+
   async getTimeline(orgId: string, patientId: string) {
     await this.findById(orgId, patientId);
 

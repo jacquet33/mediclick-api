@@ -21,6 +21,12 @@ export class PatientController {
     });
   }
 
+  /** Obras sociales con las que trabaja el consultorio */
+  @Get('insurers')
+  insurersInUse(@OrgId() orgId: string) {
+    return this.patientService.insurersInUse(orgId);
+  }
+
   @Get(':id')
   findById(@OrgId() orgId: string, @Param('id') id: string) {
     return this.patientService.findById(orgId, id);
