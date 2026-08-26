@@ -1,0 +1,13 @@
+Codigo;Descripcion;Especialidad;Importe;Autorizacion;Coseguro
+420101;Consulta en consultorio;Clinica medica;8500;NO;
+420102;Consulta domiciliaria;Clinica medica;14000;NO;
+420110;Consulta de urgencia;Clinica medica;12000;NO;2500
+170101;Electrocardiograma;Cardiologia;9800;NO;
+170201;Ergometria;Cardiologia;32000;SI;
+340101;Ecografia abdominal;Diagnostico por imagenes;21000;SI;
+340102;Ecografia ginecologica;Diagnostico por imagenes;19500;SI;
+420301;Control de salud anual;Clinica medica;9500;NO;
+480101;Papanicolaou;Ginecologia;11000;NO;
+490101;Control pediatrico;Pediatria;8000;NO;
+250101;Curacion simple;Cirugia;4200;NO;
+250102;Sutura de herida;Cirugia;15000;NO;
