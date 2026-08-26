@@ -1,6 +1,8 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { Public } from '../../common/guards/auth.guard';
 import { OAuthService, GoogleLoginDto, AppleLoginDto } from './oauth.service';
 
+@Public()
 @Controller('api/v1/auth')
 export class OAuthController {
   constructor(private oauthService: OAuthService) {}

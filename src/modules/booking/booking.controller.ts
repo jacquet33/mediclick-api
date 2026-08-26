@@ -1,10 +1,13 @@
-import { Controller, Get, Post, Put, Patch, Body, Param, Query, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Body, Param, Query } from '@nestjs/common';
 import { BookingService, BookingSettingsDto, CreateBookingDto } from './booking.service';
+import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
+import { Public } from '../../common/guards/auth.guard';
 
 // ═══════════════════════════════════════════════════════════
 // PÚBLICO — sin autenticación (para pacientes)
 // ═══════════════════════════════════════════════════════════
 
+@Public()
 @Controller('api/v1/public/booking')
 export class PublicBookingController {
   constructor(private bookingService: BookingService) {}
@@ -60,8 +63,8 @@ export class BookingController {
   /** GET /booking/settings — configuración de reservas */
   @Get('settings')
   getSettings(
-    @Headers('x-organization-id') orgId: string,
-    @Headers('x-doctor-id') doctorId: string,
+    @OrgId() orgId: string,
+    @DoctorId() doctorId: string,
   ) {
     return this.bookingService.getSettings(orgId, doctorId);
   }
@@ -69,8 +72,8 @@ export class BookingController {
   /** PUT /booking/settings — actualizar configuración */
   @Put('settings')
   updateSettings(
-    @Headers('x-organization-id') orgId: string,
-    @Headers('x-doctor-id') doctorId: string,
+    @OrgId() orgId: string,
+    @DoctorId() doctorId: string,
     @Body() dto: BookingSettingsDto,
   ) {
     return this.bookingService.updateSettings(orgId, doctorId, dto);
@@ -79,8 +82,8 @@ export class BookingController {
   /** GET /booking/requests — solicitudes pendientes */
   @Get('requests')
   getPending(
-    @Headers('x-organization-id') orgId: string,
-    @Headers('x-doctor-id') doctorId: string,
+    @OrgId() orgId: string,
+    @DoctorId() doctorId: string,
   ) {
     return this.bookingService.getPendingRequests(orgId, doctorId);
   }
@@ -88,8 +91,8 @@ export class BookingController {
   /** POST /booking/requests/:id/approve */
   @Post('requests/:id/approve')
   approve(
-    @Headers('x-organization-id') orgId: string,
-    @Headers('x-doctor-id') doctorId: string,
+    @OrgId() orgId: string,
+    @DoctorId() doctorId: string,
     @Param('id') id: string,
   ) {
     return this.bookingService.approveRequest(orgId, doctorId, id);
@@ -98,8 +101,8 @@ export class BookingController {
   /** POST /booking/requests/:id/reject */
   @Post('requests/:id/reject')
   reject(
-    @Headers('x-organization-id') orgId: string,
-    @Headers('x-doctor-id') doctorId: string,
+    @OrgId() orgId: string,
+    @DoctorId() doctorId: string,
     @Param('id') id: string,
     @Body() body: { reason?: string },
   ) {
@@ -109,8 +112,8 @@ export class BookingController {
   /** PATCH /booking/requests/:id/confirm-payment */
   @Patch('requests/:id/confirm-payment')
   confirmPayment(
-    @Headers('x-organization-id') orgId: string,
-    @Headers('x-doctor-id') doctorId: string,
+    @OrgId() orgId: string,
+    @DoctorId() doctorId: string,
     @Param('id') id: string,
   ) {
     return this.bookingService.confirmPayment(orgId, doctorId, id);
@@ -119,8 +122,8 @@ export class BookingController {
   /** POST /booking/appointments/:id/no-show */
   @Post('appointments/:id/no-show')
   noShow(
-    @Headers('x-organization-id') orgId: string,
-    @Headers('x-doctor-id') doctorId: string,
+    @OrgId() orgId: string,
+    @DoctorId() doctorId: string,
     @Param('id') id: string,
   ) {
     return this.bookingService.registerNoShow(orgId, doctorId, id);

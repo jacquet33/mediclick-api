@@ -126,11 +126,42 @@ tbody tr:hover{background:rgba(64,199,237,.04)}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div id="gate" style="max-width:380px;margin:80px auto;padding:0 20px">
+  <div style="background:var(--surface);border-radius:18px;padding:28px;
+       border:1px solid rgba(64,199,237,.18);box-shadow:0 14px 34px rgba(41,128,212,.1)">
+    <div style="text-align:center;margin-bottom:22px">
+      <div style="width:60px;height:60px;border-radius:50%;margin:0 auto 12px;
+           background:linear-gradient(135deg,var(--cyan),var(--primary));
+           display:flex;align-items:center;justify-content:center;font-size:26px">🔒</div>
+      <h2 style="font-size:19px;font-weight:600;margin-bottom:4px">Panel interno</h2>
+      <p style="font-size:13px;color:var(--text-soft)">Acceso restringido al equipo</p>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--text-soft);margin-bottom:5px">Email</label>
+      <input id="gEmail" type="email" autocomplete="username"
+        style="width:100%;padding:12px;border:1px solid rgba(64,199,237,.22);border-radius:10px;font-size:14px;font-family:inherit">
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--text-soft);margin-bottom:5px">Contraseña</label>
+      <input id="gPass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"
+        style="width:100%;padding:12px;border:1px solid rgba(64,199,237,.22);border-radius:10px;font-size:14px;font-family:inherit">
+    </div>
+    <p id="gErr" style="font-size:13px;color:var(--danger);margin-bottom:12px;display:none"></p>
+    <button onclick="doLogin()" id="gBtn"
+      style="width:100%;padding:13px;border:none;border-radius:11px;font-size:15px;font-weight:600;
+      color:#fff;cursor:pointer;font-family:inherit;
+      background:linear-gradient(135deg,var(--cyan),var(--primary))">Ingresar</button>
+  </div>
+</div>
+
+<div class="wrap hidden" id="panel">
 
   <div class="head">
     <h1>Cobertura del hub</h1>
     <p>Financiadores del padrón nacional y su estado de integración</p>
+    <button onclick="logout()" style="position:absolute;top:22px;right:22px;z-index:2;
+      background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;
+      padding:7px 14px;border-radius:9px;font-size:12px;cursor:pointer;font-family:inherit">Salir</button>
   </div>
 
   <div class="stats" id="stats"></div>
@@ -192,7 +223,7 @@ function debounced(){ clearTimeout(timer); timer = setTimeout(()=>load(1), 300);
 
 async function loadProvinces(){
   try{
-    const res = await fetch(`${API}/api/v1/insurers/provinces`);
+    const res = await authFetch(`${API}/api/v1/insurers/provinces`);
     const provs = await res.json();
     const sel = document.getElementById('prov');
     provs.forEach(p=>{
@@ -206,7 +237,7 @@ async function loadProvinces(){
 
 async function loadStats(){
   try{
-    const res = await fetch(`${API}/api/v1/hub/coverage`);
+    const res = await authFetch(`${API}/api/v1/hub/coverage`);
     const { summary } = await res.json();
     renderStats(summary);
   }catch(e){}
@@ -247,7 +278,7 @@ async function load(p){
   if(kind) params.set('kind', kind);
 
   try{
-    const res = await fetch(`${API}/api/v1/insurers?${params}`);
+    const res = await authFetch(`${API}/api/v1/insurers?${params}`);
     const { data, total, limit } = await res.json();
 
     document.getElementById('loading').classList.add('hidden');
@@ -318,9 +349,81 @@ function esc(s){
     ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 }
 
-loadProvinces();
-loadStats();
-load(1);
+function token(){ return sessionStorage.getItem('mc_admin_token'); }
+
+function authFetch(url, opts = {}){
+  return fetch(url, {
+    ...opts,
+    headers: { ...(opts.headers||{}), 'Authorization': 'Bearer ' + token() },
+  });
+}
+
+async function doLogin(){
+  const email = document.getElementById('gEmail').value.trim();
+  const pass = document.getElementById('gPass').value;
+  const err = document.getElementById('gErr');
+  const btn = document.getElementById('gBtn');
+  err.style.display = 'none';
+
+  if(!email || !pass){
+    err.textContent = 'Completá email y contraseña';
+    err.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Verificando…';
+
+  try{
+    const res = await fetch(`${API}/api/v1/auth/login`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email, password: pass }),
+    });
+    if(!res.ok) throw new Error('Credenciales incorrectas');
+    const data = await res.json();
+
+    sessionStorage.setItem('mc_admin_token', data.accessToken);
+
+    // El backend rechaza si no es platform admin
+    const probe = await authFetch(`${API}/api/v1/hub/coverage`);
+    if(probe.status === 403){
+      sessionStorage.removeItem('mc_admin_token');
+      throw new Error('Tu cuenta no tiene permisos de administrador');
+    }
+    if(!probe.ok) throw new Error('No se pudo verificar el acceso');
+
+    enterPanel();
+  }catch(e){
+    err.textContent = e.message;
+    err.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Ingresar';
+  }
+}
+
+function enterPanel(){
+  document.getElementById('gate').classList.add('hidden');
+  document.getElementById('panel').classList.remove('hidden');
+  loadProvinces();
+  loadStats();
+  load(1);
+}
+
+function logout(){
+  sessionStorage.removeItem('mc_admin_token');
+  location.reload();
+}
+
+// Si ya hay token válido en la sesión, entrar directo
+(async () => {
+  if(!token()) return;
+  try{
+    const res = await authFetch(`${API}/api/v1/hub/coverage`);
+    if(res.ok) enterPanel();
+    else sessionStorage.removeItem('mc_admin_token');
+  }catch(e){}
+})();
 </script>
 </body>
 </html>

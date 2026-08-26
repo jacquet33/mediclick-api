@@ -1,5 +1,6 @@
-import { Controller, Get, Put, Post, Delete, Body, Param, Query, Headers } from '@nestjs/common';
+import { Controller, Get, Put, Post, Delete, Body, Param, Query } from '@nestjs/common';
 import { ScheduleService, SetScheduleDto, AddExceptionDto } from './schedule.service';
+import { OrgId } from '../../common/decorators/current-user.decorator';
 
 @Controller('api/v1/schedules')
 export class ScheduleController {
@@ -7,20 +8,20 @@ export class ScheduleController {
 
   @Get()
   getSchedules(
-    @Headers('x-organization-id') orgId: string,
+    @OrgId() orgId: string,
     @Query('doctor_id') doctorId: string,
   ) {
     return this.scheduleService.getSchedules(orgId, doctorId);
   }
 
   @Put()
-  setSchedules(@Headers('x-organization-id') orgId: string, @Body() dto: SetScheduleDto) {
+  setSchedules(@OrgId() orgId: string, @Body() dto: SetScheduleDto) {
     return this.scheduleService.setSchedules(orgId, dto);
   }
 
   @Get('exceptions')
   getExceptions(
-    @Headers('x-organization-id') orgId: string,
+    @OrgId() orgId: string,
     @Query('doctor_id') doctorId: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
@@ -29,12 +30,12 @@ export class ScheduleController {
   }
 
   @Post('exceptions')
-  addException(@Headers('x-organization-id') orgId: string, @Body() dto: AddExceptionDto) {
+  addException(@OrgId() orgId: string, @Body() dto: AddExceptionDto) {
     return this.scheduleService.addException(orgId, dto);
   }
 
   @Delete('exceptions/:id')
-  deleteException(@Headers('x-organization-id') orgId: string, @Param('id') id: string) {
+  deleteException(@OrgId() orgId: string, @Param('id') id: string) {
     return this.scheduleService.deleteException(orgId, id);
   }
 }

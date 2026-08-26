@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, Headers, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { AppointmentService, CreateAppointmentDto } from './appointment.service';
+import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
 
 @Controller('api/v1/appointments')
 export class AppointmentController {
@@ -17,8 +18,8 @@ export class AppointmentController {
    */
   @Post()
   async create(
-    @Headers('x-organization-id') orgId: string,
-    @Headers('x-doctor-id') doctorId: string,
+    @OrgId() orgId: string,
+    @DoctorId() doctorId: string,
     @Body() dto: CreateAppointmentDto & { forceCreate?: boolean },
   ) {
     const { forceCreate, ...appointmentDto } = dto;
@@ -33,8 +34,8 @@ export class AppointmentController {
    */
   @Get()
   async getByDate(
-    @Headers('x-organization-id') orgId: string,
-    @Headers('x-doctor-id') doctorId: string,
+    @OrgId() orgId: string,
+    @DoctorId() doctorId: string,
     @Query('date') date: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
@@ -53,7 +54,7 @@ export class AppointmentController {
    */
   @Get('full-day')
   async getFullDay(
-    @Headers('x-doctor-id') doctorId: string,
+    @DoctorId() doctorId: string,
     @Query('date') date: string,
   ) {
     return this.apptService.getDoctorFullDay(doctorId, date || new Date().toISOString().split('T')[0]);
@@ -67,7 +68,7 @@ export class AppointmentController {
    */
   @Get('available-slots')
   async getAvailableSlots(
-    @Headers('x-organization-id') orgId: string,
+    @OrgId() orgId: string,
     @Query('doctor_id') doctorId: string,
     @Query('date') date: string,
   ) {
@@ -96,7 +97,7 @@ export class AppointmentController {
   @Patch(':id/status')
   async updateStatus(
     @Param('id') id: string,
-    @Headers('x-organization-id') orgId: string,
+    @OrgId() orgId: string,
     @Body() body: { status: string; cancelReason?: string },
   ) {
     return this.apptService.updateStatus(id, orgId, body.status, body.cancelReason);

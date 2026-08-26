@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Query } from '@nestjs/common';
 import { ChatService, SendMessageDto } from './chat.service';
+import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
 
 @Controller('api/v1')
 export class ChatController {
@@ -7,15 +8,15 @@ export class ChatController {
 
   @Get('conversations')
   getConversations(
-    @Headers('x-organization-id') orgId: string,
-    @Headers('x-doctor-id') doctorId: string,
+    @OrgId() orgId: string,
+    @DoctorId() doctorId: string,
   ) {
     return this.chatService.getConversations(orgId, doctorId);
   }
 
   @Get('conversations/:id/messages')
   getMessages(
-    @Headers('x-organization-id') orgId: string,
+    @OrgId() orgId: string,
     @Param('id') conversationId: string,
     @Query('since') since?: string,
     @Query('limit') limit?: string,
@@ -27,8 +28,8 @@ export class ChatController {
 
   @Post('messages')
   sendMessage(
-    @Headers('x-organization-id') orgId: string,
-    @Headers('x-doctor-id') doctorId: string,
+    @OrgId() orgId: string,
+    @DoctorId() doctorId: string,
     @Body() dto: SendMessageDto,
   ) {
     return this.chatService.sendMessage(orgId, doctorId, dto);
@@ -36,8 +37,8 @@ export class ChatController {
 
   @Patch('conversations/:id/read')
   markAsRead(
-    @Headers('x-organization-id') orgId: string,
-    @Headers('x-doctor-id') doctorId: string,
+    @OrgId() orgId: string,
+    @DoctorId() doctorId: string,
     @Param('id') conversationId: string,
   ) {
     return this.chatService.markAsRead(orgId, doctorId, conversationId);
@@ -45,8 +46,8 @@ export class ChatController {
 
   @Get('messages')
   getNewMessages(
-    @Headers('x-organization-id') orgId: string,
-    @Headers('x-doctor-id') doctorId: string,
+    @OrgId() orgId: string,
+    @DoctorId() doctorId: string,
     @Query('since') since: string,
   ) {
     return this.chatService.getNewMessages(orgId, doctorId, since);

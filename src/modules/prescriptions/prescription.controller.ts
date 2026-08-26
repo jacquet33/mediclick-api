@@ -1,5 +1,7 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Query } from '@nestjs/common';
+import { Public } from '../../common/guards/auth.guard';
 import { PrescriptionService, CreatePrescriptionDto } from './prescription.service';
+import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
 
 @Controller('api/v1/prescriptions')
 export class PrescriptionController {
@@ -7,8 +9,8 @@ export class PrescriptionController {
 
   @Get()
   findAll(
-    @Headers('x-organization-id') orgId: string,
-    @Headers('x-doctor-id') doctorId: string,
+    @OrgId() orgId: string,
+    @DoctorId() doctorId: string,
     @Query('patient_id') patientId?: string,
     @Query('status') status?: string,
     @Query('updated_since') updatedSince?: string,
@@ -16,27 +18,28 @@ export class PrescriptionController {
     return this.rxService.findAll(orgId, doctorId, { patientId, status, updatedSince });
   }
 
+  @Public()
   @Get('verify/:code')
   verify(@Param('code') code: string) {
     return this.rxService.verify(code);
   }
 
   @Get(':id')
-  findById(@Headers('x-organization-id') orgId: string, @Param('id') id: string) {
+  findById(@OrgId() orgId: string, @Param('id') id: string) {
     return this.rxService.findById(orgId, id);
   }
 
   @Post()
   create(
-    @Headers('x-organization-id') orgId: string,
-    @Headers('x-doctor-id') doctorId: string,
+    @OrgId() orgId: string,
+    @DoctorId() doctorId: string,
     @Body() dto: CreatePrescriptionDto,
   ) {
     return this.rxService.create(orgId, doctorId, dto);
   }
 
   @Patch(':id/cancel')
-  cancel(@Headers('x-organization-id') orgId: string, @Param('id') id: string) {
+  cancel(@OrgId() orgId: string, @Param('id') id: string) {
     return this.rxService.cancel(orgId, id);
   }
 }

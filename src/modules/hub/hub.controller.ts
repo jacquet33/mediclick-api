@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Body, Param, Query, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
+import { AdminOnly } from '../../common/guards/auth.guard';
 import { HubService } from './hub.service';
 import {
   AffiliateQuery, PracticeAuthorizationRequest, BatchSubmission,
 } from './adapters/adapter.interface';
+import { OrgId } from '../../common/decorators/current-user.decorator';
 
 @Controller('api/v1/hub')
 export class HubController {
@@ -14,7 +16,7 @@ export class HubController {
    */
   @Post('validate')
   validate(
-    @Headers('x-organization-id') orgId: string,
+    @OrgId() orgId: string,
     @Body() body: AffiliateQuery & { insurerId: string; skipCache?: boolean; patientId?: string },
   ) {
     const { insurerId, skipCache, patientId, ...query } = body;
@@ -27,7 +29,7 @@ export class HubController {
    */
   @Post('authorize')
   authorize(
-    @Headers('x-organization-id') orgId: string,
+    @OrgId() orgId: string,
     @Body() body: PracticeAuthorizationRequest & {
       insurerId: string; patientId?: string; appointmentId?: string;
     },
@@ -42,7 +44,7 @@ export class HubController {
    */
   @Post('batch')
   submitBatch(
-    @Headers('x-organization-id') orgId: string,
+    @OrgId() orgId: string,
     @Body() body: BatchSubmission & { insurerId: string },
   ) {
     const { insurerId, ...batch } = body;
@@ -53,6 +55,7 @@ export class HubController {
    * GET /hub/coverage
    * Qué obras sociales cubrimos y por qué vía.
    */
+  @AdminOnly()
   @Get('coverage')
   coverage(
     @Query('province') province?: string,

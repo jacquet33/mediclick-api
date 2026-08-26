@@ -2,8 +2,10 @@ import {
   Controller, Get, Post, Put, Body, Param, Query, Headers,
   BadRequestException,
 } from '@nestjs/common';
+import { AdminOnly } from '../../common/guards/auth.guard';
 import { InsurerService, InsurerRow } from './insurer.service';
 
+@AdminOnly()
 @Controller('api/v1/insurers')
 export class InsurerController {
   constructor(private insurers: InsurerService) {}

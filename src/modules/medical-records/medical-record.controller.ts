@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Put, Body, Param, Query, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query } from '@nestjs/common';
 import { MedicalRecordService, CreateMedicalRecordDto } from './medical-record.service';
+import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
 
 @Controller('api/v1/medical-records')
 export class MedicalRecordController {
@@ -7,21 +8,21 @@ export class MedicalRecordController {
 
   @Get()
   findByPatient(
-    @Headers('x-organization-id') orgId: string,
+    @OrgId() orgId: string,
     @Query('patient_id') patientId: string,
   ) {
     return this.recordService.findByPatient(orgId, patientId);
   }
 
   @Get(':id')
-  findById(@Headers('x-organization-id') orgId: string, @Param('id') id: string) {
+  findById(@OrgId() orgId: string, @Param('id') id: string) {
     return this.recordService.findById(orgId, id);
   }
 
   @Post()
   create(
-    @Headers('x-organization-id') orgId: string,
-    @Headers('x-doctor-id') doctorId: string,
+    @OrgId() orgId: string,
+    @DoctorId() doctorId: string,
     @Body() dto: CreateMedicalRecordDto,
   ) {
     return this.recordService.create(orgId, doctorId, dto);
@@ -29,7 +30,7 @@ export class MedicalRecordController {
 
   @Put(':id')
   update(
-    @Headers('x-organization-id') orgId: string,
+    @OrgId() orgId: string,
     @Param('id') id: string,
     @Body() dto: Partial<CreateMedicalRecordDto>,
   ) {

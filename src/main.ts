@@ -32,7 +32,12 @@ import { ManualAdapter } from './modules/hub/adapters/manual.adapter';
 import { InsurerController } from './modules/insurers/insurer.controller';
 import { InsurerService } from './modules/insurers/insurer.service';
 import { JwtModule } from '@nestjs/jwt';
+import { APP_GUARD } from '@nestjs/core';
+import { AuthGuard } from './common/guards/auth.guard';
 
+import { Public } from './common/guards/auth.guard';
+
+@Public()
 @Controller('api/v1')
 class HealthController {
   constructor(private db: DatabaseService) {}
@@ -74,6 +79,7 @@ class HealthController {
     InsurerController,
   ],
   providers: [
+    { provide: APP_GUARD, useClass: AuthGuard },
     DatabaseService,
     AuthService,
     OAuthService,
