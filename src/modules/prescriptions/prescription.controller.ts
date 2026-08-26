@@ -1,11 +1,16 @@
-import { Controller, Get, Post, Patch, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Query, Res, Header } from '@nestjs/common';
 import { Public } from '../../common/guards/auth.guard';
 import { PrescriptionService, CreatePrescriptionDto } from './prescription.service';
+import { PrescriptionPdfService } from './prescription-pdf.service';
 import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
+import { Response } from 'express';
 
 @Controller('api/v1/prescriptions')
 export class PrescriptionController {
-  constructor(private rxService: PrescriptionService) {}
+  constructor(
+    private rxService: PrescriptionService,
+    private pdfService: PrescriptionPdfService,
+  ) {}
 
   @Get()
   findAll(
@@ -36,6 +41,38 @@ export class PrescriptionController {
     @Body() dto: CreatePrescriptionDto,
   ) {
     return this.rxService.create(orgId, doctorId, dto);
+  }
+
+  @Get(':id/pdf')
+  async downloadPdf(
+    @OrgId() orgId: string,
+    @Param('id') id: string,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.pdfService.generatePdf(orgId, id);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="receta-${id.slice(0, 8)}.pdf"`,
+      'Content-Length': buffer.length,
+    });
+    res.end(buffer);
+  }
+
+  @Public()
+  @Get('verify/:code/pdf')
+  async verifyAndDownloadPdf(
+    @Param('code') code: string,
+    @Res() res: Response,
+  ) {
+    const rx = await this.rxService.verify(code);
+    if (!rx) throw new Error('Receta no encontrada');
+    const buffer = await this.pdfService.generatePdf(rx.organization_id, rx.id);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="receta-${code}.pdf"`,
+      'Content-Length': buffer.length,
+    });
+    res.end(buffer);
   }
 
   @Patch(':id/cancel')
