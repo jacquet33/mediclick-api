@@ -10,6 +10,12 @@ export class BookingPageController {
     res.sendFile(join(__dirname, '..', '..', '..', 'public', 'reservar.html'));
   }
 
+  /** Panel de cobertura del hub: /cobertura */
+  @Get('cobertura')
+  serveCoverage(@Res() res: Response) {
+    res.sendFile(join(__dirname, '..', '..', '..', 'public', 'cobertura.html'));
+  }
+
   /** Seguimiento de reserva: /turno/:token */
   @Get('turno/:token')
   serveStatus(@Param('token') token: string, @Res() res: Response) {

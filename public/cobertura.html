@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cobertura del hub — MediClick</title>
+<style>
+:root{
+  --cyan:#40C7ED; --sky:#4FA6F0; --primary:#2980D4; --deep:#1A599E;
+  --bg:#F0FAFF; --bg-soft:#E0F2FD; --surface:#fff;
+  --success:#21BF8C; --danger:#F25C66; --warning:#FFB333; --muted-c:#99B3C9;
+  --text:#1C334F; --text-soft:#61809E; --text-muted:#99B3C9;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:linear-gradient(180deg,var(--bg),var(--bg-soft) 60%,var(--bg));
+  min-height:100vh;color:var(--text);-webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px 60px}
+
+.head{
+  background:linear-gradient(135deg,var(--cyan),var(--sky),var(--primary));
+  border-radius:20px;padding:26px;color:#fff;margin-bottom:20px;
+  box-shadow:0 18px 36px rgba(41,128,212,.28);position:relative;overflow:hidden;
+}
+.head::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.3),transparent 55%)}
+.head>*{position:relative;z-index:1}
+.head h1{font-size:24px;font-weight:600;margin-bottom:4px}
+.head p{font-size:14px;opacity:.88}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.stat{
+  background:var(--surface);border-radius:14px;padding:16px;
+  border:1px solid rgba(64,199,237,.16);box-shadow:0 8px 20px rgba(41,128,212,.06);
+}
+.stat .n{font-size:30px;font-weight:600;line-height:1.1}
+.stat .l{font-size:12px;color:var(--text-soft);margin-top:4px}
+.stat.total .n{color:var(--primary)}
+.stat.auto .n{color:var(--success)}
+.stat.man .n{color:var(--warning)}
+.stat.none .n{color:var(--muted-c)}
+
+.bar{
+  display:flex;height:10px;border-radius:5px;overflow:hidden;margin-bottom:20px;
+  background:var(--bg-soft);
+}
+.bar div{transition:width .5s}
+.bar .b-api{background:var(--success)}
+.bar .b-portal{background:var(--cyan)}
+.bar .b-manual{background:var(--warning)}
+.bar .b-none{background:var(--muted-c)}
+
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--text-soft);margin:-12px 0 20px}
+.legend span{display:flex;align-items:center;gap:6px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+
+.filters{
+  display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;
+  background:var(--surface);padding:14px;border-radius:14px;
+  border:1px solid rgba(64,199,237,.16);
+}
+.filters input,.filters select{
+  padding:10px 13px;border:1px solid rgba(64,199,237,.22);border-radius:10px;
+  font-size:14px;font-family:inherit;color:var(--text);background:#fff;
+}
+.filters input{flex:1;min-width:180px}
+.filters input:focus,.filters select:focus{outline:none;border-color:var(--cyan)}
+
+table{width:100%;border-collapse:collapse;background:var(--surface);
+  border-radius:14px;overflow:hidden;border:1px solid rgba(64,199,237,.16);
+  box-shadow:0 10px 26px rgba(41,128,212,.06)}
+thead th{
+  text-align:left;font-size:11px;font-weight:600;letter-spacing:.4px;
+  text-transform:uppercase;color:var(--text-soft);padding:13px 14px;
+  background:var(--bg-soft);border-bottom:1px solid rgba(64,199,237,.16);
+}
+tbody td{padding:13px 14px;font-size:14px;border-bottom:1px solid rgba(64,199,237,.08)}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(64,199,237,.04)}
+.name{font-weight:500}
+.sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+
+.pill{
+  display:inline-block;padding:3px 10px;border-radius:20px;
+  font-size:11px;font-weight:600;white-space:nowrap;
+}
+.p-api{background:rgba(33,191,140,.13);color:#10805e}
+.p-portal{background:rgba(64,199,237,.15);color:#1a7a96}
+.p-manual{background:rgba(255,179,51,.16);color:#8a5a00}
+.p-none{background:rgba(153,179,201,.16);color:#5c7185}
+
+.caps{display:flex;gap:5px}
+.cap{
+  width:24px;height:24px;border-radius:6px;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:700;
+}
+.cap.on{background:rgba(33,191,140,.14);color:#10805e}
+.cap.off{background:rgba(153,179,201,.12);color:#a8bbcc}
+
+.health{display:inline-flex;align-items:center;gap:5px;font-size:12px}
+.h-healthy{color:var(--success)}
+.h-degraded{color:var(--warning)}
+.h-down{color:var(--danger)}
+.h-unknown{color:var(--text-muted)}
+
+.empty{text-align:center;padding:50px 20px;color:var(--text-soft)}
+.spinner{
+  width:32px;height:32px;border:3px solid var(--bg-soft);border-top-color:var(--cyan);
+  border-radius:50%;animation:spin .8s linear infinite;margin:40px auto;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hidden{display:none}
+.pager{display:flex;justify-content:center;gap:8px;margin-top:18px}
+.pager button{
+  padding:8px 14px;border:1px solid rgba(64,199,237,.25);background:#fff;
+  border-radius:9px;font-size:13px;color:var(--primary);cursor:pointer;font-family:inherit;
+}
+.pager button:disabled{opacity:.4;cursor:not-allowed}
+.pager span{padding:8px 4px;font-size:13px;color:var(--text-soft)}
+@media(max-width:640px){
+  .hide-sm{display:none}
+  .wrap{padding:16px 12px 40px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <h1>Cobertura del hub</h1>
+    <p>Financiadores del padrón nacional y su estado de integración</p>
+  </div>
+
+  <div class="stats" id="stats"></div>
+  <div class="bar" id="bar"></div>
+  <div class="legend">
+    <span><i class="dot" style="background:var(--success)"></i> API oficial</span>
+    <span><i class="dot" style="background:var(--cyan)"></i> Portal automatizado</span>
+    <span><i class="dot" style="background:var(--warning)"></i> Resolución manual</span>
+    <span><i class="dot" style="background:var(--muted-c)"></i> Sin conector</span>
+  </div>
+
+  <div class="filters">
+    <input id="q" placeholder="Buscar por nombre o código RNOS…" oninput="debounced()">
+    <select id="prov" onchange="load(1)"><option value="">Todas las provincias</option></select>
+    <select id="kind" onchange="load(1)">
+      <option value="">Todos los tipos</option>
+      <option value="obra_social">Obra social</option>
+      <option value="prepaga">Prepaga</option>
+      <option value="provincial">Provincial</option>
+      <option value="mutual">Mutual</option>
+    </select>
+  </div>
+
+  <div id="loading"><div class="spinner"></div></div>
+
+  <div id="content" class="hidden">
+    <table>
+      <thead>
+        <tr>
+          <th>Financiador</th>
+          <th class="hide-sm">RNOS</th>
+          <th>Vía</th>
+          <th class="hide-sm">Capacidades</th>
+          <th class="hide-sm">Estado</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="pager">
+      <button id="prev" onclick="load(page-1)">Anterior</button>
+      <span id="pginfo"></span>
+      <button id="next" onclick="load(page+1)">Siguiente</button>
+    </div>
+  </div>
+
+  <div id="empty" class="empty hidden">
+    <p style="font-size:38px;margin-bottom:10px">📋</p>
+    <p style="font-size:17px;font-weight:500;margin-bottom:6px">El padrón está vacío</p>
+    <p style="font-size:14px">Importalo con <code>POST /api/v1/insurers/import</code></p>
+  </div>
+
+</div>
+
+<script>
+const API = location.origin;
+let page = 1, totalPages = 1, timer;
+
+function debounced(){ clearTimeout(timer); timer = setTimeout(()=>load(1), 300); }
+
+async function loadProvinces(){
+  try{
+    const res = await fetch(`${API}/api/v1/insurers/provinces`);
+    const provs = await res.json();
+    const sel = document.getElementById('prov');
+    provs.forEach(p=>{
+      const o = document.createElement('option');
+      o.value = p.province;
+      o.textContent = `${p.province} (${p.n})`;
+      sel.appendChild(o);
+    });
+  }catch(e){}
+}
+
+async function loadStats(){
+  try{
+    const res = await fetch(`${API}/api/v1/hub/coverage`);
+    const { summary } = await res.json();
+    renderStats(summary);
+  }catch(e){}
+}
+
+function renderStats(s){
+  const automated = s.automated ?? 0;
+  const manual = s.manual ?? 0;
+  const unmapped = s.unmapped ?? 0;
+  const total = s.total ?? 0;
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat total"><div class="n">${total}</div><div class="l">Financiadores en el padrón</div></div>
+    <div class="stat auto"><div class="n">${automated}</div><div class="l">Con integración automática</div></div>
+    <div class="stat man"><div class="n">${manual}</div><div class="l">Con resolución manual</div></div>
+    <div class="stat none"><div class="n">${unmapped}</div><div class="l">Sin conector</div></div>`;
+
+  const pct = n => total ? (n/total*100).toFixed(1)+'%' : '0%';
+  document.getElementById('bar').innerHTML = `
+    <div class="b-api" style="width:${pct(automated)}"></div>
+    <div class="b-manual" style="width:${pct(manual)}"></div>
+    <div class="b-none" style="width:${pct(unmapped)}"></div>`;
+}
+
+async function load(p){
+  if(p < 1) return;
+  page = p;
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('content').classList.add('hidden');
+  document.getElementById('empty').classList.add('hidden');
+
+  const params = new URLSearchParams({ page: String(p), limit: '50' });
+  const q = document.getElementById('q').value.trim();
+  const prov = document.getElementById('prov').value;
+  const kind = document.getElementById('kind').value;
+  if(q) params.set('search', q);
+  if(prov) params.set('province', prov);
+  if(kind) params.set('kind', kind);
+
+  try{
+    const res = await fetch(`${API}/api/v1/insurers?${params}`);
+    const { data, total, limit } = await res.json();
+
+    document.getElementById('loading').classList.add('hidden');
+
+    if(!total){
+      document.getElementById('empty').classList.remove('hidden');
+      return;
+    }
+
+    totalPages = Math.max(1, Math.ceil(total/limit));
+    document.getElementById('rows').innerHTML = data.map(renderRow).join('');
+    document.getElementById('pginfo').textContent = `Página ${page} de ${totalPages} · ${total} financiadores`;
+    document.getElementById('prev').disabled = page <= 1;
+    document.getElementById('next').disabled = page >= totalPages;
+    document.getElementById('content').classList.remove('hidden');
+  }catch(e){
+    document.getElementById('loading').innerHTML =
+      '<p class="empty">No se pudo cargar el padrón</p>';
+  }
+}
+
+function renderRow(r){
+  const kindLabel = {
+    api:['API oficial','p-api'],
+    portal:['Portal','p-portal'],
+    manual:['Manual','p-manual'],
+    offline:['Offline','p-none'],
+  }[r.primary_kind] ?? ['Sin conector','p-none'];
+
+  const healthLabel = {
+    healthy:['Operativo','h-healthy','●'],
+    degraded:['Degradado','h-degraded','●'],
+    down:['Caído','h-down','●'],
+  }[r.primary_health] ?? ['—','h-unknown','○'];
+
+  const cap = (on,letter,title) =>
+    `<span class="cap ${on?'on':'off'}" title="${title}">${letter}</span>`;
+
+  const sub = [
+    r.province || (r.is_national ? 'Nacional' : ''),
+    r.affiliate_count ? `${Number(r.affiliate_count).toLocaleString('es-AR')} afiliados` : '',
+  ].filter(Boolean).join(' · ');
+
+  return `<tr>
+    <td>
+      <div class="name">${esc(r.name)}</div>
+      ${sub ? `<div class="sub">${esc(sub)}</div>` : ''}
+    </td>
+    <td class="hide-sm" style="font-family:monospace;font-size:12px;color:var(--text-soft)">
+      ${r.rnos_code ? esc(r.rnos_code) : '—'}
+    </td>
+    <td><span class="pill ${kindLabel[1]}">${kindLabel[0]}</span></td>
+    <td class="hide-sm">
+      <div class="caps">
+        ${cap(r.supports_validation,'V','Validación de afiliado')}
+        ${cap(r.supports_authorization,'A','Autorización de práctica')}
+        ${cap(r.supports_batch,'L','Presentación de lote')}
+      </div>
+    </td>
+    <td class="hide-sm">
+      <span class="health ${healthLabel[1]}">${healthLabel[2]} ${healthLabel[0]}</span>
+    </td>
+  </tr>`;
+}
+
+function esc(s){
+  return String(s ?? '').replace(/[&<>"]/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+
+loadProvinces();
+loadStats();
+load(1);
+</script>
+</body>
+</html>

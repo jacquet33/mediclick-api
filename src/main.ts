@@ -29,6 +29,8 @@ import { HubController } from './modules/hub/hub.controller';
 import { HubService } from './modules/hub/hub.service';
 import { GenericRestAdapter } from './modules/hub/adapters/generic-rest.adapter';
 import { ManualAdapter } from './modules/hub/adapters/manual.adapter';
+import { InsurerController } from './modules/insurers/insurer.controller';
+import { InsurerService } from './modules/insurers/insurer.service';
 import { JwtModule } from '@nestjs/jwt';
 
 @Controller('api/v1')
@@ -69,6 +71,7 @@ class HealthController {
     PublicBookingController,
     BookingPageController,
     HubController,
+    InsurerController,
   ],
   providers: [
     DatabaseService,
@@ -85,6 +88,7 @@ class HealthController {
     HubService,
     GenericRestAdapter,
     ManualAdapter,
+    InsurerService,
   ],
 })
 class AppModule {}

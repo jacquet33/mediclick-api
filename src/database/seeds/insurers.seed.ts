@@ -1,0 +1,366 @@
+/**
+ * Semilla del padrón de financiadores.
+ *
+ * IMPORTANTE sobre los códigos RNOS:
+ * Este archivo NO trae códigos RNOS. Los códigos oficiales se bajan
+ * del padrón de la Superintendencia de Servicios de Salud y se
+ * importan con POST /api/v1/insurers/import.
+ *
+ * Un código RNOS mal cargado hace que la obra social rechace el lote
+ * entero, así que preferimos no tenerlos a tenerlos inventados.
+ *
+ * Lo que sí aporta este seed son los nombres y sobre todo los alias,
+ * que es lo que necesita el matching difuso para que cuando el médico
+ * escriba "osde 210" el sistema entienda que es OSDE.
+ *
+ * Uso:
+ *   npx ts-node src/database/seeds/insurers.seed.ts
+ * O vía API:
+ *   POST /api/v1/insurers/import  { "rows": [...] }
+ */
+
+import { InsurerRow } from '../../modules/insurers/insurer.service';
+
+// ─── Prepagas nacionales ────────────────────────────────────
+
+const prepagas: InsurerRow[] = [
+  {
+    name: 'OSDE',
+    shortName: 'OSDE',
+    kind: 'prepaga',
+    isNational: true,
+    aliases: ['OSDE', 'O.S.D.E.', 'Organización de Servicios Directos Empresarios', 'osde binario'],
+  },
+  {
+    name: 'Swiss Medical',
+    shortName: 'Swiss',
+    kind: 'prepaga',
+    isNational: true,
+    aliases: ['Swiss Medical', 'Swiss Medical Group', 'SMG', 'Swiss', 'swissmedical'],
+  },
+  {
+    name: 'Galeno',
+    shortName: 'Galeno',
+    kind: 'prepaga',
+    isNational: true,
+    aliases: ['Galeno', 'Galeno Argentina', 'Galeno Life'],
+  },
+  {
+    name: 'Medifé',
+    shortName: 'Medifé',
+    kind: 'prepaga',
+    isNational: true,
+    aliases: ['Medifé', 'Medife', 'Asociación Civil Medifé'],
+  },
+  {
+    name: 'Omint',
+    shortName: 'Omint',
+    kind: 'prepaga',
+    isNational: true,
+    aliases: ['Omint', 'OMINT S.A.'],
+  },
+  {
+    name: 'Hospital Italiano',
+    shortName: 'Italiano',
+    kind: 'prepaga',
+    isNational: true,
+    aliases: ['Hospital Italiano', 'Plan de Salud Hospital Italiano', 'HIBA'],
+  },
+  {
+    name: 'Hospital Alemán',
+    shortName: 'Alemán',
+    kind: 'prepaga',
+    isNational: true,
+    aliases: ['Hospital Alemán', 'Plan de Salud Hospital Alemán'],
+  },
+  {
+    name: 'Sancor Salud',
+    shortName: 'Sancor',
+    kind: 'prepaga',
+    isNational: true,
+    aliases: ['Sancor Salud', 'SanCor Salud', 'Sancor', 'Grupo Sancor Salud'],
+  },
+  {
+    name: 'Prevención Salud',
+    shortName: 'Prevención',
+    kind: 'prepaga',
+    isNational: true,
+    aliases: ['Prevención Salud', 'Prevencion Salud', 'Sancor Seguros Prevención'],
+  },
+  {
+    name: 'Premedic',
+    shortName: 'Premedic',
+    kind: 'prepaga',
+    isNational: true,
+    aliases: ['Premedic'],
+  },
+  {
+    name: 'Federada Salud',
+    shortName: 'Federada',
+    kind: 'prepaga',
+    isNational: true,
+    aliases: ['Federada Salud', 'Federada'],
+  },
+  {
+    name: 'Avalian',
+    shortName: 'Avalian',
+    kind: 'prepaga',
+    isNational: true,
+    aliases: ['Avalian', 'ACA Salud'],
+  },
+];
+
+// ─── Obras sociales nacionales grandes ──────────────────────
+
+const nacionales: InsurerRow[] = [
+  {
+    name: 'PAMI',
+    shortName: 'PAMI',
+    kind: 'obra_social',
+    isNational: true,
+    aliases: ['PAMI', 'INSSJP', 'Instituto Nacional de Servicios Sociales para Jubilados y Pensionados'],
+  },
+  {
+    name: 'OSECAC',
+    shortName: 'OSECAC',
+    kind: 'obra_social',
+    isNational: true,
+    aliases: ['OSECAC', 'Obra Social de Empleados de Comercio', 'empleados de comercio'],
+  },
+  {
+    name: 'OSPRERA',
+    shortName: 'OSPRERA',
+    kind: 'obra_social',
+    isNational: true,
+    aliases: ['OSPRERA', 'Obra Social del Personal Rural y Estibadores'],
+  },
+  {
+    name: 'OSPE',
+    shortName: 'OSPE',
+    kind: 'obra_social',
+    isNational: true,
+    aliases: ['OSPE', 'Obra Social de Petroleros'],
+  },
+  {
+    name: 'OSPACA',
+    shortName: 'OSPACA',
+    kind: 'obra_social',
+    isNational: true,
+    aliases: ['OSPACA'],
+  },
+  {
+    name: 'OSPJN',
+    shortName: 'OSPJN',
+    kind: 'obra_social',
+    isNational: true,
+    aliases: ['OSPJN', 'Obra Social del Poder Judicial de la Nación', 'poder judicial'],
+  },
+  {
+    name: 'OSDOP',
+    shortName: 'OSDOP',
+    kind: 'obra_social',
+    isNational: true,
+    aliases: ['OSDOP', 'Obra Social de Docentes Particulares'],
+  },
+  {
+    name: 'OSPIA',
+    shortName: 'OSPIA',
+    kind: 'obra_social',
+    isNational: true,
+    aliases: ['OSPIA', 'Obra Social del Personal de la Industria de la Alimentación'],
+  },
+  {
+    name: 'UOM',
+    shortName: 'UOM',
+    kind: 'obra_social',
+    isNational: true,
+    aliases: ['UOM', 'ASOM', 'Unión Obrera Metalúrgica', 'metalúrgicos'],
+  },
+  {
+    name: 'UOCRA',
+    shortName: 'UOCRA',
+    kind: 'obra_social',
+    isNational: true,
+    aliases: ['UOCRA', 'Construir Salud', 'Unión Obrera de la Construcción'],
+  },
+  {
+    name: 'OSPAT',
+    shortName: 'OSPAT',
+    kind: 'obra_social',
+    isNational: true,
+    aliases: ['OSPAT', 'Obra Social del Personal de la Actividad del Turf'],
+  },
+  {
+    name: 'Luz y Fuerza',
+    shortName: 'Luz y Fuerza',
+    kind: 'obra_social',
+    isNational: true,
+    aliases: ['Luz y Fuerza', 'OSPLYFC', 'luz y fuerza'],
+  },
+  {
+    name: 'OSPSA',
+    shortName: 'OSPSA',
+    kind: 'obra_social',
+    isNational: true,
+    aliases: ['OSPSA', 'Sanidad', 'Obra Social del Personal de Sanidad'],
+  },
+  {
+    name: 'IOSFA',
+    shortName: 'IOSFA',
+    kind: 'obra_social',
+    isNational: true,
+    aliases: ['IOSFA', 'Instituto de Obra Social de las Fuerzas Armadas', 'fuerzas armadas'],
+  },
+  {
+    name: 'OSPF',
+    shortName: 'OSPF',
+    kind: 'obra_social',
+    isNational: true,
+    aliases: ['OSPF', 'Obra Social del Personal Ferroviario'],
+  },
+  {
+    name: 'DASUTEN',
+    shortName: 'DASUTEN',
+    kind: 'obra_social',
+    isNational: true,
+    aliases: ['DASUTEN', 'Telefónicos'],
+  },
+];
+
+// ─── Provinciales ───────────────────────────────────────────
+
+const provinciales: InsurerRow[] = [
+  {
+    name: 'IOSPER',
+    shortName: 'IOSPER',
+    kind: 'provincial',
+    province: 'Entre Ríos',
+    isNational: false,
+    aliases: ['IOSPER', 'Instituto de Obra Social de la Provincia de Entre Ríos', 'obra social entre rios'],
+  },
+  {
+    name: 'IOMA',
+    shortName: 'IOMA',
+    kind: 'provincial',
+    province: 'Buenos Aires',
+    isNational: false,
+    aliases: ['IOMA', 'Instituto de Obra Médico Asistencial'],
+  },
+  {
+    name: 'IAPOS',
+    shortName: 'IAPOS',
+    kind: 'provincial',
+    province: 'Santa Fe',
+    isNational: false,
+    aliases: ['IAPOS', 'Instituto Autárquico Provincial de Obra Social'],
+  },
+  {
+    name: 'APROSS',
+    shortName: 'APROSS',
+    kind: 'provincial',
+    province: 'Córdoba',
+    isNational: false,
+    aliases: ['APROSS', 'Administración Provincial del Seguro de Salud'],
+  },
+  {
+    name: 'IPROSS',
+    shortName: 'IPROSS',
+    kind: 'provincial',
+    province: 'Río Negro',
+    isNational: false,
+    aliases: ['IPROSS', 'Instituto Provincial del Seguro de Salud'],
+  },
+  {
+    name: 'ISSN',
+    shortName: 'ISSN',
+    kind: 'provincial',
+    province: 'Neuquén',
+    isNational: false,
+    aliases: ['ISSN', 'Instituto de Seguridad Social del Neuquén'],
+  },
+  {
+    name: 'OSEP Mendoza',
+    shortName: 'OSEP',
+    kind: 'provincial',
+    province: 'Mendoza',
+    isNational: false,
+    aliases: ['OSEP', 'OSEP Mendoza', 'Obra Social de Empleados Públicos'],
+  },
+  {
+    name: 'IPSST',
+    shortName: 'IPSST',
+    kind: 'provincial',
+    province: 'Tucumán',
+    isNational: false,
+    aliases: ['IPSST', 'Subsidio de Salud', 'Instituto de Previsión y Seguridad Social de Tucumán'],
+  },
+  {
+    name: 'IPS Salta',
+    shortName: 'IPS Salta',
+    kind: 'provincial',
+    province: 'Salta',
+    isNational: false,
+    aliases: ['IPS Salta', 'Instituto Provincial de Salud de Salta'],
+  },
+  {
+    name: 'InSSSeP',
+    shortName: 'InSSSeP',
+    kind: 'provincial',
+    province: 'Chaco',
+    isNational: false,
+    aliases: ['InSSSeP', 'INSSSEP', 'Instituto de Seguridad Social, Seguros y Préstamos'],
+  },
+  {
+    name: 'IOSCOR',
+    shortName: 'IOSCOR',
+    kind: 'provincial',
+    province: 'Corrientes',
+    isNational: false,
+    aliases: ['IOSCOR', 'Instituto de Obra Social de Corrientes'],
+  },
+  {
+    name: 'IPS Misiones',
+    shortName: 'IPS Misiones',
+    kind: 'provincial',
+    province: 'Misiones',
+    isNational: false,
+    aliases: ['IPS Misiones', 'Instituto de Previsión Social de Misiones'],
+  },
+  {
+    name: 'ISSyS',
+    shortName: 'ISSyS',
+    kind: 'provincial',
+    province: 'Santiago del Estero',
+    isNational: false,
+    aliases: ['ISSyS', 'Instituto de Salud y Seguridad Social'],
+  },
+  {
+    name: 'OSPRJN',
+    shortName: 'OSPRJN',
+    kind: 'provincial',
+    province: 'La Pampa',
+    isNational: false,
+    aliases: ['SEMPRE', 'Servicio Médico Previsional'],
+  },
+];
+
+export const insurerSeed: InsurerRow[] = [
+  ...prepagas,
+  ...nacionales,
+  ...provinciales,
+];
+
+// ─── Runner ─────────────────────────────────────────────────
+
+if (require.main === module) {
+  (async () => {
+    const base = process.env.API_URL ?? 'http://localhost:3100';
+    const res = await fetch(`${base}/api/v1/insurers/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rows: insurerSeed }),
+    });
+    const out = await res.json();
+    console.log(JSON.stringify(out, null, 2));
+  })();
+}
