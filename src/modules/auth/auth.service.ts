@@ -27,6 +27,7 @@ export interface DoctorOrg {
 export interface AuthSession extends AuthTokens {
   doctor: Record<string, unknown>;
   organizations: DoctorOrg[];
+  subscription?: Record<string, unknown>;
 }
 
 export interface RegisterDto {
@@ -143,7 +144,19 @@ export class AuthService {
       [doctor.id],
     );
 
-    return { ...tokens, doctor: safeDoctor, organizations };
+    // Info de suscripción para que la app sepa si es Free o Pro
+    const subscription = await this.db.queryOne(
+      `SELECT plan, is_pro, max_appointments_per_month, max_organizations
+       FROM v_doctor_subscription WHERE doctor_id = $1`,
+      [doctor.id],
+    );
+
+    return {
+      ...tokens,
+      doctor: safeDoctor,
+      organizations,
+      subscription: subscription || { plan: 'free', is_pro: false },
+    };
   }
 
   /** Refresh de tokens */
