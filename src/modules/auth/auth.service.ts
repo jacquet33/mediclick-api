@@ -239,6 +239,7 @@ export class AuthService {
 
   async registerPatient(dto: RegisterPatientDto): Promise<AuthSession> {
     const email = dto.email.toLowerCase().trim();
+    const phone = dto.phone?.replace(/\D/g, '') || '';
 
     // ¿Ya tiene cuenta?
     const existingAuth = await this.db.queryOne('SELECT id FROM patient_auth WHERE email = $1', [email]);
@@ -246,23 +247,36 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
-    // Buscar si ya existe como paciente (quizás lo cargó el médico)
+    // Buscar si ya existe como paciente (por email, DNI o teléfono — el booking lo crea con teléfono)
     let patient = await this.db.queryOne(
-      `SELECT id FROM patients WHERE email = $1 OR dni = $2`,
-      [email, dto.dni || ''],
+      `SELECT id FROM patients WHERE email = $1 OR ($2 != '' AND dni = $2) OR ($3 != '' AND phone LIKE '%' || $3) LIMIT 1`,
+      [email, dto.dni || '', phone.slice(-8)],
     );
 
     if (!patient) {
-      // Crear paciente nuevo
+      // Necesitamos un organization_id — buscar la primera org activa o la del dto
+      let orgId = dto.organizationId;
+      if (!orgId) {
+        const defaultOrg = await this.db.queryOne('SELECT id FROM organizations WHERE is_active = true ORDER BY created_at LIMIT 1');
+        orgId = defaultOrg?.id;
+      }
+      if (!orgId) throw new BadRequestException('No hay organizaciones disponibles');
+
       patient = await this.db.queryOne(
         `INSERT INTO patients (organization_id, first_name, last_name, email, phone, dni, date_of_birth,
           insurance_provider, insurance_number)
          VALUES ($1, $2, $3, $4, $5, $6, $7::date, $8, $9) RETURNING id`,
         [
-          dto.organizationId || null, dto.firstName, dto.lastName, email,
+          orgId, dto.firstName, dto.lastName, email,
           dto.phone, dto.dni || null, dto.dateOfBirth || null,
           dto.insuranceProvider || null, dto.insuranceNumber || null,
         ],
+      );
+    } else {
+      // Actualizar email si no tenía
+      await this.db.query(
+        `UPDATE patients SET email = COALESCE(NULLIF(email, ''), $1) WHERE id = $2`,
+        [email, patient.id],
       );
     }
 
