@@ -1,6 +1,7 @@
-import { Injectable, BadRequestException, NotFoundException, ConflictException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ConflictException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { OrganizationService } from '../organizations/organization.service';
+import { WaitlistService } from '../waitlist/waitlist.service';
 
 // ─── DTOs ───────────────────────────────────────────────────
 
@@ -46,6 +47,7 @@ export class AppointmentService {
   constructor(
     private db: DatabaseService,
     private orgService: OrganizationService,
+    @Inject(forwardRef(() => WaitlistService)) private waitlistService: WaitlistService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════
@@ -491,12 +493,29 @@ export class AppointmentService {
       ? [status, appointmentId, organizationId, cancelReason || null]
       : [status, appointmentId, organizationId];
 
-    return this.db.queryOne(
+    const updated = await this.db.queryOne(
       `UPDATE appointments SET status = $1 ${extraFields}
        WHERE id = $2 AND organization_id = $3
        RETURNING *`,
       params,
     );
+
+    // Si se canceló, notificar a la lista de espera
+    if (status === 'cancelled' && updated) {
+      try {
+        await this.waitlistService.onSlotReleased(
+          updated.org_doctor_id,
+          updated.date instanceof Date ? updated.date.toISOString().split('T')[0] : updated.date,
+          updated.start_time?.substring(0, 5),
+          updated.end_time?.substring(0, 5),
+          appointmentId,
+        );
+      } catch (e) {
+        this.logger.warn(`Waitlist notify failed: ${e.message}`);
+      }
+    }
+
+    return updated;
   }
 
   async getByDateRange(organizationId: string, doctorId: string, from: string, to: string) {

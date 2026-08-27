@@ -40,6 +40,8 @@ import { ReminderSettingsController } from './modules/reminders/reminder-setting
 import { ReminderSettingsService } from './modules/reminders/reminder-settings.service';
 import { RolesController, OrgMembersController } from './modules/roles/roles.controller';
 import { RolesService } from './modules/roles/roles.service';
+import { WaitlistController, PublicWaitlistController } from './modules/waitlist/waitlist.controller';
+import { WaitlistService } from './modules/waitlist/waitlist.service';
 import { SubscriptionController } from './modules/subscriptions/subscription.controller';
 import { SubscriptionService } from './modules/subscriptions/subscription.service';
 import { JwtModule } from '@nestjs/jwt';
@@ -94,6 +96,8 @@ class HealthController {
     ReminderSettingsController,
     RolesController,
     OrgMembersController,
+    WaitlistController,
+    PublicWaitlistController,
     SubscriptionController,
   ],
   providers: [
@@ -118,6 +122,7 @@ class HealthController {
     BillingService,
     ReminderSettingsService,
     RolesService,
+    WaitlistService,
     SubscriptionService,
     { provide: APP_GUARD, useClass: ProGuard },
   ],
