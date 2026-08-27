@@ -2,591 +2,679 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Reservar turno</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0097A7">
+<title>Reservar turno — MediClick</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{
+:root {
   --cyan:#40C7ED; --sky:#4FA6F0; --primary:#2980D4; --deep:#1A599E;
-  --bg:#F0FAFF; --bg-soft:#E0F2FD; --surface:#fff;
+  --bg:#F4FAFE; --bg-soft:#E4F2FD; --surface:#fff;
   --success:#21BF8C; --danger:#F25C66; --warning:#FFB333;
   --text:#1C334F; --text-soft:#61809E; --text-muted:#99B3C9;
-  --radius:16px;
+  --radius:16px; --shadow:0 4px 20px rgba(41,128,212,.12);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-  background:linear-gradient(180deg,var(--bg) 0%,var(--bg-soft) 50%,var(--bg) 100%);
-  min-height:100vh;color:var(--text);-webkit-font-smoothing:antialiased;
-}
-body::before{
-  content:'';position:fixed;top:-20%;left:-30%;width:80vw;height:80vw;
-  background:radial-gradient(circle,rgba(64,199,237,.15),transparent 70%);
-  filter:blur(60px);pointer-events:none;z-index:0;
-}
-body::after{
-  content:'';position:fixed;bottom:-10%;right:-20%;width:70vw;height:70vw;
-  background:radial-gradient(circle,rgba(79,166,240,.12),transparent 70%);
-  filter:blur(50px);pointer-events:none;z-index:0;
-}
-.wrap{max-width:520px;margin:0 auto;padding:20px;position:relative;z-index:1}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:100dvh;color:var(--text);-webkit-font-smoothing:antialiased}
+.wrap{max-width:440px;margin:0 auto;padding:16px;min-height:100dvh;display:flex;flex-direction:column}
 
-/* Header */
-.hero{
-  background:linear-gradient(135deg,var(--cyan),var(--sky),var(--primary));
-  border-radius:22px;padding:24px;color:#fff;margin-bottom:20px;
-  box-shadow:0 20px 40px rgba(41,128,212,.3);
-  border:1px solid rgba(255,255,255,.25);position:relative;overflow:hidden;
+/* ─── Header ──────────────────── */
+.header{
+  background:linear-gradient(135deg,#0097A7 0%,var(--primary) 50%,var(--deep) 100%);
+  border-radius:0 0 28px 28px;padding:20px 20px 24px;color:#fff;margin:-16px -16px 20px;
+  position:relative;overflow:hidden;
 }
-.hero::after{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(135deg,rgba(255,255,255,.35),transparent 50%,rgba(255,255,255,.12));
-}
-.hero>*{position:relative;z-index:1}
-.doc-row{display:flex;align-items:center;gap:16px}
-.avatar{
-  width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,.22);
-  display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;
-  border:2px solid rgba(255,255,255,.4);flex-shrink:0;
-}
+.header::before{content:'';position:absolute;top:-40%;right:-20%;width:60%;height:120%;
+  background:radial-gradient(circle,rgba(255,255,255,.12),transparent 70%);pointer-events:none}
+.header *{position:relative;z-index:1}
+.brand{display:flex;align-items:center;gap:8px;margin-bottom:16px;opacity:.85;font-size:12px;font-weight:600;letter-spacing:1px}
+.brand svg{width:18px;height:18px}
+.doc-card{display:flex;align-items:center;gap:14px}
+.avatar{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.18);
+  display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;
+  border:2px solid rgba(255,255,255,.35);flex-shrink:0}
 .avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover}
-.doc-name{font-size:22px;font-weight:700;margin-bottom:3px}
-.doc-spec{font-size:14px;opacity:.9}
-.doc-lic{font-size:12px;opacity:.75;margin-top:2px}
-.org-info{
-  margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.2);
-  display:flex;flex-direction:column;gap:6px;font-size:13px;
-}
-.org-info div{display:flex;align-items:center;gap:8px;opacity:.9}
+.doc-name{font-size:18px;font-weight:700;margin-bottom:2px}
+.doc-spec{font-size:13px;opacity:.8}
+.doc-lic{font-size:11px;opacity:.6;margin-top:2px}
+.org-info{margin-top:14px;font-size:12px;opacity:.75;display:flex;flex-direction:column;gap:4px}
 
-/* Cards */
-.card{
-  background:var(--surface);border-radius:var(--radius);padding:20px;margin-bottom:16px;
-  box-shadow:0 10px 30px rgba(41,128,212,.08),0 2px 4px rgba(26,89,158,.04);
-  border:1px solid rgba(64,199,237,.15);
-}
-.card-title{
-  font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
-  color:var(--text-soft);margin-bottom:14px;display:flex;align-items:center;gap:8px;
-}
-.card-title .ico{
-  width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(135deg,rgba(64,199,237,.2),rgba(79,166,240,.08));font-size:13px;
-}
-
-/* Steps */
+/* ─── Steps indicator ─────────── */
 .steps{display:flex;gap:6px;margin-bottom:20px}
-.step{
-  flex:1;height:4px;border-radius:2px;background:var(--bg-soft);transition:.3s;
-}
-.step.done{background:linear-gradient(90deg,var(--cyan),var(--sky))}
+.step-dot{flex:1;height:4px;border-radius:4px;background:var(--text-muted);opacity:.25;transition:.3s}
+.step-dot.active{opacity:1;background:linear-gradient(90deg,var(--cyan),var(--primary))}
+.step-dot.done{opacity:.5;background:var(--success)}
 
-/* Calendar */
-.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.cal-nav button{
-  background:var(--bg-soft);border:none;width:34px;height:34px;border-radius:10px;
-  color:var(--primary);font-size:16px;cursor:pointer;transition:.2s;
-}
-.cal-nav button:hover{background:var(--cyan);color:#fff}
-.cal-month{font-size:16px;font-weight:600}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.cal-head{
-  font-size:11px;font-weight:600;color:var(--text-muted);text-align:center;padding:4px 0;
-}
-.cal-day{
-  aspect-ratio:1;border:none;background:var(--bg-soft);border-radius:10px;
-  font-size:14px;font-weight:600;color:var(--text);cursor:pointer;transition:.2s;
-  display:flex;align-items:center;justify-content:center;position:relative;
-}
-.cal-day:disabled{opacity:.25;cursor:not-allowed}
-.cal-day.empty{background:transparent;cursor:default}
-.cal-day.active{
-  background:linear-gradient(135deg,var(--cyan),var(--primary));color:#fff;
-  box-shadow:0 6px 16px rgba(64,199,237,.4);
-}
-.cal-day.has-slots::after{
-  content:'';position:absolute;bottom:5px;width:4px;height:4px;border-radius:50%;
-  background:var(--success);
-}
-.cal-day.active.has-slots::after{background:#fff}
+/* ─── Cards ───────────────────── */
+.card{background:var(--surface);border-radius:var(--radius);padding:20px;margin-bottom:14px;
+  box-shadow:var(--shadow);border:1px solid rgba(79,166,240,.08)}
+.card-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-title .ico{font-size:18px}
 
-/* Slots */
-.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;margin-top:16px}
-.slot{
-  padding:12px 8px;border:1.5px solid rgba(64,199,237,.25);background:#fff;
-  border-radius:12px;font-size:14px;font-weight:600;color:var(--primary);
-  cursor:pointer;transition:.2s;
-}
-.slot:hover{border-color:var(--cyan);transform:translateY(-2px);box-shadow:0 6px 14px rgba(64,199,237,.2)}
-.slot.active{
-  background:linear-gradient(135deg,var(--cyan),var(--primary));color:#fff;border-color:transparent;
-  box-shadow:0 8px 18px rgba(64,199,237,.35);
-}
-
-/* Form */
+/* ─── Form elements ───────────── */
 .field{margin-bottom:14px}
-.field label{display:block;font-size:13px;font-weight:600;color:var(--text-soft);margin-bottom:6px}
-.field input,.field select,.field textarea{
-  width:100%;padding:14px;border:1.5px solid rgba(64,199,237,.2);border-radius:12px;
-  font-size:15px;font-family:inherit;background:rgba(255,255,255,.7);color:var(--text);
-  transition:.2s;
-}
-.field input:focus,.field select:focus,.field textarea:focus{
-  outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(64,199,237,.12);
-}
-.field textarea{resize:vertical;min-height:70px}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--text-soft);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.field input,.field select,.field textarea{width:100%;padding:14px 14px;font-size:15px;font-family:inherit;
+  border:1.5px solid #E0ECF5;border-radius:12px;background:#FAFCFE;color:var(--text);
+  transition:border .2s,box-shadow .2s;outline:none;-webkit-appearance:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(64,199,237,.15)}
+.field input::placeholder{color:var(--text-muted)}
+.field .hint{font-size:11px;color:var(--text-muted);margin-top:4px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field textarea{resize:none;height:60px}
 
-/* Buttons */
-.btn{
-  width:100%;padding:16px;border:none;border-radius:14px;font-size:16px;font-weight:600;
-  cursor:pointer;transition:.2s;font-family:inherit;
-  background:linear-gradient(135deg,var(--cyan),var(--primary));color:#fff;
-  box-shadow:0 10px 24px rgba(41,128,212,.3);
-}
-.btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 14px 30px rgba(41,128,212,.4)}
-.btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
-.btn-ghost{
-  background:var(--bg-soft);color:var(--primary);box-shadow:none;
-}
-.btn-ghost:hover{background:rgba(64,199,237,.15);transform:none;box-shadow:none}
+/* Search select (obra social) */
+.search-select{position:relative}
+.search-select input{padding-right:36px}
+.search-select .dd{position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid #E0ECF5;
+  border-radius:12px;margin-top:4px;max-height:200px;overflow-y:auto;z-index:50;
+  box-shadow:0 8px 24px rgba(0,0,0,.12);display:none}
+.search-select .dd.open{display:block}
+.search-select .dd-item{padding:12px 14px;font-size:14px;cursor:pointer;border-bottom:1px solid #F0F4F8}
+.search-select .dd-item:hover,.search-select .dd-item.highlight{background:var(--bg-soft);color:var(--primary)}
+.search-select .dd-item:last-child{border-bottom:none}
+.search-select .clear{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  background:none;border:none;font-size:18px;color:var(--text-muted);cursor:pointer;padding:4px}
 
-/* Payment box */
-.pay-box{
-  background:linear-gradient(135deg,rgba(255,179,51,.1),rgba(255,179,51,.04));
-  border:1.5px solid rgba(255,179,51,.3);border-radius:14px;padding:18px;margin:16px 0;
-}
-.pay-amount{font-size:32px;font-weight:700;color:var(--warning);margin:8px 0}
-.pay-detail{
-  display:flex;justify-content:space-between;padding:8px 0;font-size:14px;
-  border-bottom:1px solid rgba(255,179,51,.15);
-}
-.pay-detail:last-child{border:none}
-.pay-detail strong{font-family:monospace;font-size:14px}
-.copy-btn{
-  background:rgba(255,179,51,.15);border:none;padding:3px 10px;border-radius:6px;
-  font-size:11px;color:#8a5a00;cursor:pointer;margin-left:8px;
-}
+/* ─── Calendar ────────────────── */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cal-header h3{font-size:15px;font-weight:600}
+.cal-nav{background:none;border:none;font-size:20px;color:var(--primary);cursor:pointer;padding:8px;border-radius:8px}
+.cal-nav:active{background:var(--bg-soft)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cal-head{font-size:11px;font-weight:600;color:var(--text-muted);padding:6px 0}
+.cal-day{font-size:13px;padding:10px 0;border:none;background:none;border-radius:10px;cursor:pointer;
+  color:var(--text);font-weight:500;transition:.15s}
+.cal-day:hover:not(:disabled):not(.active){background:var(--bg-soft)}
+.cal-day.active{background:linear-gradient(135deg,var(--cyan),var(--primary));color:#fff;font-weight:700;
+  box-shadow:0 3px 10px rgba(64,199,237,.35)}
+.cal-day:disabled{color:var(--text-muted);opacity:.35;cursor:default}
+.cal-day.today:not(.active){color:var(--primary);font-weight:700;text-decoration:underline}
+.cal-day.empty{visibility:hidden}
 
-/* Summary */
-.summary-row{display:flex;justify-content:space-between;padding:10px 0;font-size:14px;border-bottom:1px solid var(--bg-soft)}
-.summary-row:last-child{border:none}
+/* ─── Slots ───────────────────── */
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.slot{padding:12px 0;font-size:14px;font-weight:600;border:1.5px solid #E0ECF5;border-radius:10px;
+  background:#fff;color:var(--text);cursor:pointer;transition:.15s;text-align:center}
+.slot:hover{border-color:var(--cyan);background:rgba(64,199,237,.05)}
+.slot.active{border-color:var(--cyan);background:linear-gradient(135deg,var(--cyan),var(--sky));
+  color:#fff;box-shadow:0 3px 10px rgba(64,199,237,.3)}
+
+/* ─── Waitlist banner ─────────── */
+.waitlist-banner{background:linear-gradient(135deg,rgba(64,199,237,.08),rgba(79,166,240,.08));
+  border:1.5px dashed var(--cyan);border-radius:14px;padding:20px;text-align:center;margin-top:8px}
+.waitlist-banner .ico{font-size:32px;margin-bottom:8px}
+.waitlist-banner p{font-size:13px;color:var(--text-soft);margin-bottom:14px}
+.waitlist-banner .btn-waitlist{display:inline-flex;align-items:center;gap:6px;padding:12px 20px;
+  background:linear-gradient(135deg,var(--cyan),var(--primary));color:#fff;border:none;border-radius:10px;
+  font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 4px 12px rgba(64,199,237,.3)}
+
+/* ─── Buttons ─────────────────── */
+.btn{width:100%;padding:16px;font-size:15px;font-weight:700;font-family:inherit;border:none;
+  border-radius:14px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary{background:linear-gradient(135deg,var(--cyan),var(--primary));color:#fff;
+  box-shadow:0 6px 20px rgba(41,128,212,.3)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(41,128,212,.35)}
+.btn-primary:active{transform:translateY(0)}
+.btn-primary:disabled{opacity:.4;cursor:default;transform:none}
+.btn-outline{background:transparent;color:var(--primary);border:1.5px solid var(--primary)}
+.btn-back{background:none;border:none;color:var(--text-soft);font-size:14px;font-weight:500;
+  cursor:pointer;padding:10px;font-family:inherit}
+
+/* ─── Confirmation ────────────── */
+.confirm-icon{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:32px;margin:0 auto 16px}
+.confirm-icon.ok{background:rgba(33,191,140,.12);color:var(--success)}
+.confirm-icon.wait{background:rgba(255,179,51,.12);color:var(--warning)}
+.summary-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F0F4F8;font-size:13px}
+.summary-row:last-child{border-bottom:none}
 .summary-row span:first-child{color:var(--text-soft)}
-.summary-row span:last-child{font-weight:600}
-
-/* Status */
-.status-icon{
-  width:80px;height:80px;border-radius:50%;margin:0 auto 18px;
-  display:flex;align-items:center;justify-content:center;font-size:36px;
-}
-.status-icon.ok{background:linear-gradient(135deg,var(--success),#1a9970);color:#fff;box-shadow:0 12px 28px rgba(33,191,140,.35)}
-.status-icon.wait{background:linear-gradient(135deg,var(--warning),#e69500);color:#fff;box-shadow:0 12px 28px rgba(255,179,51,.35)}
-.badge{
-  display:inline-block;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;
-}
+.summary-row span:last-child{font-weight:600;text-align:right}
+.badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
 .badge.ok{background:rgba(33,191,140,.12);color:var(--success)}
-.badge.wait{background:rgba(255,179,51,.14);color:#b37700}
-.center{text-align:center}
-.muted{color:var(--text-soft);font-size:14px;line-height:1.6}
-.spinner{
-  width:36px;height:36px;border:3px solid var(--bg-soft);border-top-color:var(--cyan);
-  border-radius:50%;animation:spin .8s linear infinite;margin:30px auto;
-}
+.badge.wait{background:rgba(255,179,51,.12);color:var(--warning)}
+
+/* ─── Utils ───────────────────── */
+.hidden{display:none!important}
+.spinner{width:28px;height:28px;border:3px solid var(--bg-soft);border-top-color:var(--primary);
+  border-radius:50%;animation:spin .7s linear infinite;margin:20px auto}
 @keyframes spin{to{transform:rotate(360deg)}}
-.hidden{display:none}
-.note{
-  background:rgba(64,199,237,.08);border-left:3px solid var(--cyan);
-  padding:12px 14px;border-radius:8px;font-size:13px;color:var(--text-soft);margin-top:12px;line-height:1.5;
-}
+.center{text-align:center}
+.muted{color:var(--text-muted);font-size:13px}
+.mt-8{margin-top:8px}
+.mt-16{margin-top:16px}
+.mb-12{margin-bottom:12px}
+.flex-1{flex:1}
+.note{font-size:12px;color:var(--text-soft);background:var(--bg-soft);padding:12px;border-radius:10px;margin-top:10px}
+.pay-box{text-align:center;padding:16px 0}
+.pay-amount{font-size:28px;font-weight:700;color:var(--primary);margin:8px 0 16px}
+.pay-detail{display:flex;justify-content:space-between;font-size:13px;padding:8px 0;border-bottom:1px solid #F0F4F8}
+.copy-btn{background:var(--bg-soft);border:none;border-radius:6px;padding:4px 10px;margin-left:8px;
+  font-size:11px;cursor:pointer;color:var(--primary);font-weight:600}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <!-- LOADING -->
-  <div id="loading"><div class="spinner"></div></div>
+<!-- ═══ HEADER ═══ -->
+<div class="header" id="headerBlock">
+  <div class="brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 8v8M8 12h8"/></svg>
+    MEDICLICK
+  </div>
+  <div class="doc-card">
+    <div class="avatar" id="avatar"></div>
+    <div>
+      <div class="doc-name" id="docName">Cargando...</div>
+      <div class="doc-spec" id="docSpec"></div>
+      <div class="doc-lic" id="docLic"></div>
+    </div>
+  </div>
+  <div class="org-info" id="orgInfo"></div>
+</div>
 
-  <!-- MAIN -->
-  <div id="app" class="hidden">
+<!-- ═══ STEPS ═══ -->
+<div class="steps">
+  <div class="step-dot active" id="s1"></div>
+  <div class="step-dot" id="s2"></div>
+  <div class="step-dot" id="s3"></div>
+</div>
 
-    <!-- Hero -->
-    <div class="hero">
-      <div class="doc-row">
-        <div class="avatar" id="avatar">DR</div>
-        <div>
-          <div class="doc-name" id="docName">—</div>
-          <div class="doc-spec" id="docSpec">—</div>
-          <div class="doc-lic" id="docLic"></div>
-        </div>
+<!-- ═══ STEP 1: Fecha + Horario ═══ -->
+<div id="step1" class="flex-1">
+  <div class="card">
+    <div class="card-title"><span class="ico">📅</span> Elegí día y horario</div>
+    <div class="cal-header">
+      <button class="cal-nav" onclick="changeMonth(-1)">‹</button>
+      <h3 id="calMonth"></h3>
+      <button class="cal-nav" onclick="changeMonth(1)">›</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+
+  <div class="card hidden" id="slotsCard">
+    <div class="card-title"><span class="ico">⏰</span> Horarios disponibles</div>
+    <div id="dateLabel" style="font-size:13px;color:var(--text-soft);margin-bottom:12px"></div>
+    <div id="slotsContent"><div class="spinner"></div></div>
+  </div>
+
+  <button class="btn btn-primary mt-8" id="btnNext1" disabled onclick="goStep(2)">
+    Continuar →
+  </button>
+</div>
+
+<!-- ═══ STEP 2: Datos del paciente ═══ -->
+<div id="step2" class="flex-1 hidden">
+  <div class="card">
+    <div class="card-title"><span class="ico">👤</span> Tus datos</div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Nombre *</label>
+        <input id="firstName" placeholder="Juan" autocomplete="given-name">
       </div>
-      <div class="org-info" id="orgInfo"></div>
+      <div class="field">
+        <label>Apellido *</label>
+        <input id="lastName" placeholder="Pérez" autocomplete="family-name">
+      </div>
     </div>
 
-    <div class="steps">
-      <div class="step done" id="s1"></div>
-      <div class="step" id="s2"></div>
-      <div class="step" id="s3"></div>
+    <div class="field">
+      <label>Celular *</label>
+      <div style="display:flex;gap:8px">
+        <input value="+54" style="width:64px;text-align:center;flex-shrink:0" readonly>
+        <input id="phone" type="tel" placeholder="3447 412345" autocomplete="tel" style="flex:1">
+      </div>
+      <div class="hint">Con código de área, sin 0 ni 15</div>
     </div>
 
-    <!-- STEP 1: Date + Time -->
-    <div id="step1">
-      <div class="card">
-        <div class="card-title"><span class="ico">📅</span> Elegí el día</div>
-        <div class="cal-nav">
-          <button onclick="changeMonth(-1)">‹</button>
-          <div class="cal-month" id="calMonth"></div>
-          <button onclick="changeMonth(1)">›</button>
-        </div>
-        <div class="cal-grid" id="calGrid"></div>
+    <div class="field">
+      <label>Obra social / Prepaga</label>
+      <div class="search-select" id="insuranceSearch">
+        <input id="insurance" placeholder="Buscá tu obra social..." autocomplete="off">
+        <button class="clear hidden" id="insClear" onclick="clearInsurance()">×</button>
+        <div class="dd" id="insuranceDd"></div>
       </div>
-
-      <div class="card hidden" id="slotsCard">
-        <div class="card-title"><span class="ico">🕐</span> Horarios disponibles</div>
-        <div id="slotsContent"></div>
-      </div>
-
-      <button class="btn" id="btnNext1" onclick="goStep(2)" disabled>Continuar</button>
     </div>
 
-    <!-- STEP 2: Data -->
-    <div id="step2" class="hidden">
-      <div class="card">
-        <div class="card-title"><span class="ico">👤</span> Tus datos</div>
-        <div class="row">
-          <div class="field"><label>Nombre *</label><input id="firstName" placeholder="Juan"></div>
-          <div class="field"><label>Apellido *</label><input id="lastName" placeholder="Pérez"></div>
-        </div>
-        <div class="field"><label>Teléfono *</label><input id="phone" type="tel" placeholder="11 2345 6789"></div>
-        <div class="row">
-          <div class="field"><label>DNI</label><input id="dni" placeholder="30123456"></div>
-          <div class="field"><label>Nacimiento</label><input id="dob" type="date"></div>
-        </div>
-        <div class="field"><label>Email</label><input id="email" type="email" placeholder="tu@email.com"></div>
-      </div>
+    <div class="field">
+      <label>N° de credencial</label>
+      <input id="insNumber" placeholder="Número de afiliado">
+    </div>
+  </div>
 
-      <div class="card" id="insuranceCard">
-        <div class="card-title"><span class="ico">🏥</span> Obra social</div>
-        <div class="field"><label id="insLabel">Obra social / Prepaga</label><input id="insurance" placeholder="OSDE, Swiss Medical..."></div>
-        <div class="field"><label>Nro. de afiliado</label><input id="insNumber" placeholder="123456789"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-title"><span class="ico">📝</span> Motivo</div>
-        <div class="field"><textarea id="reason" placeholder="Contanos brevemente el motivo de tu consulta"></textarea></div>
-      </div>
-
-      <div class="card hidden" id="paymentCard">
-        <div class="card-title"><span class="ico">💳</span> Forma de pago de la seña</div>
+  <!-- Campos opcionales colapsados -->
+  <button class="btn-back mb-12" onclick="toggleOptional()" id="toggleOptBtn">+ Agregar más datos (opcional)</button>
+  <div id="optionalFields" class="hidden">
+    <div class="card">
+      <div class="field-row">
         <div class="field">
-          <select id="payMethod">
-            <option value="transfer">Transferencia bancaria</option>
-            <option value="cash">Efectivo en el consultorio</option>
-          </select>
+          <label>DNI</label>
+          <input id="dni" placeholder="12.345.678" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label>Fecha nac.</label>
+          <input id="dob" type="date">
         </div>
       </div>
-
-      <button class="btn" onclick="submitBooking()" id="btnSubmit">Confirmar reserva</button>
-      <button class="btn btn-ghost" onclick="goStep(1)" style="margin-top:10px">Volver</button>
-    </div>
-
-    <!-- STEP 3: Confirmation -->
-    <div id="step3" class="hidden">
-      <div class="card center">
-        <div class="status-icon" id="statusIcon">✓</div>
-        <h2 id="statusTitle" style="font-size:22px;margin-bottom:8px">¡Turno reservado!</h2>
-        <p class="muted" id="statusMsg"></p>
-        <div style="margin-top:14px"><span class="badge" id="statusBadge">Confirmado</span></div>
+      <div class="field">
+        <label>Email</label>
+        <input id="email" type="email" placeholder="tu@email.com" autocomplete="email">
       </div>
-
-      <div class="card">
-        <div class="card-title"><span class="ico">📋</span> Resumen</div>
-        <div id="summaryContent"></div>
-      </div>
-
-      <div id="paymentInfo"></div>
-
-      <div class="card" id="policyCard">
-        <div class="card-title"><span class="ico">ℹ️</span> Información</div>
-        <div class="muted" id="policyText"></div>
+      <div class="field">
+        <label>Motivo de consulta</label>
+        <textarea id="reason" placeholder="Describí brevemente por qué pedís turno..."></textarea>
       </div>
     </div>
+  </div>
 
+  <!-- Pago (si aplica) -->
+  <div class="card hidden" id="paymentCard">
+    <div class="card-title"><span class="ico">💳</span> Método de pago</div>
+    <div class="field">
+      <select id="payMethod">
+        <option value="transfer">Transferencia bancaria</option>
+        <option value="cash">Efectivo en el consultorio</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-top:8px">
+    <button class="btn btn-outline" onclick="goStep(1)" style="width:auto;padding:16px 20px">← Volver</button>
+    <button class="btn btn-primary" id="btnSubmit" onclick="submitBooking()" style="flex:1">
+      Confirmar turno
+    </button>
   </div>
 </div>
 
-<script>
-const API = window.location.origin.includes('localhost')
-  ? 'http://localhost:3100'
-  : 'https://mediclick.art3d-studio.com.ar';
+<!-- ═══ STEP 3: Confirmación ═══ -->
+<div id="step3" class="flex-1 hidden">
+  <div class="card center">
+    <div class="confirm-icon" id="statusIcon"></div>
+    <h2 id="statusTitle" style="margin-bottom:6px;font-size:20px"></h2>
+    <div class="badge" id="statusBadge"></div>
+    <p id="statusMsg" class="muted mt-8"></p>
+  </div>
 
-const slug = window.location.pathname.split('/').filter(Boolean).pop() || 'demo';
+  <div class="card">
+    <div class="card-title"><span class="ico">📋</span> Resumen</div>
+    <div id="summaryContent"></div>
+  </div>
+
+  <div id="paymentInfo"></div>
+
+  <div class="card hidden" id="policyCard">
+    <div class="card-title"><span class="ico">ℹ️</span> Información</div>
+    <div id="policyText" class="muted"></div>
+  </div>
+</div>
+
+<!-- ═══ WAITLIST MODAL ═══ -->
+<div id="waitlistModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:flex;align-items:flex-end;justify-content:center">
+  <div style="background:#fff;border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:440px;max-height:80vh;overflow-y:auto">
+    <div style="width:40px;height:4px;background:#DDD;border-radius:4px;margin:0 auto 16px"></div>
+    <h3 style="margin-bottom:4px">🔔 Avisame si se libera</h3>
+    <p class="muted mb-12">Te notificamos si se abre un turno este día.</p>
+    <div class="field">
+      <label>Nombre *</label>
+      <input id="wlName" placeholder="Tu nombre completo">
+    </div>
+    <div class="field">
+      <label>Celular *</label>
+      <input id="wlPhone" type="tel" placeholder="3447 412345">
+    </div>
+    <div class="field">
+      <label>Email (opcional)</label>
+      <input id="wlEmail" type="email" placeholder="tu@email.com">
+    </div>
+    <div class="field">
+      <label>Franja horaria preferida</label>
+      <select id="wlTimeRange">
+        <option value="">Cualquier horario</option>
+        <option value="morning">Mañana (8:00–12:00)</option>
+        <option value="afternoon">Tarde (14:00–18:00)</option>
+        <option value="evening">Noche (18:00–21:00)</option>
+      </select>
+    </div>
+    <button class="btn btn-primary mt-8" id="btnWaitlist" onclick="submitWaitlist()">Avisame</button>
+    <button class="btn-back center mt-8" onclick="closeWaitlist()" style="width:100%">Cancelar</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+const API = window.location.origin;
+const params = new URLSearchParams(window.location.search);
+const slug = params.get('slug') || window.location.pathname.split('/').filter(Boolean).pop();
 
 let profile = null;
+let currentMonth = new Date();
 let selectedDate = null;
 let selectedSlot = null;
-let currentMonth = new Date();
 
-// ─── Init ───────────────────────────────────────────────
+// ─── Obras sociales argentinas ───────────────────────────
+const OBRAS_SOCIALES = [
+  "IOSPER","OSDE","Swiss Medical","Galeno","Medicus","OSECAC","OSPECON","OSPLAD",
+  "OSPJN","OSPRERA","PAMI","IOMA","Sancor Salud","Federada Salud","Accord Salud",
+  "ACA Salud","AMEBPBA","AMSA","APROSS","ASE","Avalian","Boreal","Casa","CEMIC",
+  "Colón Salud","Comei","DASUTEN","DIBA","Doremi","Hominis","Hospital Alemán",
+  "Hospital Británico","Hospital Italiano","Jerarquicos Salud","Luis Pasteur",
+  "Medifé","Napolitana","OMSIDA","OSADEF","OSAM","OSBA","OSCOEMA","OSCOYSE",
+  "OSDEPYM","OSDOP","OSEIV","OSIM","OSMATA","OSMISS","OSPATCA","OSPE","OSPECON",
+  "OSPEDYC","OSPIA","OSPLAD","OSPN","OSPRN","OSTEE","OSTEPA","OSTIG","OSUTHGRA",
+  "Plan de Salud","Prevención Salud","Red Sanitas","Unión Personal","Omint",
+  "William Hope","Poder Judicial","Particular (sin obra social)"
+].sort();
+
+// ─── Init ────────────────────────────────────────────────
 async function init(){
+  if(!slug){showError();return}
   try {
-    const res = await fetch(`${API}/api/v1/public/booking/${slug}`);
-    if (!res.ok) throw new Error('not found');
-    profile = await res.json();
+    const r = await fetch(`${API}/api/v1/public/booking/${slug}`);
+    if(!r.ok) throw new Error();
+    profile = await r.json();
     renderProfile();
     renderCalendar();
-    document.getElementById('loading').classList.add('hidden');
-    document.getElementById('app').classList.remove('hidden');
-  } catch(e) {
-    document.getElementById('loading').innerHTML =
-      '<div class="card center"><div style="font-size:44px;margin-bottom:12px">🔍</div>' +
-      '<h2 style="margin-bottom:8px">Página no encontrada</h2>' +
-      '<p class="muted">Este enlace de reservas no existe o fue desactivado.</p></div>';
-  }
+    initInsuranceSearch();
+  } catch(e){ showError() }
+}
+
+function showError(){
+  document.querySelector('.wrap').innerHTML =
+    '<div class="card center" style="margin-top:60px"><div style="font-size:44px;margin-bottom:12px">🔍</div>'+
+    '<h2 style="margin-bottom:8px">Página no encontrada</h2>'+
+    '<p class="muted">Este enlace de reservas no existe o fue desactivado.</p></div>';
 }
 
 function renderProfile(){
-  document.getElementById('docName').textContent = 'Dr. ' + profile.doctor_name;
-  document.getElementById('docSpec').textContent = profile.specialty || 'Medicina';
-  if (profile.medical_license)
-    document.getElementById('docLic').textContent = 'Mat. ' + profile.medical_license;
-
+  document.getElementById('docName').textContent = 'Dr/a. ' + profile.doctor_name;
+  document.getElementById('docSpec').textContent = profile.specialty || 'Medicina General';
+  if(profile.medical_license)
+    document.getElementById('docLic').textContent = 'MP ' + profile.medical_license;
   const initials = profile.doctor_name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
   const av = document.getElementById('avatar');
-  if (profile.avatar_url) av.innerHTML = `<img src="${profile.avatar_url}" alt="">`;
+  if(profile.avatar_url) av.innerHTML=`<img src="${profile.avatar_url}" alt="">`;
   else av.textContent = initials;
-
   let info = '';
-  if (profile.org_name) info += `<div>🏥 ${profile.org_name}</div>`;
-  if (profile.address) info += `<div>📍 ${profile.address}${profile.city ? ', '+profile.city : ''}</div>`;
-  if (profile.org_phone) info += `<div>📞 ${profile.org_phone}</div>`;
+  if(profile.org_name) info += `<div>🏥 ${profile.org_name}</div>`;
+  if(profile.address) info += `<div>📍 ${profile.address}${profile.city?', '+profile.city:''}</div>`;
+  if(profile.org_phone) info += `<div>📞 ${profile.org_phone}</div>`;
   document.getElementById('orgInfo').innerHTML = info;
-
-  // Insurance required
-  if (profile.requires_insurance_info) {
-    document.getElementById('insLabel').textContent = 'Obra social / Prepaga *';
-  }
-
-  // Payment method options
-  if (profile.requires_deposit) {
+  if(profile.requires_deposit){
     document.getElementById('paymentCard').classList.remove('hidden');
-    const sel = document.getElementById('payMethod');
-    if (profile.payment_methods === 'transfer') {
-      sel.innerHTML = '<option value="transfer">Transferencia bancaria</option>';
-    } else if (profile.payment_methods === 'cash') {
-      sel.innerHTML = '<option value="cash">Efectivo en el consultorio</option>';
-    }
+    const sel=document.getElementById('payMethod');
+    if(profile.payment_methods==='transfer') sel.innerHTML='<option value="transfer">Transferencia bancaria</option>';
+    else if(profile.payment_methods==='cash') sel.innerHTML='<option value="cash">Efectivo en el consultorio</option>';
   }
+  document.title = `Turno con Dr/a. ${profile.doctor_name} — MediClick`;
 }
 
-// ─── Calendar ───────────────────────────────────────────
+// ─── Insurance search ────────────────────────────────────
+function initInsuranceSearch(){
+  const input = document.getElementById('insurance');
+  const dd = document.getElementById('insuranceDd');
+  const clear = document.getElementById('insClear');
+  let highlighted = -1;
+
+  input.addEventListener('input', ()=>{
+    const q = input.value.toLowerCase().trim();
+    if(q.length < 1){dd.classList.remove('open');return}
+    const matches = OBRAS_SOCIALES.filter(o=>o.toLowerCase().includes(q)).slice(0,8);
+    if(!matches.length){dd.classList.remove('open');return}
+    dd.innerHTML = matches.map((o,i)=>`<div class="dd-item" data-val="${o}" onclick="selectInsurance('${o}')">${o}</div>`).join('');
+    dd.classList.add('open');
+    highlighted = -1;
+  });
+
+  input.addEventListener('keydown', e=>{
+    const items = dd.querySelectorAll('.dd-item');
+    if(e.key==='ArrowDown'){e.preventDefault();highlighted=Math.min(highlighted+1,items.length-1)}
+    else if(e.key==='ArrowUp'){e.preventDefault();highlighted=Math.max(highlighted-1,0)}
+    else if(e.key==='Enter'&&highlighted>=0){e.preventDefault();items[highlighted].click();return}
+    else if(e.key==='Escape'){dd.classList.remove('open');return}
+    items.forEach((el,i)=>el.classList.toggle('highlight',i===highlighted));
+  });
+
+  input.addEventListener('blur',()=>setTimeout(()=>dd.classList.remove('open'),200));
+}
+
+function selectInsurance(val){
+  document.getElementById('insurance').value = val;
+  document.getElementById('insuranceDd').classList.remove('open');
+  document.getElementById('insClear').classList.remove('hidden');
+}
+function clearInsurance(){
+  document.getElementById('insurance').value='';
+  document.getElementById('insClear').classList.add('hidden');
+}
+
+// ─── Calendar ────────────────────────────────────────────
 function renderCalendar(){
-  const y = currentMonth.getFullYear(), m = currentMonth.getMonth();
-  const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  document.getElementById('calMonth').textContent = `${months[m]} ${y}`;
+  const y=currentMonth.getFullYear(),m=currentMonth.getMonth();
+  const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('calMonth').textContent=`${months[m]} ${y}`;
+  const firstDay=new Date(y,m,1).getDay();
+  const daysInMonth=new Date(y,m+1,0).getDate();
+  const today=new Date();today.setHours(0,0,0,0);
+  const maxDate=new Date(today.getTime()+(profile?.max_days_in_advance||60)*86400000);
+  const todayISO=today.toISOString().split('T')[0];
 
-  const firstDay = new Date(y, m, 1).getDay();
-  const daysInMonth = new Date(y, m+1, 0).getDate();
-  const today = new Date(); today.setHours(0,0,0,0);
-  const maxDate = new Date(today.getTime() + (profile.max_days_in_advance||60)*86400000);
-
-  let html = ['D','L','M','M','J','V','S'].map(d=>`<div class="cal-head">${d}</div>`).join('');
-  for(let i=0;i<firstDay;i++) html += '<div class="cal-day empty"></div>';
-
+  let html=['D','L','M','M','J','V','S'].map(d=>`<div class="cal-head">${d}</div>`).join('');
+  for(let i=0;i<firstDay;i++) html+='<div class="cal-day empty"></div>';
   for(let d=1;d<=daysInMonth;d++){
-    const date = new Date(y,m,d);
-    const iso = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const disabled = date < today || date > maxDate;
-    const active = selectedDate === iso;
-    html += `<button class="cal-day ${active?'active':''}" ${disabled?'disabled':''} onclick="selectDate('${iso}')">${d}</button>`;
+    const date=new Date(y,m,d);
+    const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const disabled=date<today||date>maxDate;
+    const active=selectedDate===iso;
+    const isToday=iso===todayISO;
+    html+=`<button class="cal-day${active?' active':''}${isToday?' today':''}" ${disabled?'disabled':''} onclick="selectDate('${iso}')">${d}</button>`;
   }
-  document.getElementById('calGrid').innerHTML = html;
+  document.getElementById('calGrid').innerHTML=html;
 }
 
-function changeMonth(delta){
-  currentMonth.setMonth(currentMonth.getMonth()+delta);
-  renderCalendar();
-}
+function changeMonth(d){currentMonth.setMonth(currentMonth.getMonth()+d);renderCalendar()}
 
 async function selectDate(iso){
-  selectedDate = iso;
-  selectedSlot = null;
-  renderCalendar();
-  updateNextBtn();
+  selectedDate=iso;selectedSlot=null;
+  renderCalendar();updateNextBtn();
 
-  const card = document.getElementById('slotsCard');
-  const content = document.getElementById('slotsContent');
+  const card=document.getElementById('slotsCard');
+  const content=document.getElementById('slotsContent');
   card.classList.remove('hidden');
-  content.innerHTML = '<div class="spinner"></div>';
+  content.innerHTML='<div class="spinner"></div>';
 
-  try {
-    const res = await fetch(`${API}/api/v1/public/booking/${slug}/slots?date=${iso}`);
-    const slots = await res.json();
-    const available = slots.filter(s=>s.isAvailable);
+  const d=new Date(iso+'T12:00:00');
+  const days=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('dateLabel').textContent=`${days[d.getDay()]} ${d.getDate()} de ${months[d.getMonth()]}`;
 
-    if (!available.length){
-      content.innerHTML = '<p class="muted center" style="padding:20px 0">No hay horarios disponibles este día</p>';
+  try{
+    const r=await fetch(`${API}/api/v1/public/booking/${slug}/slots?date=${iso}`);
+    const slots=await r.json();
+    const available=slots.filter(s=>s.isAvailable);
+    if(!available.length){
+      content.innerHTML=`
+        <p class="muted center" style="padding:12px 0">No hay horarios disponibles este día</p>
+        <div class="waitlist-banner">
+          <div class="ico">🔔</div>
+          <p>¿Querés que te avisemos si se libera un turno?</p>
+          <button class="btn-waitlist" onclick="openWaitlist()">Avisame cuando haya turno</button>
+        </div>`;
       return;
     }
-    content.innerHTML = '<div class="slots">' + available.map(s=>
-      `<button class="slot" onclick="selectSlot('${s.startTime}','${s.endTime}',this)">${s.startTime}</button>`
-    ).join('') + '</div>';
-  } catch(e){
-    content.innerHTML = '<p class="muted center">Error al cargar horarios</p>';
-  }
+    content.innerHTML='<div class="slots">'+available.map(s=>
+      `<button class="slot" onclick="selectSlot('${s.startTime}','${s.endTime}',this)">${s.startTime.substring(0,5)}</button>`
+    ).join('')+'</div>';
+  }catch(e){content.innerHTML='<p class="muted center">Error al cargar horarios</p>'}
 }
 
-function selectSlot(start, end, el){
-  selectedSlot = {start, end};
+function selectSlot(start,end,el){
+  selectedSlot={start,end};
   document.querySelectorAll('.slot').forEach(s=>s.classList.remove('active'));
   el.classList.add('active');
   updateNextBtn();
 }
 
-function updateNextBtn(){
-  document.getElementById('btnNext1').disabled = !(selectedDate && selectedSlot);
-}
+function updateNextBtn(){document.getElementById('btnNext1').disabled=!(selectedDate&&selectedSlot)}
 
-// ─── Steps ──────────────────────────────────────────────
+// ─── Steps ───────────────────────────────────────────────
 function goStep(n){
   [1,2,3].forEach(i=>{
-    document.getElementById('step'+i).classList.toggle('hidden', i!==n);
-    document.getElementById('s'+i).classList.toggle('done', i<=n);
+    document.getElementById('step'+i).classList.toggle('hidden',i!==n);
+    const dot=document.getElementById('s'+i);
+    dot.classList.toggle('active',i===n);
+    dot.classList.toggle('done',i<n);
   });
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-// ─── Submit ─────────────────────────────────────────────
+function toggleOptional(){
+  const el=document.getElementById('optionalFields');
+  const btn=document.getElementById('toggleOptBtn');
+  el.classList.toggle('hidden');
+  btn.textContent=el.classList.contains('hidden')?'+ Agregar más datos (opcional)':'− Ocultar datos opcionales';
+}
+
+// ─── Submit ──────────────────────────────────────────────
 async function submitBooking(){
-  const firstName = document.getElementById('firstName').value.trim();
-  const lastName = document.getElementById('lastName').value.trim();
-  const phone = document.getElementById('phone').value.trim();
+  const firstName=document.getElementById('firstName').value.trim();
+  const lastName=document.getElementById('lastName').value.trim();
+  const phone=document.getElementById('phone').value.trim();
+  if(!firstName||!lastName||!phone){alert('Completá nombre, apellido y celular');return}
 
-  if(!firstName || !lastName || !phone){
-    alert('Completá nombre, apellido y teléfono');
-    return;
-  }
-  if(profile.requires_insurance_info && !document.getElementById('insurance').value.trim()){
-    alert('Este médico requiere datos de obra social');
-    return;
-  }
+  const btn=document.getElementById('btnSubmit');
+  btn.disabled=true;btn.innerHTML='<div class="spinner" style="width:20px;height:20px;margin:0;border-width:2px"></div> Enviando...';
 
-  const btn = document.getElementById('btnSubmit');
-  btn.disabled = true;
-  btn.textContent = 'Enviando...';
-
-  const body = {
-    firstName, lastName, phone,
-    email: document.getElementById('email').value.trim() || undefined,
-    dni: document.getElementById('dni').value.trim() || undefined,
-    dateOfBirth: document.getElementById('dob').value || undefined,
-    insuranceProvider: document.getElementById('insurance').value.trim() || undefined,
-    insuranceNumber: document.getElementById('insNumber').value.trim() || undefined,
-    requestedDate: selectedDate,
-    requestedStartTime: selectedSlot.start,
-    requestedEndTime: selectedSlot.end,
-    reason: document.getElementById('reason').value.trim() || undefined,
-    paymentMethod: profile.requires_deposit ? document.getElementById('payMethod').value : undefined,
-    source: 'public_link'
+  const body={
+    firstName,lastName,phone:'+54'+phone.replace(/\D/g,''),
+    email:document.getElementById('email')?.value.trim()||undefined,
+    dni:document.getElementById('dni')?.value.trim()||undefined,
+    dateOfBirth:document.getElementById('dob')?.value||undefined,
+    insuranceProvider:document.getElementById('insurance').value.trim()||undefined,
+    insuranceNumber:document.getElementById('insNumber').value.trim()||undefined,
+    requestedDate:selectedDate,
+    requestedStartTime:selectedSlot.start,
+    requestedEndTime:selectedSlot.end,
+    reason:document.getElementById('reason')?.value.trim()||undefined,
+    paymentMethod:profile.requires_deposit?document.getElementById('payMethod').value:undefined,
+    source:'public_link'
   };
 
-  try {
-    const res = await fetch(`${API}/api/v1/public/booking/${slug}`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body)
+  try{
+    const r=await fetch(`${API}/api/v1/public/booking/${slug}`,{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)
     });
-    const data = await res.json();
-
-    if(!res.ok) throw new Error(data.message || 'Error');
-
-    showConfirmation(data);
-    goStep(3);
-  } catch(e){
-    alert(e.message || 'No se pudo completar la reserva');
-    btn.disabled = false;
-    btn.textContent = 'Confirmar reserva';
+    const data=await r.json();
+    if(!r.ok) throw new Error(data.message||'Error');
+    showConfirmation(data);goStep(3);
+  }catch(e){
+    alert(e.message||'No se pudo completar la reserva');
+    btn.disabled=false;btn.textContent='Confirmar turno';
   }
 }
 
 function showConfirmation(data){
-  const status = data.status;
-  const icon = document.getElementById('statusIcon');
-  const title = document.getElementById('statusTitle');
-  const msg = document.getElementById('statusMsg');
-  const badge = document.getElementById('statusBadge');
+  const status=data.status;
+  const icon=document.getElementById('statusIcon');
+  const title=document.getElementById('statusTitle');
+  const msg=document.getElementById('statusMsg');
+  const badge=document.getElementById('statusBadge');
 
-  if(status === 'confirmed'){
-    icon.className = 'status-icon ok'; icon.textContent = '✓';
-    title.textContent = '¡Turno confirmado!';
-    msg.textContent = 'Tu turno quedó reservado. Te esperamos.';
-    badge.className = 'badge ok'; badge.textContent = 'Confirmado';
-  } else if(status === 'pending_payment'){
-    icon.className = 'status-icon wait'; icon.textContent = '💳';
-    title.textContent = 'Falta abonar la seña';
-    msg.textContent = 'Tu horario está reservado. Completá el pago para confirmarlo.';
-    badge.className = 'badge wait'; badge.textContent = 'Esperando pago';
+  if(status==='confirmed'){
+    icon.className='confirm-icon ok';icon.textContent='✓';
+    title.textContent='¡Turno confirmado!';
+    msg.textContent='Tu turno quedó reservado. Te esperamos.';
+    badge.className='badge ok';badge.textContent='Confirmado';
+  } else if(status==='pending_payment'){
+    icon.className='confirm-icon wait';icon.textContent='💳';
+    title.textContent='Falta abonar la seña';
+    msg.textContent='Tu horario está reservado. Completá el pago para confirmarlo.';
+    badge.className='badge wait';badge.textContent='Esperando pago';
   } else {
-    icon.className = 'status-icon wait'; icon.textContent = '⏳';
-    title.textContent = 'Solicitud enviada';
-    msg.textContent = 'El médico va a revisar tu solicitud y te confirmamos a la brevedad.';
-    badge.className = 'badge wait'; badge.textContent = 'Pendiente';
+    icon.className='confirm-icon wait';icon.textContent='⏳';
+    title.textContent='Solicitud enviada';
+    msg.textContent='El médico va a revisar tu solicitud y te confirmamos a la brevedad.';
+    badge.className='badge wait';badge.textContent='Pendiente';
   }
 
-  // Summary
-  const d = new Date(selectedDate+'T00:00:00');
-  const fmt = d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
-  document.getElementById('summaryContent').innerHTML = `
-    <div class="summary-row"><span>Médico</span><span>Dr. ${profile.doctor_name}</span></div>
+  const d=new Date(selectedDate+'T12:00:00');
+  const fmt=d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('summaryContent').innerHTML=`
+    <div class="summary-row"><span>Médico</span><span>Dr/a. ${profile.doctor_name}</span></div>
     <div class="summary-row"><span>Fecha</span><span>${fmt}</span></div>
-    <div class="summary-row"><span>Hora</span><span>${selectedSlot.start} hs</span></div>
+    <div class="summary-row"><span>Hora</span><span>${selectedSlot.start.substring(0,5)} hs</span></div>
     <div class="summary-row"><span>Lugar</span><span>${profile.org_name||'—'}</span></div>
-    ${profile.address?`<div class="summary-row"><span>Dirección</span><span>${profile.address}</span></div>`:''}
-  `;
+    ${profile.address?`<div class="summary-row"><span>Dirección</span><span>${profile.address}</span></div>`:''}`;
 
-  // Payment info
   if(data.paymentInfo){
-    const p = data.paymentInfo;
-    let payHtml = `<div class="card"><div class="card-title"><span class="ico">💳</span> Datos para el pago</div>
-      <div class="pay-box">
-        <div class="muted">Seña a abonar</div>
+    const p=data.paymentInfo;
+    let h=`<div class="card"><div class="card-title"><span class="ico">💳</span> Datos para el pago</div>
+      <div class="pay-box"><div class="muted">Seña a abonar</div>
         <div class="pay-amount">$${Number(p.amount).toLocaleString('es-AR')}</div>`;
-
-    if(document.getElementById('payMethod')?.value === 'transfer' && p.cbu){
-      payHtml += `
-        <div class="pay-detail"><span>Banco</span><strong>${p.bankName||'—'}</strong></div>
+    if(document.getElementById('payMethod')?.value==='transfer'&&p.cbu){
+      h+=`<div class="pay-detail"><span>Banco</span><strong>${p.bankName||'—'}</strong></div>
         <div class="pay-detail"><span>Titular</span><strong>${p.accountHolder||'—'}</strong></div>
         <div class="pay-detail"><span>CBU</span><strong>${p.cbu}<button class="copy-btn" onclick="copyTxt('${p.cbu}')">Copiar</button></strong></div>
         ${p.alias?`<div class="pay-detail"><span>Alias</span><strong>${p.alias}<button class="copy-btn" onclick="copyTxt('${p.alias}')">Copiar</button></strong></div>`:''}`;
-    } else {
-      payHtml += `<div class="pay-detail"><span>Método</span><strong>Efectivo en consultorio</strong></div>`;
-    }
-
-    payHtml += `</div>
-      <div class="note">Tenés ${p.deadlineMinutes} minutos para completar el pago.
-      Una vez abonado, el médico confirma tu turno.</div>
-      <p class="muted" style="margin-top:14px;font-size:12px">Guardá este enlace para seguir tu reserva:</p>
-      <div style="background:var(--bg-soft);padding:10px;border-radius:8px;margin-top:6px;font-size:11px;word-break:break-all">
-        ${window.location.origin}/turno/${data.confirmationToken}
-      </div>
-      </div>`;
-    document.getElementById('paymentInfo').innerHTML = payHtml;
+    } else h+=`<div class="pay-detail"><span>Método</span><strong>Efectivo en consultorio</strong></div>`;
+    h+=`</div><div class="note">Tenés ${p.deadlineMinutes} minutos para completar el pago.</div></div>`;
+    document.getElementById('paymentInfo').innerHTML=h;
   }
 
-  // Policy
-  let policy = '';
-  if(profile.instructions) policy += `<p style="margin-bottom:10px">${profile.instructions}</p>`;
-  if(profile.cancellation_policy_text) policy += `<p>${profile.cancellation_policy_text}</p>`;
-  else if(profile.min_hours_before_cancel)
-    policy += `<p>Podés cancelar sin cargo hasta ${profile.min_hours_before_cancel} horas antes del turno.</p>`;
-
-  if(policy) document.getElementById('policyText').innerHTML = policy;
-  else document.getElementById('policyCard').classList.add('hidden');
+  let policy='';
+  if(profile.instructions) policy+=`<p style="margin-bottom:10px">${profile.instructions}</p>`;
+  if(profile.cancellation_policy_text) policy+=`<p>${profile.cancellation_policy_text}</p>`;
+  else if(profile.min_hours_before_cancel) policy+=`<p>Podés cancelar sin cargo hasta ${profile.min_hours_before_cancel} horas antes del turno.</p>`;
+  if(policy){document.getElementById('policyText').innerHTML=policy;document.getElementById('policyCard').classList.remove('hidden')}
 }
 
-function copyTxt(t){
-  navigator.clipboard.writeText(t);
-  event.target.textContent = '✓';
-  setTimeout(()=>event.target.textContent='Copiar',1500);
+// ─── Waitlist ────────────────────────────────────────────
+function openWaitlist(){document.getElementById('waitlistModal').classList.remove('hidden')}
+function closeWaitlist(){document.getElementById('waitlistModal').classList.add('hidden')}
+
+async function submitWaitlist(){
+  const name=document.getElementById('wlName').value.trim();
+  const phone=document.getElementById('wlPhone').value.trim();
+  if(!name||!phone){alert('Completá nombre y celular');return}
+
+  const btn=document.getElementById('btnWaitlist');
+  btn.disabled=true;btn.textContent='Enviando...';
+
+  const names=name.split(' ');
+  const timeMap={morning:['08:00','12:00'],afternoon:['14:00','18:00'],evening:['18:00','21:00']};
+  const range=timeMap[document.getElementById('wlTimeRange').value];
+
+  const body={
+    firstName:names[0]||name,
+    lastName:names.slice(1).join(' ')||'',
+    phone:'+54'+phone.replace(/\D/g,''),
+    email:document.getElementById('wlEmail').value.trim()||undefined,
+    desiredDate:selectedDate,
+    preferredStartTime:range?range[0]:undefined,
+    preferredEndTime:range?range[1]:undefined,
+  };
+
+  try{
+    const r=await fetch(`${API}/api/v1/public/waitlist/${slug}`,{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)
+    });
+    if(!r.ok){const d=await r.json();throw new Error(d.message)}
+    closeWaitlist();
+    document.getElementById('slotsContent').innerHTML=`
+      <div class="center" style="padding:20px 0">
+        <div style="font-size:40px;margin-bottom:8px">✅</div>
+        <p style="font-weight:600;margin-bottom:4px">¡Listo!</p>
+        <p class="muted">Te vamos a avisar si se libera un turno el ${selectedDate}.</p>
+      </div>`;
+  }catch(e){
+    alert(e.message||'Error al registrar');
+    btn.disabled=false;btn.textContent='Avisame';
+  }
 }
+
+function copyTxt(t){navigator.clipboard.writeText(t);event.target.textContent='✓';setTimeout(()=>event.target.textContent='Copiar',1500)}
 
 init();
 </script>
