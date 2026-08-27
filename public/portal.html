@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0097A7">
+<title>MediClick — Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cyan:#40C7ED;--sky:#4FA6F0;--primary:#2980D4;--deep:#1A599E;
+  --bg:#F4FAFE;--bg-soft:#E4F2FD;--surface:#fff;
+  --success:#21BF8C;--danger:#F25C66;--warning:#FFB333;
+  --text:#1C334F;--text-soft:#61809E;--text-muted:#99B3C9;
+  --radius:14px;--shadow:0 4px 20px rgba(41,128,212,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* Layout */
+.app{display:flex;min-height:100vh}
+.sidebar{width:240px;background:linear-gradient(180deg,#0a3d68,#1a599e);color:#fff;padding:20px 0;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50;transition:transform .3s}
+.sidebar .brand{padding:0 20px 24px;font-size:13px;font-weight:700;letter-spacing:1.5px;opacity:.7;display:flex;align-items:center;gap:8px}
+.sidebar .brand svg{width:20px;height:20px;opacity:.8}
+.sidebar .user-info{padding:0 20px 20px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:12px}
+.sidebar .user-name{font-size:15px;font-weight:600}
+.sidebar .user-role{font-size:12px;opacity:.6;margin-top:2px}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 20px;font-size:14px;cursor:pointer;transition:.15s;color:rgba(255,255,255,.7);border-left:3px solid transparent}
+.nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.12);color:#fff;border-left-color:var(--cyan);font-weight:600}
+.nav-item .icon{font-size:18px;width:22px;text-align:center}
+.nav-section{font-size:11px;text-transform:uppercase;letter-spacing:1px;padding:16px 20px 6px;opacity:.4;font-weight:600}
+.nav-bottom{margin-top:auto;border-top:1px solid rgba(255,255,255,.1);padding-top:8px}
+.main{margin-left:240px;flex:1;padding:24px 32px;max-width:1200px}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.topbar h1{font-size:22px;font-weight:700;color:var(--text)}
+.topbar .badge{background:var(--bg-soft);color:var(--primary);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600}
+
+/* Cards */
+.card{background:var(--surface);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);border:1px solid rgba(79,166,240,.06);margin-bottom:16px}
+.card-title{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-title .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* Stats grid */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px}
+.stat-card{background:var(--surface);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);border:1px solid rgba(79,166,240,.06)}
+.stat-value{font-size:28px;font-weight:700;margin-bottom:2px}
+.stat-label{font-size:12px;color:var(--text-soft)}
+.stat-card.cyan .stat-value{color:var(--cyan)}
+.stat-card.primary .stat-value{color:var(--primary)}
+.stat-card.success .stat-value{color:var(--success)}
+.stat-card.warning .stat-value{color:var(--warning)}
+.stat-card.danger .stat-value{color:var(--danger)}
+
+/* Table */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:600;color:var(--text-soft);font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;border-bottom:2px solid #EEF3F9}
+td{padding:12px;border-bottom:1px solid #F2F6FA;vertical-align:middle}
+tr:hover td{background:var(--bg-soft)}
+.badge-sm{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.badge-sm.confirmed{background:#e0f7ed;color:#0f6e56}
+.badge-sm.pending{background:#fff3d9;color:#85500b}
+.badge-sm.completed{background:#eef3f9;color:#5f5e5a}
+.badge-sm.cancelled{background:#fce8e8;color:#993535}
+.badge-sm.in_progress{background:#e1f5fb;color:#0097a7}
+.badge-sm.no_show{background:#fce8e8;color:#71243e}
+.badge-sm.waiting{background:#e1f5fb;color:#0097a7}
+
+/* Login */
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-box{width:100%;max-width:380px}
+.login-header{text-align:center;margin-bottom:28px}
+.login-header h1{font-size:28px;font-weight:700;background:linear-gradient(135deg,var(--cyan),var(--primary));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.login-header p{color:var(--text-soft);font-size:14px;margin-top:6px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--text-soft);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.field input,.field select{width:100%;padding:13px;font-size:14px;font-family:inherit;border:1.5px solid #E0ECF5;border-radius:12px;background:#FAFCFE;color:var(--text);outline:none;transition:.2s}
+.field input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(64,199,237,.15)}
+.btn{width:100%;padding:14px;font-size:14px;font-weight:700;font-family:inherit;border:none;border-radius:12px;cursor:pointer;transition:.2s}
+.btn-primary{background:linear-gradient(135deg,var(--cyan),var(--primary));color:#fff;box-shadow:0 6px 20px rgba(41,128,212,.25)}
+.btn-primary:hover{transform:translateY(-1px)}
+.btn-outline{background:none;border:1.5px solid var(--primary);color:var(--primary)}
+.btn-sm{padding:8px 16px;font-size:12px;width:auto;border-radius:8px}
+.hidden{display:none!important}
+.muted{color:var(--text-muted);font-size:13px}
+.center{text-align:center}
+.mt-8{margin-top:8px}
+.mt-16{margin-top:16px}
+.error{color:var(--danger);font-size:13px;margin-top:8px}
+.flex{display:flex;gap:12px;align-items:center}
+.flex-between{display:flex;justify-content:space-between;align-items:center}
+.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--primary));color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.spinner{width:28px;height:28px;border:3px solid var(--bg-soft);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;margin:30px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.queue-item{display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;transition:.15s}
+.queue-item:hover{background:var(--bg-soft)}
+.queue-pos{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.btn-action{border:none;background:none;cursor:pointer;padding:6px;border-radius:6px;transition:.15s}
+.btn-action:hover{background:var(--bg-soft)}
+.tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid #EEF3F9;padding-bottom:0}
+.tab{padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--text-muted);transition:.15s}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* Patient portal specific */
+.appt-card{display:flex;align-items:center;gap:14px;padding:14px;border-radius:12px;border:1px solid #EEF3F9;margin-bottom:10px;transition:.15s}
+.appt-card:hover{border-color:var(--cyan);background:rgba(64,199,237,.03)}
+.appt-date{text-align:center;min-width:50px}
+.appt-date .day{font-size:22px;font-weight:700;color:var(--primary)}
+.appt-date .month{font-size:11px;color:var(--text-soft);text-transform:uppercase}
+.appt-detail{flex:1}
+.appt-detail .time{font-size:14px;font-weight:600}
+.appt-detail .doctor{font-size:13px;color:var(--text-soft)}
+.appt-detail .place{font-size:12px;color:var(--text-muted)}
+
+/* Responsive */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0;padding:16px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .hamburger{display:block!important}
+}
+.hamburger{display:none;position:fixed;top:16px;left:16px;z-index:60;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:18px;cursor:pointer}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:45}
+.overlay.open{display:block}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="loginPage" class="login-wrap">
+  <div class="login-box">
+    <div class="login-header">
+      <h1>MediClick</h1>
+      <p>Ingresá a tu cuenta</p>
+    </div>
+    <div class="card">
+      <div class="field">
+        <label>Email</label>
+        <input id="loginEmail" type="email" placeholder="tu@email.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div id="loginError" class="error hidden"></div>
+      <button class="btn btn-primary mt-16" onclick="doLogin()">Ingresar</button>
+      <p class="muted center mt-16">¿No tenés cuenta? <a href="#" onclick="showRegister()" style="color:var(--primary);font-weight:600">Registrate</a></p>
+    </div>
+    <!-- Registro rápido de paciente -->
+    <div class="card hidden" id="registerBox">
+      <div class="card-title">Registro de paciente</div>
+      <div class="field"><label>Nombre</label><input id="regFN" placeholder="Juan"></div>
+      <div class="field"><label>Apellido</label><input id="regLN" placeholder="Pérez"></div>
+      <div class="field"><label>Email</label><input id="regEM" type="email" placeholder="tu@email.com"></div>
+      <div class="field"><label>Celular</label><input id="regPH" type="tel" placeholder="3447412345"></div>
+      <div class="field"><label>Contraseña</label><input id="regPW" type="password" placeholder="Mín. 6 caracteres"></div>
+      <div id="regError" class="error hidden"></div>
+      <button class="btn btn-primary mt-8" onclick="doRegister()">Crear cuenta</button>
+      <button class="btn btn-outline mt-8" onclick="hideRegister()">Volver al login</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ APP (post-login) ═══ -->
+<button class="hamburger" onclick="toggleSidebar()">☰</button>
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+<div class="app hidden" id="appLayout">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+      MEDICLICK
+    </div>
+    <div class="user-info">
+      <div class="user-name" id="userName"></div>
+      <div class="user-role" id="userRole"></div>
+    </div>
+    <nav id="navMenu"></nav>
+    <div class="nav-bottom">
+      <div class="nav-item" onclick="logout()"><span class="icon">🚪</span> Cerrar sesión</div>
+    </div>
+  </aside>
+  <main class="main" id="mainContent"></main>
+</div>
+
+<script>
+const API = window.location.origin;
+let token = localStorage.getItem('mediclick_token');
+let userType = localStorage.getItem('mediclick_userType');
+let userData = JSON.parse(localStorage.getItem('mediclick_user')||'null');
+let currentSection = '';
+
+// ─── Auth ────────────────────────────────────────────────
+async function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pw=document.getElementById('loginPassword').value;
+  if(!email||!pw){showLoginErr('Completá email y contraseña');return}
+  try{
+    const r=await apiFetch('/api/v1/auth/login',{method:'POST',body:{email,password:pw}});
+    saveSession(r);
+    initApp();
+  }catch(e){showLoginErr(e.message||'Credenciales inválidas')}
+}
+
+async function doRegister(){
+  const fn=document.getElementById('regFN').value.trim();
+  const ln=document.getElementById('regLN').value.trim();
+  const em=document.getElementById('regEM').value.trim();
+  const ph=document.getElementById('regPH').value.trim();
+  const pw=document.getElementById('regPW').value;
+  if(!fn||!ln||!em||!ph||pw.length<6){document.getElementById('regError').textContent='Completá todos los campos (contraseña mín. 6)';document.getElementById('regError').classList.remove('hidden');return}
+  try{
+    const r=await apiFetch('/api/v1/auth/register/patient',{method:'POST',body:{firstName:fn,lastName:ln,email:em,phone:'+54'+ph.replace(/\D/g,''),password:pw}});
+    saveSession(r);initApp();
+  }catch(e){document.getElementById('regError').textContent=e.message;document.getElementById('regError').classList.remove('hidden')}
+}
+
+function saveSession(r){
+  token=r.accessToken;userType=r.userType;userData=r.user||r.doctor;
+  localStorage.setItem('mediclick_token',token);
+  localStorage.setItem('mediclick_userType',userType);
+  localStorage.setItem('mediclick_user',JSON.stringify(userData));
+  if(r.organizations) localStorage.setItem('mediclick_orgs',JSON.stringify(r.organizations));
+}
+
+function logout(){localStorage.clear();location.reload()}
+function showLoginErr(msg){const e=document.getElementById('loginError');e.textContent=msg;e.classList.remove('hidden')}
+function showRegister(){document.getElementById('registerBox').classList.remove('hidden')}
+function hideRegister(){document.getElementById('registerBox').classList.add('hidden')}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('open')}
+
+// ─── API helper ──────────────────────────────────────────
+async function apiFetch(path,opts={}){
+  const headers={'Content-Type':'application/json'};
+  if(token) headers['Authorization']='Bearer '+token;
+  const orgs=JSON.parse(localStorage.getItem('mediclick_orgs')||'[]');
+  if(orgs[0]) headers['x-organization-id']=orgs[0].org_id||orgs[0].organization_id||'';
+  const r=await fetch(API+path,{method:opts.method||'GET',headers,body:opts.body?JSON.stringify(opts.body):undefined});
+  const d=await r.json();
+  if(!r.ok) throw new Error(d.message||'Error');
+  return d;
+}
+
+// ─── App init ────────────────────────────────────────────
+function initApp(){
+  document.getElementById('loginPage').classList.add('hidden');
+  document.getElementById('appLayout').classList.remove('hidden');
+  document.getElementById('userName').textContent=userData?.full_name||userData?.first_name+' '+userData?.last_name||'Usuario';
+
+  const roleLabels={doctor:'Médico',patient:'Paciente',staff:'Staff'};
+  document.getElementById('userRole').textContent=roleLabels[userType]||userType;
+
+  buildNav();
+  navigateTo(getDefaultSection());
+}
+
+function getDefaultSection(){
+  if(userType==='doctor') return 'dashboard';
+  if(userType==='patient') return 'mis-turnos';
+  return 'admin-dashboard';
+}
+
+function buildNav(){
+  const nav=document.getElementById('navMenu');
+  let items=[];
+
+  if(userType==='doctor'){
+    items=[
+      {section:'Consultorio',items:[
+        {id:'dashboard',icon:'📊',label:'Dashboard'},
+        {id:'sala-espera',icon:'🏥',label:'Sala de espera'},
+        {id:'agenda',icon:'📅',label:'Agenda'},
+      ]},
+      {section:'Pacientes',items:[
+        {id:'pacientes',icon:'👥',label:'Pacientes'},
+        {id:'recetas',icon:'💊',label:'Recetas'},
+        {id:'waitlist',icon:'🔔',label:'Lista de espera'},
+      ]},
+      {section:'Gestión',items:[
+        {id:'equipo',icon:'👔',label:'Equipo y roles'},
+        {id:'facturacion',icon:'💰',label:'Facturación'},
+        {id:'config',icon:'⚙️',label:'Configuración'},
+      ]},
+    ];
+  } else if(userType==='patient'){
+    items=[
+      {section:'Mi salud',items:[
+        {id:'mis-turnos',icon:'📅',label:'Mis turnos'},
+        {id:'mis-recetas',icon:'💊',label:'Mis recetas'},
+        {id:'mensajes',icon:'💬',label:'Mensajes'},
+      ]},
+      {section:'Cuenta',items:[
+        {id:'mi-perfil',icon:'👤',label:'Mi perfil'},
+      ]},
+    ];
+  } else { // staff/admin
+    items=[
+      {section:'Operaciones',items:[
+        {id:'admin-dashboard',icon:'📊',label:'Dashboard'},
+        {id:'sala-espera',icon:'🏥',label:'Sala de espera'},
+        {id:'agenda',icon:'📅',label:'Agenda del día'},
+      ]},
+      {section:'Gestión',items:[
+        {id:'pacientes',icon:'👥',label:'Pacientes'},
+        {id:'equipo',icon:'👔',label:'Equipo y roles'},
+        {id:'facturacion',icon:'💰',label:'Facturación'},
+        {id:'reportes',icon:'📈',label:'Reportes'},
+      ]},
+      {section:'Config',items:[
+        {id:'config',icon:'⚙️',label:'Configuración'},
+      ]},
+    ];
+  }
+
+  nav.innerHTML=items.map(g=>
+    `<div class="nav-section">${g.section}</div>`+
+    g.items.map(i=>`<div class="nav-item" data-id="${i.id}" onclick="navigateTo('${i.id}')"><span class="icon">${i.icon}</span>${i.label}</div>`).join('')
+  ).join('');
+}
+
+function navigateTo(id){
+  currentSection=id;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.id===id));
+  const main=document.getElementById('mainContent');
+  main.innerHTML='<div class="spinner"></div>';
+
+  const views={
+    'dashboard':loadDoctorDashboard,
+    'sala-espera':loadWaitingRoom,
+    'agenda':loadAgenda,
+    'pacientes':loadPacientes,
+    'recetas':loadRecetas,
+    'waitlist':loadWaitlist,
+    'equipo':loadEquipo,
+    'facturacion':()=>{main.innerHTML=soonCard('Facturación')},
+    'config':()=>{main.innerHTML=soonCard('Configuración')},
+    'mis-turnos':loadMisTurnos,
+    'mis-recetas':loadMisRecetas,
+    'mensajes':()=>{main.innerHTML=soonCard('Mensajes')},
+    'mi-perfil':loadMiPerfil,
+    'admin-dashboard':loadAdminDashboard,
+    'reportes':()=>{main.innerHTML=soonCard('Reportes')},
+  };
+
+  (views[id]||(() => {main.innerHTML=soonCard(id)}))();
+  if(window.innerWidth<768) toggleSidebar();
+}
+
+function soonCard(name){return `<div class="topbar"><h1>${name}</h1></div><div class="card center" style="padding:60px"><p style="font-size:40px;margin-bottom:12px">🚧</p><p style="font-size:16px;font-weight:600;margin-bottom:4px">Próximamente</p><p class="muted">Esta sección está en desarrollo.</p></div>`}
+
+// ═══════════════════════════════════════════════════════════
+// VISTAS DEL MÉDICO
+// ═══════════════════════════════════════════════════════════
+
+async function loadDoctorDashboard(){
+  const main=document.getElementById('mainContent');
+  const today=new Date().toISOString().split('T')[0];
+  try{
+    const [appts]=await Promise.all([apiFetch(`/api/v1/appointments?date=${today}`)]);
+    const waiting=appts.filter(a=>a.status==='confirmed');
+    const inProg=appts.filter(a=>a.status==='in_progress');
+    const done=appts.filter(a=>a.status==='completed');
+    const noshow=appts.filter(a=>a.status==='no_show');
+
+    main.innerHTML=`
+      <div class="topbar"><h1>Dashboard</h1><div class="badge">${fmtDateLong(today)}</div></div>
+      <div class="stats">
+        <div class="stat-card cyan"><div class="stat-value">${waiting.length}</div><div class="stat-label">En espera</div></div>
+        <div class="stat-card primary"><div class="stat-value">${inProg.length}</div><div class="stat-label">Atendiendo</div></div>
+        <div class="stat-card success"><div class="stat-value">${done.length}</div><div class="stat-label">Atendidos</div></div>
+        <div class="stat-card danger"><div class="stat-value">${noshow.length}</div><div class="stat-label">Ausentes</div></div>
+      </div>
+      ${inProg.length?`<div class="card"><div class="card-title"><div class="dot" style="background:var(--success)"></div>Atendiendo ahora</div>
+        ${inProg.map(a=>`<div class="queue-item"><div class="avatar">${initials(a.patient_name)}</div><div><strong>${a.patient_name||'Paciente'}</strong><br><span class="muted">${a.start_time?.substring(0,5)} — ${a.reason||''}</span></div><button class="btn btn-sm btn-primary" onclick="changeStatus('${a.id}','completed')">✓ Completar</button></div>`).join('')}
+      </div>`:''}
+      <div class="card"><div class="card-title"><div class="dot" style="background:var(--cyan)"></div>Cola de espera (${waiting.length})</div>
+        ${waiting.length?waiting.map((a,i)=>`<div class="queue-item">
+          <div class="queue-pos" style="background:rgba(64,199,237,.1);color:var(--cyan)">${i+1}</div>
+          <div class="avatar">${initials(a.patient_name)}</div>
+          <div style="flex:1"><strong>${a.patient_name||'Paciente'}</strong><br><span class="muted">${a.start_time?.substring(0,5)} — ${a.reason||''}</span></div>
+          <button class="btn btn-sm btn-primary" onclick="changeStatus('${a.id}','in_progress')">▶ Atender</button>
+        </div>`).join(''):'<p class="muted center" style="padding:20px">La sala está vacía</p>'}
+      </div>
+      <div class="card"><div class="card-title">Agenda completa del día</div>
+        <div class="table-wrap"><table>
+          <tr><th>Hora</th><th>Paciente</th><th>Motivo</th><th>Estado</th></tr>
+          ${appts.sort((a,b)=>(a.start_time||'').localeCompare(b.start_time||'')).map(a=>`<tr>
+            <td><strong>${a.start_time?.substring(0,5)||''}</strong></td>
+            <td>${a.patient_name||'—'}</td>
+            <td class="muted">${a.reason||'—'}</td>
+            <td><span class="badge-sm ${a.status}">${statusLabel(a.status)}</span></td>
+          </tr>`).join('')}
+        </table></div>
+      </div>`;
+  }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
+}
+
+async function loadWaitingRoom(){
+  const main=document.getElementById('mainContent');
+  const today=new Date().toISOString().split('T')[0];
+  try{
+    const appts=await apiFetch(`/api/v1/appointments?date=${today}`);
+    const waiting=appts.filter(a=>a.status==='confirmed');
+    const inProg=appts.filter(a=>a.status==='in_progress');
+    const done=appts.filter(a=>a.status==='completed');
+    main.innerHTML=`
+      <div class="topbar"><h1>Sala de espera</h1><button class="btn btn-sm btn-outline" onclick="loadWaitingRoom()">↻ Actualizar</button></div>
+      <div class="stats">
+        <div class="stat-card cyan"><div class="stat-value">${waiting.length}</div><div class="stat-label">Esperando</div></div>
+        <div class="stat-card success"><div class="stat-value">${inProg.length}</div><div class="stat-label">Atendiendo</div></div>
+        <div class="stat-card primary"><div class="stat-value">${done.length}</div><div class="stat-label">Atendidos hoy</div></div>
+      </div>
+      ${inProg.map(a=>`<div class="card" style="border-left:3px solid var(--success)"><div class="flex-between"><div class="flex"><div class="avatar">${initials(a.patient_name)}</div><div><strong>${a.patient_name}</strong><br><span class="muted">${a.start_time?.substring(0,5)} — ${a.reason||''}</span></div></div><button class="btn btn-sm btn-primary" onclick="changeStatus('${a.id}','completed')">✓ Completar</button></div></div>`).join('')}
+      ${waiting.map((a,i)=>`<div class="card"><div class="flex-between"><div class="flex"><div class="queue-pos" style="background:rgba(64,199,237,.12);color:var(--cyan)">${i+1}</div><div class="avatar">${initials(a.patient_name)}</div><div><strong>${a.patient_name}</strong><br><span class="muted">${a.start_time?.substring(0,5)} — ${a.reason||''}</span></div></div><button class="btn btn-sm btn-primary" onclick="changeStatus('${a.id}','in_progress')">▶ Atender</button></div></div>`).join('')}
+      ${!waiting.length&&!inProg.length?'<div class="card center" style="padding:40px"><p style="font-size:30px">🪑</p><p class="muted mt-8">La sala está vacía</p></div>':''}`;
+  }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
+}
+
+async function loadAgenda(){
+  const main=document.getElementById('mainContent');
+  const today=new Date().toISOString().split('T')[0];
+  try{
+    const appts=await apiFetch(`/api/v1/appointments?date=${today}`);
+    main.innerHTML=`
+      <div class="topbar"><h1>Agenda</h1><div class="badge">${fmtDateLong(today)}</div></div>
+      <div class="card"><div class="table-wrap"><table>
+        <tr><th>Hora</th><th>Paciente</th><th>Motivo</th><th>Primera vez</th><th>Estado</th><th></th></tr>
+        ${appts.sort((a,b)=>(a.start_time||'').localeCompare(b.start_time||'')).map(a=>`<tr>
+          <td><strong>${a.start_time?.substring(0,5)||''}</strong> - ${a.end_time?.substring(0,5)||''}</td>
+          <td><div class="flex"><div class="avatar" style="width:28px;height:28px;font-size:10px">${initials(a.patient_name)}</div>${a.patient_name||'—'}</div></td>
+          <td class="muted">${a.reason||'—'}</td>
+          <td>${a.is_first_visit?'<span class="badge-sm pending">1ra vez</span>':'—'}</td>
+          <td><span class="badge-sm ${a.status}">${statusLabel(a.status)}</span></td>
+          <td>${a.status==='confirmed'?`<button class="btn btn-sm btn-primary" onclick="changeStatus('${a.id}','in_progress')">▶</button>`:a.status==='in_progress'?`<button class="btn btn-sm btn-primary" onclick="changeStatus('${a.id}','completed')">✓</button>`:''}</td>
+        </tr>`).join('')}
+      </table></div></div>`;
+  }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
+}
+
+async function loadPacientes(){
+  const main=document.getElementById('mainContent');
+  try{
+    const pts=await apiFetch('/api/v1/patients');
+    main.innerHTML=`
+      <div class="topbar"><h1>Pacientes</h1><div class="badge">${pts.length} registrados</div></div>
+      <div class="card"><div class="table-wrap"><table>
+        <tr><th>Paciente</th><th>DNI</th><th>Teléfono</th><th>Obra social</th><th>Email</th></tr>
+        ${pts.map(p=>`<tr>
+          <td><div class="flex"><div class="avatar" style="width:28px;height:28px;font-size:10px">${initials(p.first_name+' '+p.last_name)}</div><strong>${p.first_name} ${p.last_name}</strong></div></td>
+          <td>${p.dni||'—'}</td><td>${p.phone||'—'}</td>
+          <td>${p.insurance_provider||'Particular'}</td><td class="muted">${p.email||'—'}</td>
+        </tr>`).join('')}
+      </table></div></div>`;
+  }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
+}
+
+async function loadRecetas(){
+  const main=document.getElementById('mainContent');
+  try{
+    const rxs=await apiFetch('/api/v1/prescriptions');
+    main.innerHTML=`
+      <div class="topbar"><h1>Recetas</h1></div>
+      <div class="card"><div class="table-wrap"><table>
+        <tr><th>Paciente</th><th>Diagnóstico</th><th>CIE-10</th><th>Estado</th><th>Vence</th><th></th></tr>
+        ${rxs.map(r=>`<tr>
+          <td><strong>${r.patient_name||'—'}</strong></td>
+          <td>${r.diagnosis||'—'}</td><td>${r.diagnosis_code||'—'}</td>
+          <td><span class="badge-sm ${r.status}">${r.status}</span></td>
+          <td class="muted">${r.expires_at?fmtDate(r.expires_at):'—'}</td>
+          <td><a href="${API}/api/v1/prescriptions/${r.id}/pdf" target="_blank" class="btn btn-sm btn-outline">PDF</a></td>
+        </tr>`).join('')}
+      </table></div></div>`;
+  }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
+}
+
+async function loadWaitlist(){
+  const main=document.getElementById('mainContent');
+  try{
+    const[entries,stats]=await Promise.all([apiFetch('/api/v1/waitlist'),apiFetch('/api/v1/waitlist/stats')]);
+    main.innerHTML=`
+      <div class="topbar"><h1>Lista de espera</h1></div>
+      <div class="stats">
+        <div class="stat-card cyan"><div class="stat-value">${stats.waiting||0}</div><div class="stat-label">Esperando</div></div>
+        <div class="stat-card warning"><div class="stat-value">${stats.notified||0}</div><div class="stat-label">Notificados</div></div>
+        <div class="stat-card success"><div class="stat-value">${stats.booked||0}</div><div class="stat-label">Reservados</div></div>
+      </div>
+      <div class="card"><div class="table-wrap"><table>
+        <tr><th>Paciente</th><th>Fecha</th><th>Horario</th><th>Motivo</th><th>Estado</th></tr>
+        ${entries.map(e=>`<tr>
+          <td><strong>${e.contact_name||e.patient_name||'—'}</strong><br><span class="muted">${e.contact_phone||''}</span></td>
+          <td>${fmtDate(e.desired_date)}</td>
+          <td>${e.preferred_start_time?e.preferred_start_time.substring(0,5)+' - '+(e.preferred_end_time||'').substring(0,5):'Cualquiera'}</td>
+          <td class="muted">${e.reason||'—'}</td>
+          <td><span class="badge-sm ${e.status}">${e.status}</span></td>
+        </tr>`).join('')}
+      </table></div></div>`;
+  }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
+}
+
+async function loadEquipo(){
+  const main=document.getElementById('mainContent');
+  const orgs=JSON.parse(localStorage.getItem('mediclick_orgs')||'[]');
+  const orgId=orgs[0]?.org_id||orgs[0]?.organization_id;
+  if(!orgId){main.innerHTML=soonCard('Equipo');return}
+  try{
+    const members=await apiFetch(`/api/v1/organizations/${orgId}/members`);
+    main.innerHTML=`
+      <div class="topbar"><h1>Equipo y roles</h1><div class="badge">${members.length} miembros</div></div>
+      <div class="card"><div class="table-wrap"><table>
+        <tr><th>Nombre</th><th>Rol</th><th>Especialidad</th><th>Email</th><th>Matrícula</th></tr>
+        ${members.map(m=>`<tr>
+          <td><div class="flex"><div class="avatar" style="width:28px;height:28px;font-size:10px">${initials(m.full_name)}</div><strong>${m.full_name}</strong></div></td>
+          <td><span class="badge-sm confirmed">${m.role_name}</span></td>
+          <td>${m.specialty||'—'}</td><td class="muted">${m.email||'—'}</td>
+          <td>${m.medical_license||'—'}</td>
+        </tr>`).join('')}
+      </table></div></div>`;
+  }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
+}
+
+// ═══════════════════════════════════════════════════════════
+// VISTAS DEL PACIENTE
+// ═══════════════════════════════════════════════════════════
+
+async function loadMisTurnos(){
+  const main=document.getElementById('mainContent');
+  const upcoming=userData?.upcomingAppointments||[];
+  main.innerHTML=`
+    <div class="topbar"><h1>Mis turnos</h1></div>
+    ${upcoming.length?upcoming.map(a=>{
+      const d=new Date(a.date+'T12:00:00');
+      const months=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+      return `<div class="appt-card">
+        <div class="appt-date"><div class="day">${d.getDate()}</div><div class="month">${months[d.getMonth()]}</div></div>
+        <div class="appt-detail">
+          <div class="time">${a.start_time?.substring(0,5)} hs</div>
+          <div class="doctor">Dr/a. ${a.doctor_name} — ${a.specialty||''}</div>
+          <div class="place">${a.org_name||''}${a.org_address?' · '+a.org_address:''}</div>
+        </div>
+        <span class="badge-sm ${a.status}">${statusLabel(a.status)}</span>
+      </div>`}).join('')
+    :'<div class="card center" style="padding:40px"><p style="font-size:30px">📅</p><p class="muted mt-8">No tenés turnos próximos</p><a href="/reservar.html" class="btn btn-primary mt-16" style="display:inline-flex;width:auto;padding:12px 24px;text-decoration:none">Reservar turno</a></div>'}`;
+}
+
+async function loadMisRecetas(){
+  const main=document.getElementById('mainContent');
+  main.innerHTML=`<div class="topbar"><h1>Mis recetas</h1></div><div class="card center" style="padding:40px"><p style="font-size:30px">💊</p><p class="muted mt-8">Tus recetas van a aparecer acá cuando tu médico las emita.</p></div>`;
+}
+
+function loadMiPerfil(){
+  const main=document.getElementById('mainContent');
+  const u=userData||{};
+  main.innerHTML=`
+    <div class="topbar"><h1>Mi perfil</h1></div>
+    <div class="card">
+      <div class="flex" style="gap:16px;margin-bottom:16px">
+        <div class="avatar" style="width:56px;height:56px;font-size:20px">${initials(u.first_name+' '+u.last_name)}</div>
+        <div><h2 style="font-size:18px">${u.first_name||''} ${u.last_name||''}</h2><p class="muted">${u.email||''}</p></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px">
+        <div><span class="muted">Teléfono</span><br><strong>${u.phone||'—'}</strong></div>
+        <div><span class="muted">DNI</span><br><strong>${u.dni||'—'}</strong></div>
+        <div><span class="muted">Obra social</span><br><strong>${u.insurance_provider||'Particular'}</strong></div>
+        <div><span class="muted">N° credencial</span><br><strong>${u.insurance_number||'—'}</strong></div>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// VISTA ADMIN
+// ═══════════════════════════════════════════════════════════
+
+async function loadAdminDashboard(){
+  const main=document.getElementById('mainContent');
+  const today=new Date().toISOString().split('T')[0];
+  try{
+    const appts=await apiFetch(`/api/v1/appointments?date=${today}`);
+    const total=appts.length;
+    const done=appts.filter(a=>a.status==='completed').length;
+    const waiting=appts.filter(a=>a.status==='confirmed').length;
+    const rate=total?Math.round(done/total*100):0;
+    main.innerHTML=`
+      <div class="topbar"><h1>Dashboard administrativo</h1><div class="badge">${fmtDateLong(today)}</div></div>
+      <div class="stats">
+        <div class="stat-card primary"><div class="stat-value">${total}</div><div class="stat-label">Turnos hoy</div></div>
+        <div class="stat-card success"><div class="stat-value">${done}</div><div class="stat-label">Atendidos</div></div>
+        <div class="stat-card cyan"><div class="stat-value">${waiting}</div><div class="stat-label">En espera</div></div>
+        <div class="stat-card warning"><div class="stat-value">${rate}%</div><div class="stat-label">Tasa atención</div></div>
+      </div>
+      <div class="card"><div class="card-title">Turnos del día</div>
+        <div class="table-wrap"><table>
+          <tr><th>Hora</th><th>Paciente</th><th>Estado</th><th>Motivo</th></tr>
+          ${appts.sort((a,b)=>(a.start_time||'').localeCompare(b.start_time||'')).map(a=>`<tr>
+            <td><strong>${a.start_time?.substring(0,5)||''}</strong></td>
+            <td>${a.patient_name||'—'}</td>
+            <td><span class="badge-sm ${a.status}">${statusLabel(a.status)}</span></td>
+            <td class="muted">${a.reason||'—'}</td>
+          </tr>`).join('')}
+        </table></div>
+      </div>`;
+  }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
+}
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+
+async function changeStatus(id,status){
+  try{await apiFetch(`/api/v1/appointments/${id}/status`,{method:'PUT',body:{status}});navigateTo(currentSection)}catch(e){alert(e.message)}
+}
+
+function statusLabel(s){return{confirmed:'Confirmado',pending:'Pendiente',completed:'Atendido',cancelled:'Cancelado',in_progress:'En curso',no_show:'Ausente'}[s]||s}
+function initials(name){return(name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}
+function fmtDate(d){if(!d)return'—';const p=(d+'').substring(0,10).split('-');return`${p[2]}/${p[1]}/${p[0]}`}
+function fmtDateLong(d){const dt=new Date(d+'T12:00:00');return dt.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})}
+
+// ─── Boot ────────────────────────────────────────────────
+if(token&&userData) initApp();
+</script>
+</body>
+</html>
