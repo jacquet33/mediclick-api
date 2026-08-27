@@ -29,6 +29,46 @@ export class PrescriptionController {
     return this.rxService.verify(code);
   }
 
+  @Public()
+  @Get('verify/:code/pdf')
+  async verifyAndDownloadPdf(
+    @Param('code') code: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const rx = await this.rxService.verify(code);
+      if (!rx) return res.status(404).json({ message: 'Receta no encontrada' });
+      const buffer = await this.pdfService.generatePdf(rx.organization_id, rx.id);
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `inline; filename="receta-${code}.pdf"`,
+        'Content-Length': buffer.length,
+      });
+      res.end(buffer);
+    } catch (e) {
+      res.status(500).json({ message: e.message || 'Error generando PDF' });
+    }
+  }
+
+  @Get(':id/pdf')
+  async downloadPdf(
+    @OrgId() orgId: string,
+    @Param('id') id: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const buffer = await this.pdfService.generatePdf(orgId, id);
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `inline; filename="receta-${id.slice(0, 8)}.pdf"`,
+        'Content-Length': buffer.length,
+      });
+      res.end(buffer);
+    } catch (e) {
+      res.status(500).json({ message: e.message || 'Error generando PDF' });
+    }
+  }
+
   @Get(':id')
   findById(@OrgId() orgId: string, @Param('id') id: string) {
     return this.rxService.findById(orgId, id);
@@ -41,38 +81,6 @@ export class PrescriptionController {
     @Body() dto: CreatePrescriptionDto,
   ) {
     return this.rxService.create(orgId, doctorId, dto);
-  }
-
-  @Get(':id/pdf')
-  async downloadPdf(
-    @OrgId() orgId: string,
-    @Param('id') id: string,
-    @Res() res: Response,
-  ) {
-    const buffer = await this.pdfService.generatePdf(orgId, id);
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `inline; filename="receta-${id.slice(0, 8)}.pdf"`,
-      'Content-Length': buffer.length,
-    });
-    res.end(buffer);
-  }
-
-  @Public()
-  @Get('verify/:code/pdf')
-  async verifyAndDownloadPdf(
-    @Param('code') code: string,
-    @Res() res: Response,
-  ) {
-    const rx = await this.rxService.verify(code);
-    if (!rx) throw new Error('Receta no encontrada');
-    const buffer = await this.pdfService.generatePdf(rx.organization_id, rx.id);
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `inline; filename="receta-${code}.pdf"`,
-      'Content-Length': buffer.length,
-    });
-    res.end(buffer);
   }
 
   @Patch(':id/cancel')
