@@ -57,7 +57,9 @@ export class PrescriptionController {
     @Res() res: Response,
   ) {
     try {
+      console.log(`PDF request: prescriptionId=${id}, orgId=${orgId}`);
       const buffer = await this.pdfService.generatePdf(orgId, id);
+      console.log(`PDF generated: ${buffer.length} bytes`);
       res.set({
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="receta-${id.slice(0, 8)}.pdf"`,
@@ -65,7 +67,23 @@ export class PrescriptionController {
       });
       res.end(buffer);
     } catch (e) {
-      res.status(500).json({ message: e.message || 'Error generando PDF' });
+      console.error(`PDF error: ${e.message}`, e.stack);
+      res.status(500).json({ message: e.message || 'Error generando PDF', stack: e.stack?.split('\n').slice(0, 5) });
+    }
+  }
+
+  @Get(':id/pdf-debug')
+  async debugPdf(
+    @OrgId() orgId: string,
+    @Param('id') id: string,
+  ) {
+    // Returns the data that would be used to generate the PDF
+    try {
+      const rx = await this.rxService.findById(orgId, id);
+      const pdfkitInstalled = (() => { try { require('pdfkit'); return true; } catch { return false; } })();
+      return { ok: true, prescriptionFound: !!rx, pdfkitInstalled, orgId, id, prescription: rx };
+    } catch (e) {
+      return { ok: false, error: e.message, orgId, id };
     }
   }
 
