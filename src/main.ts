@@ -42,6 +42,8 @@ import { RolesController, OrgMembersController } from './modules/roles/roles.con
 import { RolesService } from './modules/roles/roles.service';
 import { WaitlistController, PublicWaitlistController } from './modules/waitlist/waitlist.controller';
 import { WaitlistService } from './modules/waitlist/waitlist.service';
+import { PushController } from './modules/push/push.controller';
+import { PushNotificationService } from './modules/push/push.service';
 import { SubscriptionController } from './modules/subscriptions/subscription.controller';
 import { SubscriptionService } from './modules/subscriptions/subscription.service';
 import { JwtModule } from '@nestjs/jwt';
@@ -98,6 +100,7 @@ class HealthController {
     OrgMembersController,
     WaitlistController,
     PublicWaitlistController,
+    PushController,
     SubscriptionController,
   ],
   providers: [
@@ -123,6 +126,7 @@ class HealthController {
     ReminderSettingsService,
     RolesService,
     WaitlistService,
+    PushNotificationService,
     SubscriptionService,
     { provide: APP_GUARD, useClass: ProGuard },
   ],
