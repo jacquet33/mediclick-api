@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { DatabaseService } from '../../database/database.service';
 import * as https from 'https';
-import * as jwt from 'jsonwebtoken';
+import * as crypto from 'crypto';
 
 interface PushPayload {
   title: string;
@@ -28,6 +29,7 @@ export class PushNotificationService {
   constructor(
     private db: DatabaseService,
     private config: ConfigService,
+    private jwtService: JwtService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════
@@ -302,13 +304,24 @@ export class PushNotificationService {
     // El key puede venir como string con \n escapados
     const key = keyContent.replace(/\\n/g, '\n');
 
-    this.apnsToken = jwt.sign({}, key, {
-      algorithm: 'ES256',
-      header: { alg: 'ES256', kid: keyId },
-      issuer: teamId,
-      expiresIn: '1h',
-    } as any);
+    // Construir JWT manualmente con ES256
+    const header = Buffer.from(JSON.stringify({ alg: 'ES256', kid: keyId })).toString('base64url');
+    const payload = Buffer.from(JSON.stringify({ iss: teamId, iat: now })).toString('base64url');
+    const signInput = `${header}.${payload}`;
 
+    const sign = crypto.createSign('SHA256');
+    sign.update(signInput);
+    const signature = sign.sign(key);
+
+    // Convert DER signature to raw r||s format for ES256
+    const r = signature.subarray(4, 4 + signature[3]);
+    const sOffset = 4 + signature[3] + 2;
+    const s = signature.subarray(sOffset);
+    const rPadded = Buffer.alloc(32); r.copy(rPadded, 32 - r.length);
+    const sPadded = Buffer.alloc(32); s.copy(sPadded, 32 - s.length);
+    const rawSig = Buffer.concat([rPadded, sPadded]).toString('base64url');
+
+    this.apnsToken = `${signInput}.${rawSig}`;
     this.apnsTokenExpiry = now + 3000; // renovar en 50 min
     return this.apnsToken!;
   }
