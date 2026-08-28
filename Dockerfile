@@ -1,7 +1,8 @@
 FROM node:20-alpine AS builder
+RUN apk add --no-cache python3 make g++ pkgconfig pixman-dev cairo-dev pango-dev jpeg-dev giflib-dev
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm install --ignore-scripts && npm rebuild
 COPY . .
 RUN npx nest build
 
