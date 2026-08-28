@@ -14,7 +14,7 @@ interface PushPayload {
   sound?: string;
 }
 
-interface SendResult {
+export interface SendResult {
   sent: number;
   failed: number;
   errors: string[];
