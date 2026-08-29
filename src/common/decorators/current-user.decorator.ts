@@ -28,11 +28,30 @@ export const DoctorId = createParamDecorator(
  * organization_doctors por el guard.
  */
 export const OrgId = createParamDecorator(
-  (_: unknown, ctx: ExecutionContext): string => {
-    const user = ctx.switchToHttp().getRequest().user as AuthUser;
-    if (!user?.organizationId) {
-      throw new ForbiddenException('Falta el header x-organization-id');
+  async (_: unknown, ctx: ExecutionContext): Promise<string> => {
+    const request = ctx.switchToHttp().getRequest();
+    const user = request.user as AuthUser;
+    
+    // Si tiene orgId válido, usarlo
+    if (user?.organizationId && user.organizationId.length > 10) {
+      return user.organizationId;
     }
-    return user.organizationId;
+    
+    // Fallback: buscar la primera org del doctor desde el JWT
+    if (user?.doctorId) {
+      try {
+        const { DatabaseService } = require('../../database/database.service');
+        const db = request.app?.get?.(DatabaseService);
+        if (db) {
+          const org = await db.queryOne(
+            'SELECT organization_id FROM organization_doctors WHERE doctor_id = $1 AND is_active = true LIMIT 1',
+            [user.doctorId],
+          );
+          if (org?.organization_id) return org.organization_id;
+        }
+      } catch {}
+    }
+    
+    throw new ForbiddenException('Falta el header x-organization-id');
   },
 );
