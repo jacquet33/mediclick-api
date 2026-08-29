@@ -83,20 +83,18 @@ export class PatientService {
     const patient = await this.db.queryOne(
       `INSERT INTO patients (
         organization_id, first_name, last_name, dni, email, phone,
-        date_of_birth, gender, blood_type, address, city, province,
-        emergency_contact_name, emergency_contact_phone,
+        date_of_birth, address, city, province,
         insurance_provider, insurance_number, insurance_plan,
-        primary_doctor_id, allergies, chronic_conditions, current_medications, notes
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
+        primary_doctor_id, notes
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7::date,$8,$9,$10,$11,$12,$13,$14,$15)
       RETURNING *`,
       [
-        orgId, dto.firstName, dto.lastName, dto.dni, dto.email, dto.phone,
-        dto.dateOfBirth, dto.gender || 'not_specified', dto.bloodType || 'unknown',
-        dto.address, dto.city, dto.province,
-        dto.emergencyContactName, dto.emergencyContactPhone,
-        dto.insuranceProvider, dto.insuranceNumber, dto.insurancePlan,
-        dto.primaryDoctorId, dto.allergies || [], dto.chronicConditions || [],
-        dto.currentMedications || [], dto.notes,
+        orgId, dto.firstName, dto.lastName,
+        dto.dni || null, dto.email || null, dto.phone || null,
+        dto.dateOfBirth || null,
+        dto.address || null, dto.city || null, dto.province || null,
+        dto.insuranceProvider || null, dto.insuranceNumber || null, dto.insurancePlan || null,
+        dto.primaryDoctorId || null, dto.notes || null,
       ],
     );
     this.logger.log(`Patient created: ${dto.firstName} ${dto.lastName} in org ${orgId}`);
