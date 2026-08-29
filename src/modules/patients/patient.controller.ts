@@ -1,10 +1,14 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { PatientService, CreatePatientDto } from './patient.service';
+import { PatientHistoryService } from './patient-history.service';
 import { OrgId } from '../../common/decorators/current-user.decorator';
 
 @Controller('api/v1/patients')
 export class PatientController {
-  constructor(private patientService: PatientService) {}
+  constructor(
+    private patientService: PatientService,
+    private historyService: PatientHistoryService,
+  ) {}
 
   @Get()
   findAll(
@@ -25,6 +29,11 @@ export class PatientController {
   @Get('insurers')
   insurersInUse(@OrgId() orgId: string) {
     return this.patientService.insurersInUse(orgId);
+  }
+
+  @Get(':id/history')
+  getHistory(@OrgId() orgId: string, @Param('id') id: string) {
+    return this.historyService.getFullHistory(orgId, id);
   }
 
   @Get(':id')

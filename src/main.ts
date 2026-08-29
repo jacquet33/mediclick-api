@@ -12,6 +12,7 @@ import { OrganizationController, InvitationController } from './modules/organiza
 import { OrganizationService } from './modules/organizations/organization.service';
 import { PatientController } from './modules/patients/patient.controller';
 import { PatientService } from './modules/patients/patient.service';
+import { PatientHistoryService } from './modules/patients/patient-history.service';
 import { AppointmentController } from './modules/appointments/appointment.controller';
 import { AppointmentService } from './modules/appointments/appointment.service';
 import { PrescriptionController } from './modules/prescriptions/prescription.controller';
@@ -113,6 +114,7 @@ class HealthController {
     OAuthService,
     OrganizationService,
     PatientService,
+    PatientHistoryService,
     AppointmentService,
     PrescriptionService,
     PrescriptionPdfService,
