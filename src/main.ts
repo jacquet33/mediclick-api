@@ -137,9 +137,30 @@ class HealthController {
 })
 class AppModule {}
 
+// Convert snake_case body keys to camelCase (iOS sends snake_case, NestJS DTOs expect camelCase)
+function snakeToCamel(obj: any): any {
+  if (Array.isArray(obj)) return obj.map(snakeToCamel);
+  if (obj && typeof obj === 'object' && !(obj instanceof Date)) {
+    return Object.keys(obj).reduce((acc: any, key: string) => {
+      const camel = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+      acc[camel] = snakeToCamel(obj[key]);
+      return acc;
+    }, {});
+  }
+  return obj;
+}
+
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: true });
   app.useStaticAssets(join(__dirname, '..', 'public'));
+  
+  // Auto-convert snake_case → camelCase on all incoming JSON bodies
+  app.use((req: any, _res: any, next: any) => {
+    if (req.body && typeof req.body === 'object') {
+      req.body = snakeToCamel(req.body);
+    }
+    next();
+  });
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');
   console.log(`MediClick API v1.0.0 running on port ${port}`);
