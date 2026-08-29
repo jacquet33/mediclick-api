@@ -17,6 +17,8 @@ import { AppointmentService } from './modules/appointments/appointment.service';
 import { PrescriptionController } from './modules/prescriptions/prescription.controller';
 import { PrescriptionService } from './modules/prescriptions/prescription.service';
 import { PrescriptionPdfService } from './modules/prescriptions/prescription-pdf.service';
+import { PrescriptionTemplateController } from './modules/prescriptions/prescription-template.controller';
+import { PrescriptionTemplateService } from './modules/prescriptions/prescription-template.service';
 import { MedicalRecordController } from './modules/medical-records/medical-record.controller';
 import { MedicalRecordService } from './modules/medical-records/medical-record.service';
 import { ChatController } from './modules/chat/chat.controller';
@@ -85,6 +87,7 @@ class HealthController {
     PatientController,
     AppointmentController,
     PrescriptionController,
+    PrescriptionTemplateController,
     MedicalRecordController,
     ChatController,
     ScheduleController,
@@ -113,6 +116,7 @@ class HealthController {
     AppointmentService,
     PrescriptionService,
     PrescriptionPdfService,
+    PrescriptionTemplateService,
     MedicalRecordService,
     ChatService,
     ScheduleService,
