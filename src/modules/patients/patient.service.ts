@@ -79,7 +79,15 @@ export class PatientService {
     return patient;
   }
 
-  async create(orgId: string, dto: CreatePatientDto) {
+  async create(orgId: string, dto: any) {
+    // Accept both camelCase and snake_case from iOS/web
+    const firstName = dto.firstName || dto.first_name;
+    const lastName = dto.lastName || dto.last_name;
+    
+    if (!firstName || !lastName) {
+      throw new Error('firstName and lastName are required');
+    }
+    
     const patient = await this.db.queryOne(
       `INSERT INTO patients (
         organization_id, first_name, last_name, dni, email, phone,
@@ -89,15 +97,18 @@ export class PatientService {
       ) VALUES ($1,$2,$3,$4,$5,$6,$7::date,$8,$9,$10,$11,$12,$13,$14,$15)
       RETURNING *`,
       [
-        orgId, dto.firstName, dto.lastName,
+        orgId, firstName, lastName,
         dto.dni || null, dto.email || null, dto.phone || null,
-        dto.dateOfBirth || null,
+        dto.dateOfBirth || dto.date_of_birth || null,
         dto.address || null, dto.city || null, dto.province || null,
-        dto.insuranceProvider || null, dto.insuranceNumber || null, dto.insurancePlan || null,
-        dto.primaryDoctorId || null, dto.notes || null,
+        dto.insuranceProvider || dto.insurance_provider || null,
+        dto.insuranceNumber || dto.insurance_number || null,
+        dto.insurancePlan || dto.insurance_plan || null,
+        dto.primaryDoctorId || dto.primary_doctor_id || null,
+        dto.notes || null,
       ],
     );
-    this.logger.log(`Patient created: ${dto.firstName} ${dto.lastName} in org ${orgId}`);
+    this.logger.log(`Patient created: ${firstName} ${lastName} in org ${orgId}`);
     return patient;
   }
 

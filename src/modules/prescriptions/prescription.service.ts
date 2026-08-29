@@ -81,37 +81,48 @@ export class PrescriptionService {
     return { ...rx, items };
   }
 
-  async create(orgId: string, doctorId: string, dto: CreatePrescriptionDto) {
+  async create(orgId: string, doctorId: string, dto: any) {
     return this.db.transaction(async (client) => {
+      const patientId = dto.patientId || dto.patient_id;
+      const diagnosis = dto.diagnosis;
+      const diagnosisCode = dto.diagnosisCode || dto.diagnosis_code;
+      const notes = dto.notes;
+      const items = dto.items || [];
+
       const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + (dto.expiresInDays || 30));
+      expiresAt.setDate(expiresAt.getDate() + (dto.expiresInDays || dto.expires_in_days || 30));
 
       const rx = await client.query(
         `INSERT INTO prescriptions (
-          doctor_id, patient_id, organization_id, medical_record_id,
+          doctor_id, patient_id, organization_id,
           diagnosis, diagnosis_code, expires_at, notes
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7)
         RETURNING *`,
-        [doctorId, dto.patientId, orgId, dto.medicalRecordId,
-         dto.diagnosis, dto.diagnosisCode, expiresAt.toISOString(), dto.notes],
+        [doctorId, patientId, orgId, diagnosis, diagnosisCode || null,
+         expiresAt.toISOString(), notes || null],
       );
 
       const rxId = rx.rows[0].id;
 
-      for (let i = 0; i < dto.items.length; i++) {
-        const item = dto.items[i];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
         await client.query(
           `INSERT INTO prescription_items (
             prescription_id, medication_name, dosage, frequency,
             duration, quantity, instructions, sort_order
           ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-          [rxId, item.medicationName, item.dosage, item.frequency,
-           item.duration, item.quantity, item.instructions, i],
+          [rxId,
+           item.medicationName || item.medication_name,
+           item.dosage || null,
+           item.frequency || null,
+           item.duration || null,
+           item.quantity || null,
+           item.instructions || null, i],
         );
       }
 
-      this.logger.log(`Prescription created: ${rxId} for patient ${dto.patientId}`);
-      return { ...rx.rows[0], items: dto.items };
+      this.logger.log(`Prescription created: ${rxId} for patient ${patientId}`);
+      return { ...rx.rows[0], items };
     });
   }
 
