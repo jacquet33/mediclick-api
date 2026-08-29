@@ -57,7 +57,7 @@ export class PrescriptionPdfService {
   constructor(private db: DatabaseService) {}
 
   async generatePdf(orgId: string, prescriptionId: string): Promise<Buffer> {
-    // 1) Cargar datos completos
+    // 1) Cargar datos completos (sin filtrar por org, el ID es único)
     const rx = await this.db.queryOne(
       `SELECT 
         rx.*,
@@ -77,8 +77,8 @@ export class PrescriptionPdfService {
        JOIN doctors d ON d.id = rx.doctor_id
        JOIN patients p ON p.id = rx.patient_id
        JOIN organizations o ON o.id = rx.organization_id
-       WHERE rx.id = $1 AND rx.organization_id = $2`,
-      [prescriptionId, orgId],
+       WHERE rx.id = $1::uuid`,
+      [prescriptionId.toLowerCase()],
     );
 
     if (!rx) throw new NotFoundException('Receta no encontrada');
