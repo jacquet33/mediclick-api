@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException, Logger } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { AppointmentService } from '../appointments/appointment.service';
-import { PushService } from '../push/push.service';
+import { PushNotificationService } from '../push/push.service';
 
 // ─── DTOs ───────────────────────────────────────────────────
 
@@ -59,7 +59,7 @@ export class BookingService {
   constructor(
     private db: DatabaseService,
     private apptService: AppointmentService,
-    private pushService: PushService,
+    private pushService: PushNotificationService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════
@@ -315,22 +315,15 @@ export class BookingService {
       }
 
       // Notificar al médico (push real + DB)
-      // Esto se ejecuta fuera de la transacción para no bloquear
       const pushTitle = status === 'confirmed' ? 'Nuevo turno reservado' : 'Nueva solicitud de turno';
       const pushBody = `${dto.firstName} ${dto.lastName} — ${dto.requestedDate} ${dto.requestedStartTime}`;
-      this.pushService.notify(
-        'doctor',
-        profile.doctor_id,
-        {
-          title: pushTitle,
-          body: pushBody,
-          data: { bookingRequestId: bookingRow.id, status, type: 'new_booking' },
-          sound: 'default',
-          category: status === 'confirmed' ? 'NEW_APPOINTMENT' : 'BOOKING_REQUEST',
-        },
-        profile.organization_id,
-        'appointment_reminder',
-      ).catch(err => this.logger.warn(`Push notification failed: ${err.message}`));
+      this.pushService.sendToDoctor(profile.doctor_id, {
+        title: pushTitle,
+        body: pushBody,
+        data: { bookingRequestId: bookingRow.id, status, type: 'new_booking' },
+        sound: 'default',
+        category: status === 'confirmed' ? 'NEW_APPOINTMENT' : 'BOOKING_REQUEST',
+      }).catch(err => this.logger.warn(`Push notification failed: ${err.message}`));
 
       this.logger.log(`Booking created: ${bookingRow.id} (${status}) for ${slug}`);
 
@@ -402,19 +395,13 @@ export class BookingService {
         [booking.org_doctor_id],
       );
 
-      this.pushService.notify(
-        'doctor',
-        orgDoctor.rows[0].doctor_id,
-        {
-          title: 'Comprobante de pago recibido',
-          body: `${booking.first_name} ${booking.last_name} subió el comprobante`,
-          data: { bookingRequestId: booking.id, type: 'booking_payment' },
-          sound: 'default',
-          category: 'PAYMENT_RECEIVED',
-        },
-        booking.organization_id,
-        'appointment_reminder',
-      ).catch(err => this.logger.warn(`Push notification failed: ${err.message}`));
+      this.pushService.sendToDoctor(orgDoctor.rows[0].doctor_id, {
+        title: 'Comprobante de pago recibido',
+        body: `${booking.first_name} ${booking.last_name} subió el comprobante`,
+        data: { bookingRequestId: booking.id, type: 'booking_payment' },
+        sound: 'default',
+        category: 'PAYMENT_RECEIVED',
+      }).catch(err => this.logger.warn(`Push notification failed: ${err.message}`));
 
       return { message: 'Comprobante recibido. El médico lo va a verificar.' };
     });
