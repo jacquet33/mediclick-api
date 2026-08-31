@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException, Logger } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { AppointmentService } from '../appointments/appointment.service';
+import { PushService } from '../push/push.service';
 
 // ─── DTOs ───────────────────────────────────────────────────
 
@@ -58,6 +59,7 @@ export class BookingService {
   constructor(
     private db: DatabaseService,
     private apptService: AppointmentService,
+    private pushService: PushService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════
@@ -312,17 +314,23 @@ export class BookingService {
         bookingRow.appointment_id = appt.id;
       }
 
-      // Notificar al médico
-      await client.query(
-        `INSERT INTO notifications (organization_id, recipient_type, recipient_id, type, title, body, data)
-         VALUES ($1, 'doctor', $2, 'appointment_reminder', $3, $4, $5)`,
-        [
-          profile.organization_id, profile.doctor_id,
-          status === 'confirmed' ? 'Nuevo turno reservado' : 'Nueva solicitud de turno',
-          `${dto.firstName} ${dto.lastName} — ${dto.requestedDate} ${dto.requestedStartTime}`,
-          JSON.stringify({ bookingRequestId: bookingRow.id, status }),
-        ],
-      );
+      // Notificar al médico (push real + DB)
+      // Esto se ejecuta fuera de la transacción para no bloquear
+      const pushTitle = status === 'confirmed' ? 'Nuevo turno reservado' : 'Nueva solicitud de turno';
+      const pushBody = `${dto.firstName} ${dto.lastName} — ${dto.requestedDate} ${dto.requestedStartTime}`;
+      this.pushService.notify(
+        'doctor',
+        profile.doctor_id,
+        {
+          title: pushTitle,
+          body: pushBody,
+          data: { bookingRequestId: bookingRow.id, status, type: 'new_booking' },
+          sound: 'default',
+          category: status === 'confirmed' ? 'NEW_APPOINTMENT' : 'BOOKING_REQUEST',
+        },
+        profile.organization_id,
+        'appointment_reminder',
+      ).catch(err => this.logger.warn(`Push notification failed: ${err.message}`));
 
       this.logger.log(`Booking created: ${bookingRow.id} (${status}) for ${slug}`);
 
@@ -388,19 +396,25 @@ export class BookingService {
          booking.payment_method || 'transfer', proofUrl, reference],
       );
 
-      // Notificar al médico
+      // Notificar al médico (push real)
       const orgDoctor = await client.query(
         `SELECT doctor_id FROM organization_doctors WHERE id = $1`,
         [booking.org_doctor_id],
       );
 
-      await client.query(
-        `INSERT INTO notifications (organization_id, recipient_type, recipient_id, type, title, body, data)
-         VALUES ($1, 'doctor', $2, 'appointment_reminder', 'Comprobante de pago recibido', $3, $4)`,
-        [booking.organization_id, orgDoctor.rows[0].doctor_id,
-         `${booking.first_name} ${booking.last_name} subió el comprobante`,
-         JSON.stringify({ bookingRequestId: booking.id })],
-      );
+      this.pushService.notify(
+        'doctor',
+        orgDoctor.rows[0].doctor_id,
+        {
+          title: 'Comprobante de pago recibido',
+          body: `${booking.first_name} ${booking.last_name} subió el comprobante`,
+          data: { bookingRequestId: booking.id, type: 'booking_payment' },
+          sound: 'default',
+          category: 'PAYMENT_RECEIVED',
+        },
+        booking.organization_id,
+        'appointment_reminder',
+      ).catch(err => this.logger.warn(`Push notification failed: ${err.message}`));
 
       return { message: 'Comprobante recibido. El médico lo va a verificar.' };
     });
