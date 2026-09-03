@@ -29,6 +29,7 @@ import { ScheduleService } from './modules/schedules/schedule.service';
 import { BookingController, PublicBookingController } from './modules/booking/booking.controller';
 import { BookingService } from './modules/booking/booking.service';
 import { BookingPageController } from './modules/booking/page.controller';
+import { DirectoryController } from './modules/booking/directory.controller';
 import { HubController } from './modules/hub/hub.controller';
 import { HubService } from './modules/hub/hub.service';
 import { GenericRestAdapter } from './modules/hub/adapters/generic-rest.adapter';
@@ -95,6 +96,7 @@ class HealthController {
     BookingController,
     PublicBookingController,
     BookingPageController,
+    DirectoryController,
     HubController,
     InsurerController,
     NomenclatorController,

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0D9488">
+<meta name="description" content="MediClick — Encontrá tu médico y reservá turno online. Buscá por especialidad, obra social o ubicación.">
+<title>MediClick — Turnos médicos online</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--teal:#0D9488;--teal-light:#F0FDFA;--bg:#FAFAF9;--surface:#fff;--text:#1A1A1A;--soft:#666;--muted:#999;--border:#E8E5E1;--danger:#EF4444;--success:#10B981;--warning:#F59E0B;--radius:16px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+
+/* Nav */
+nav{background:var(--surface);border-bottom:0.5px solid var(--border);position:sticky;top:0;z-index:50}
+.nav-inner{max-width:1100px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:18px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px}
+.logo span{color:var(--teal)}
+.nav-links{display:flex;gap:8px}
+.nav-links a{font-size:13px;font-weight:500;padding:8px 16px;border-radius:8px;transition:.15s}
+.nav-links a:hover{background:var(--teal-light)}
+.nav-links .btn-login{background:var(--text);color:#fff;border-radius:8px}
+.nav-links .btn-login:hover{opacity:.85}
+
+/* Hero */
+.hero{background:linear-gradient(135deg,#F0FDFA 0%,#FAFAF9 100%);padding:60px 20px 40px}
+.hero-inner{max-width:800px;margin:0 auto;text-align:center}
+.hero h1{font-size:clamp(28px,5vw,44px);font-weight:700;color:var(--text);line-height:1.2;margin-bottom:12px}
+.hero h1 span{color:var(--teal)}
+.hero p{font-size:16px;color:var(--soft);margin-bottom:28px;max-width:500px;margin-inline:auto}
+
+/* Search box */
+.search-box{background:var(--surface);border-radius:16px;padding:6px;display:flex;gap:6px;box-shadow:0 4px 20px rgba(0,0,0,.06);border:0.5px solid var(--border);max-width:700px;margin:0 auto}
+.search-box input,.search-box select{border:none;outline:none;font-family:inherit;font-size:14px;padding:14px 16px;background:var(--bg);border-radius:12px;color:var(--text);flex:1;min-width:0}
+.search-box select{flex:0 0 auto;width:auto;cursor:pointer;-webkit-appearance:none;padding-right:30px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' stroke='%23999' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.search-box .btn-search{background:var(--teal);color:#fff;border:none;border-radius:12px;padding:14px 24px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:.15s}
+.search-box .btn-search:hover{opacity:.9}
+@media(max-width:600px){.search-box{flex-direction:column}.search-box select{width:100%}}
+
+/* Tags */
+.tags{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:20px;max-width:700px;margin-inline:auto}
+.tag{font-size:12px;font-weight:500;padding:6px 14px;border-radius:20px;background:var(--surface);border:0.5px solid var(--border);color:var(--soft);cursor:pointer;transition:.15s}
+.tag:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-light)}
+
+/* Results */
+.results{max-width:1100px;margin:0 auto;padding:24px 20px}
+.results-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.results-header h2{font-size:18px;font-weight:600}
+.results-header span{font-size:13px;color:var(--muted)}
+.results-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+
+/* Doctor card */
+.doc-card{background:var(--surface);border-radius:var(--radius);padding:20px;border:0.5px solid var(--border);transition:.2s;cursor:pointer}
+.doc-card:hover{border-color:var(--teal);box-shadow:0 4px 16px rgba(13,148,136,.08)}
+.doc-top{display:flex;gap:14px;margin-bottom:14px}
+.doc-avatar{width:52px;height:52px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;flex-shrink:0}
+.doc-name{font-size:16px;font-weight:600;margin-bottom:2px}
+.doc-spec{font-size:13px;color:var(--teal);font-weight:500}
+.doc-license{font-size:11px;color:var(--muted);margin-top:2px}
+.doc-org{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--soft);margin-bottom:6px}
+.doc-loc{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.doc-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:12px}
+.doc-tag{font-size:11px;font-weight:500;padding:3px 10px;border-radius:12px;background:var(--teal-light);color:var(--teal)}
+.doc-actions{display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border)}
+.doc-actions .btn{flex:1;padding:10px;font-size:13px;font-weight:600;border:none;border-radius:10px;cursor:pointer;font-family:inherit;transition:.15s}
+.doc-actions .btn-book{background:var(--text);color:#fff}
+.doc-actions .btn-book:hover{opacity:.85}
+.doc-actions .btn-profile{background:var(--bg);color:var(--soft);border:0.5px solid var(--border)}
+
+/* Features */
+.features{max-width:1100px;margin:40px auto;padding:0 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.feat{background:var(--surface);border-radius:var(--radius);padding:24px;border:0.5px solid var(--border);text-align:center}
+.feat-icon{font-size:32px;margin-bottom:12px}
+.feat h3{font-size:15px;font-weight:600;margin-bottom:6px}
+.feat p{font-size:13px;color:var(--soft);line-height:1.5}
+
+/* Footer */
+footer{background:var(--surface);border-top:0.5px solid var(--border);padding:30px 20px;text-align:center;margin-top:40px}
+footer p{font-size:12px;color:var(--muted)}
+
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;margin:40px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty span{font-size:40px;display:block;margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<nav>
+<div class="nav-inner">
+  <a href="/" class="logo">⚕️ <span>medi</span>click</a>
+  <div class="nav-links">
+    <a href="/portal.html">Ingresar</a>
+    <a href="/portal.html" class="btn-login">Soy médico</a>
+  </div>
+</div>
+</nav>
+
+<section class="hero">
+<div class="hero-inner">
+  <h1>Encontrá tu médico y <span>reservá turno</span> online</h1>
+  <p>Buscá por especialidad, obra social o ubicación. Sin llamar, sin esperar.</p>
+  
+  <div class="search-box">
+    <input id="searchQ" type="text" placeholder="Especialidad, médico o clínica..." oninput="debounceSearch()">
+    <select id="searchIns" onchange="doSearch()">
+      <option value="">Obra social</option>
+      <option>IOSPER</option><option>OSDE</option><option>Swiss Medical</option>
+      <option>Galeno</option><option>Medicus</option><option>PAMI</option>
+      <option>Sancor Salud</option><option>Federada Salud</option><option>IOMA</option>
+      <option>Accord Salud</option><option>Medifé</option><option>Omint</option>
+      <option>Hospital Italiano</option><option>Particular</option>
+    </select>
+    <button class="btn-search" onclick="doSearch()">Buscar</button>
+  </div>
+  
+  <div class="tags" id="specialtyTags"></div>
+</div>
+</section>
+
+<section class="results" id="results">
+  <div class="spinner" id="loader"></div>
+</section>
+
+<section class="features">
+  <div class="feat">
+    <div class="feat-icon">📅</div>
+    <h3>Reservá en segundos</h3>
+    <p>Elegí día y hora, completá tus datos y listo. Sin llamar por teléfono.</p>
+  </div>
+  <div class="feat">
+    <div class="feat-icon">🔔</div>
+    <h3>Avisame si se libera</h3>
+    <p>¿No hay turno? Te notificamos cuando se cancele uno el día que querés.</p>
+  </div>
+  <div class="feat">
+    <div class="feat-icon">💊</div>
+    <h3>Recetas digitales</h3>
+    <p>Recibí tus recetas en PDF directo en el celular. Compartí por WhatsApp.</p>
+  </div>
+  <div class="feat">
+    <div class="feat-icon">🏥</div>
+    <h3>Tu obra social</h3>
+    <p>Filtrá médicos por cobertura. IOSPER, OSDE, Swiss Medical y 80+ más.</p>
+  </div>
+</section>
+
+<footer>
+  <p>© 2026 MediClick — Turnos médicos online · Entre Ríos, Argentina</p>
+</footer>
+
+<script>
+const API=window.location.origin;
+let searchTimer;
+
+async function loadSpecialties(){
+  try{
+    const specs=await(await fetch(`${API}/api/v1/public/directory/specialties`)).json();
+    const el=document.getElementById('specialtyTags');
+    el.innerHTML=specs.slice(0,8).map(s=>`<div class="tag" onclick="searchBySpec('${s.specialty}')">${s.specialty}</div>`).join('');
+  }catch{}
+}
+
+function debounceSearch(){clearTimeout(searchTimer);searchTimer=setTimeout(doSearch,400)}
+
+async function doSearch(){
+  const q=document.getElementById('searchQ').value.trim();
+  const ins=document.getElementById('searchIns').value;
+  const res=document.getElementById('results');
+  res.innerHTML='<div class="spinner"></div>';
+
+  const params=new URLSearchParams();
+  if(q) params.set('q',q);
+  if(ins) params.set('insurance',ins);
+
+  try{
+    const data=await(await fetch(`${API}/api/v1/public/directory/doctors?${params}`)).json();
+    renderResults(data.doctors,data.total);
+  }catch(e){
+    res.innerHTML='<div class="empty"><span>⚠️</span>Error al buscar</div>';
+  }
+}
+
+function searchBySpec(spec){
+  document.getElementById('searchQ').value=spec;
+  doSearch();
+}
+
+function renderResults(doctors,total){
+  const res=document.getElementById('results');
+  if(!doctors.length){
+    res.innerHTML=`<div class="empty"><span>🔍</span><p>No encontramos médicos con esos filtros.<br>Probá con otra búsqueda.</p></div>`;
+    return;
+  }
+  res.innerHTML=`
+    <div class="results-header"><h2>Profesionales disponibles</h2><span>${total} encontrados</span></div>
+    <div class="results-grid">${doctors.map(d=>`
+      <div class="doc-card" onclick="window.location='/reservar.html?slug=${d.public_slug}'">
+        <div class="doc-top">
+          <div class="doc-avatar">${(d.name||'').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}</div>
+          <div>
+            <div class="doc-name">Dr/a. ${d.name}</div>
+            <div class="doc-spec">${d.specialty||'Medicina General'}</div>
+            ${d.medical_license?`<div class="doc-license">MP ${d.medical_license}</div>`:''}
+          </div>
+        </div>
+        <div class="doc-org">🏥 ${d.org_name||''}</div>
+        ${d.address?`<div class="doc-loc">📍 ${d.address}${d.city?', '+d.city:''}</div>`:''}
+        ${d.consultation_fee?`<div class="doc-tags"><span class="doc-tag">$${Number(d.consultation_fee).toLocaleString('es-AR')}</span></div>`:''}
+        <div class="doc-actions">
+          <button class="btn btn-book">Reservar turno</button>
+        </div>
+      </div>
+    `).join('')}</div>`;
+}
+
+// Init
+loadSpecialties();
+doSearch();
+</script>
+</body>
+</html>
