@@ -468,7 +468,8 @@ export class AppointmentService {
   async updateStatus(appointmentId: string, organizationId: string, status: string, cancelReason?: string) {
     const validTransitions: Record<string, string[]> = {
       pending: ['confirmed', 'cancelled'],
-      confirmed: ['in_progress', 'cancelled', 'no_show'],
+      confirmed: ['checked_in', 'in_progress', 'cancelled', 'no_show'],
+      checked_in: ['in_progress', 'cancelled', 'no_show'],
       in_progress: ['completed', 'cancelled'],
     };
 
@@ -485,9 +486,9 @@ export class AppointmentService {
       );
     }
 
-    const extraFields = status === 'cancelled'
-      ? ', cancelled_at = NOW(), cancelled_reason = $4'
-      : '';
+    let extraFields = '';
+    if (status === 'cancelled') extraFields = ', cancelled_at = NOW(), cancelled_reason = $4';
+    else if (status === 'checked_in') extraFields = ', checked_in_at = NOW()';
 
     const params = status === 'cancelled'
       ? [status, appointmentId, organizationId, cancelReason || null]

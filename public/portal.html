@@ -64,6 +64,7 @@ tr:hover td{background:var(--bg-soft)}
 .badge-sm.completed{background:#eef3f9;color:#5f5e5a}
 .badge-sm.cancelled{background:#fce8e8;color:#993535}
 .badge-sm.in_progress{background:#e1f5fb;color:#0097a7}
+.badge-sm.checked_in{background:#ecfdf5;color:#10b981}
 .badge-sm.no_show{background:#fce8e8;color:#71243e}
 .badge-sm.waiting{background:#e1f5fb;color:#0097a7}
 
@@ -403,19 +404,24 @@ async function loadWaitingRoom(){
   const today=new Date().toISOString().split('T')[0];
   try{
     const appts=await apiFetch(`/api/v1/appointments?date=${today}`);
-    const waiting=appts.filter(a=>a.status==='confirmed');
+    const confirmed=appts.filter(a=>a.status==='confirmed');
+    const checkedIn=appts.filter(a=>a.status==='checked_in');
     const inProg=appts.filter(a=>a.status==='in_progress');
     const done=appts.filter(a=>a.status==='completed');
     main.innerHTML=`
       <div class="topbar"><h1>Sala de espera</h1><button class="btn btn-sm btn-outline" onclick="loadWaitingRoom()">↻ Actualizar</button></div>
       <div class="stats">
-        <div class="stat-card cyan"><div class="stat-value">${waiting.length}</div><div class="stat-label">Esperando</div></div>
-        <div class="stat-card success"><div class="stat-value">${inProg.length}</div><div class="stat-label">Atendiendo</div></div>
-        <div class="stat-card primary"><div class="stat-value">${done.length}</div><div class="stat-label">Atendidos hoy</div></div>
+        <div class="stat-card success"><div class="stat-value">${checkedIn.length}</div><div class="stat-label">En sala</div></div>
+        <div class="stat-card cyan"><div class="stat-value">${inProg.length}</div><div class="stat-label">Atendiendo</div></div>
+        <div class="stat-card warning"><div class="stat-value">${confirmed.length}</div><div class="stat-label">Por llegar</div></div>
+        <div class="stat-card primary"><div class="stat-value">${done.length}</div><div class="stat-label">Atendidos</div></div>
       </div>
       ${inProg.map(a=>`<div class="card" style="border-left:3px solid var(--success)"><div class="flex-between"><div class="flex"><div class="avatar">${initials(a.patient_name)}</div><div><strong>${a.patient_name}</strong><br><span class="muted">${a.start_time?.substring(0,5)} — ${a.reason||''}</span></div></div><button class="btn btn-sm btn-primary" onclick="changeStatus('${a.id}','completed')">✓ Completar</button></div></div>`).join('')}
-      ${waiting.map((a,i)=>`<div class="card"><div class="flex-between"><div class="flex"><div class="queue-pos" style="background:rgba(64,199,237,.12);color:var(--cyan)">${i+1}</div><div class="avatar">${initials(a.patient_name)}</div><div><strong>${a.patient_name}</strong><br><span class="muted">${a.start_time?.substring(0,5)} — ${a.reason||''}</span></div></div><button class="btn btn-sm btn-primary" onclick="changeStatus('${a.id}','in_progress')">▶ Atender</button></div></div>`).join('')}
-      ${!waiting.length&&!inProg.length?'<div class="card center" style="padding:40px"><p style="font-size:30px">🪑</p><p class="muted mt-8">La sala está vacía</p></div>':''}`;
+      ${checkedIn.length?`<div class="card"><div class="card-title"><div class="dot" style="background:var(--success)"></div>En sala (${checkedIn.length})</div>
+        ${checkedIn.map((a,i)=>`<div class="queue-item"><div class="queue-pos" style="background:rgba(16,185,129,.12);color:var(--success)">${i+1}</div><div class="avatar">${initials(a.patient_name)}</div><div style="flex:1"><strong>${a.patient_name}</strong><br><span class="muted">${a.start_time?.substring(0,5)} — ${a.reason||''}</span></div><button class="btn btn-sm btn-primary" onclick="changeStatus('${a.id}','in_progress')">▶ Atender</button></div>`).join('')}</div>`:''}
+      ${confirmed.length?`<div class="card"><div class="card-title"><div class="dot" style="background:var(--warning)"></div>Por llegar (${confirmed.length})</div>
+        ${confirmed.map(a=>`<div class="queue-item"><div class="avatar">${initials(a.patient_name)}</div><div style="flex:1"><strong>${a.patient_name}</strong><br><span class="muted">${a.start_time?.substring(0,5)} — ${a.reason||''}</span></div><button class="btn btn-sm" style="background:#ecfdf5;color:#10b981;border:1px solid #10b981" onclick="changeStatus('${a.id}','checked_in')">✓ Llegó</button></div>`).join('')}</div>`:''}
+      ${!checkedIn.length&&!inProg.length&&!confirmed.length?'<div class="card center" style="padding:40px"><p style="font-size:30px">🪑</p><p class="muted mt-8">No hay turnos para hoy</p></div>':''}`;
   }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
 }
 
@@ -612,7 +618,7 @@ async function changeStatus(id,status){
   try{await apiFetch(`/api/v1/appointments/${id}/status`,{method:'PUT',body:{status}});navigateTo(currentSection)}catch(e){alert(e.message)}
 }
 
-function statusLabel(s){return{confirmed:'Confirmado',pending:'Pendiente',completed:'Atendido',cancelled:'Cancelado',in_progress:'En curso',no_show:'Ausente'}[s]||s}
+function statusLabel(s){return{confirmed:'Confirmado',checked_in:'En sala',pending:'Pendiente',completed:'Atendido',cancelled:'Cancelado',in_progress:'En curso',no_show:'Ausente'}[s]||s}
 function initials(name){return(name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}
 function fmtDate(d){if(!d)return'—';const p=(d+'').substring(0,10).split('-');return`${p[2]}/${p[1]}/${p[0]}`}
 function fmtDateLong(d){const dt=new Date(d+'T12:00:00');return dt.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})}
