@@ -633,6 +633,16 @@ function showConfirmation(data){
     <div class="summary-row"><span>Lugar</span><span>${profile.org_name||'—'}</span></div>
     ${profile.address?`<div class="summary-row"><span>Dirección</span><span>${profile.address}</span></div>`:''}`;
 
+  // WhatsApp share button
+  const waMsg=`¡Turno confirmado! 📅\n\nDr/a. ${profile.doctor_name}\n📅 ${fmt}\n⏰ ${selectedSlot.start.substring(0,5)} hs\n🏥 ${profile.org_name||''}\n${profile.address||''}\n\n— MediClick`;
+  const waPhone='';
+  const shareWaUrl=`https://wa.me/?text=${encodeURIComponent(waMsg)}`;
+  document.getElementById('summaryContent').innerHTML+=`
+    <div style="margin-top:14px;display:flex;gap:8px">
+      <a href="${shareWaUrl}" target="_blank" class="btn btn-primary" style="background:#25D366;flex:1;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px">
+        📱 Compartir por WhatsApp
+      </a>
+    </div>`;
   if(data.paymentInfo){
     const p=data.paymentInfo;
     let h=`<div class="card"><div class="card-title"><span class="ico">💳</span> Datos para el pago</div>
