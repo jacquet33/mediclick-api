@@ -74,7 +74,9 @@ nav{background:var(--surface);border-bottom:0.5px solid var(--border);position:s
 .feat{background:var(--surface);border-radius:var(--radius);padding:24px;border:0.5px solid var(--border);text-align:center}
 .feat-icon{font-size:32px;margin-bottom:12px}
 .feat h3{font-size:15px;font-weight:600;margin-bottom:6px}
-.feat p{font-size:13px;color:var(--soft);line-height:1.5}
+.feat p{font-size:13px;color:var(--soft);line-height:1.5;margin-bottom:10px}
+.feat-link{font-size:13px;font-weight:600;color:var(--teal)}
+.feat:hover{border-color:var(--teal);box-shadow:0 4px 16px rgba(13,148,136,.06)}
 
 /* Footer */
 footer{background:var(--surface);border-top:0.5px solid var(--border);padding:30px 20px;text-align:center;margin-top:40px}
@@ -125,25 +127,29 @@ footer p{font-size:12px;color:var(--muted)}
 </section>
 
 <section class="features">
-  <div class="feat">
+  <div class="feat" onclick="document.getElementById('searchQ').focus();window.scrollTo({top:0,behavior:'smooth'})" style="cursor:pointer">
     <div class="feat-icon">📅</div>
     <h3>Reservá en segundos</h3>
-    <p>Elegí día y hora, completá tus datos y listo. Sin llamar por teléfono.</p>
+    <p>Buscá tu médico, elegí día y hora, completá tus datos y listo. Sin llamar por teléfono, disponible 24/7.</p>
+    <a class="feat-link">Buscar médico →</a>
   </div>
-  <div class="feat">
+  <div class="feat" onclick="window.location='/reservar.html?slug=alejandro-jacquet#waitlist'" style="cursor:pointer">
     <div class="feat-icon">🔔</div>
     <h3>Avisame si se libera</h3>
-    <p>¿No hay turno? Te notificamos cuando se cancele uno el día que querés.</p>
+    <p>¿No hay turno el día que querés? Dejá tu celular y te notificamos apenas se cancele uno. Gratis.</p>
+    <a class="feat-link">Probar ahora →</a>
   </div>
-  <div class="feat">
+  <div class="feat" onclick="window.location='/portal.html'" style="cursor:pointer">
     <div class="feat-icon">💊</div>
     <h3>Recetas digitales</h3>
-    <p>Recibí tus recetas en PDF directo en el celular. Compartí por WhatsApp.</p>
+    <p>Tu médico te envía la receta en PDF al celular. Compartila por WhatsApp, imprimila o guardala en Archivos.</p>
+    <a class="feat-link">Ver mis recetas →</a>
   </div>
-  <div class="feat">
+  <div class="feat" onclick="document.getElementById('searchIns').focus();window.scrollTo({top:0,behavior:'smooth'})" style="cursor:pointer">
     <div class="feat-icon">🏥</div>
     <h3>Tu obra social</h3>
-    <p>Filtrá médicos por cobertura. IOSPER, OSDE, Swiss Medical y 80+ más.</p>
+    <p>Filtrá médicos que acepten tu cobertura. IOSPER, OSDE, Swiss Medical, Galeno, PAMI y 80+ obras sociales.</p>
+    <a class="feat-link">Filtrar por obra social →</a>
   </div>
 </section>
 
