@@ -30,10 +30,7 @@ export class DirectoryController {
         o.city,
         o.province,
         o.phone AS org_phone,
-        bs.public_slug,
-        bs.booking_mode,
-        bs.consultation_fee,
-        bs.accepted_insurance
+        bs.public_slug
       FROM booking_settings bs
       JOIN organization_doctors od ON od.id = bs.org_doctor_id AND od.is_active = true
       JOIN doctors d ON d.id = od.doctor_id AND d.is_active = true
@@ -52,11 +49,6 @@ export class DirectoryController {
       sql += ` AND (o.city ILIKE $${params.length} OR o.province ILIKE $${params.length})`;
     }
 
-    if (insurance) {
-      params.push(`%${insurance}%`);
-      sql += ` AND (bs.accepted_insurance::text ILIKE $${params.length} OR bs.accepted_insurance IS NULL)`;
-    }
-
     if (query) {
       params.push(`%${query}%`);
       sql += ` AND (d.first_name || ' ' || d.last_name ILIKE $${params.length}
@@ -68,19 +60,7 @@ export class DirectoryController {
     sql += ` LIMIT ${parseInt(limit || '20')} OFFSET ${parseInt(offset || '0')}`;
 
     const doctors = await this.db.queryMany(sql, params);
-
-    // Count total
-    let countSql = `
-      SELECT COUNT(*) AS total
-      FROM booking_settings bs
-      JOIN organization_doctors od ON od.id = bs.org_doctor_id AND od.is_active = true
-      JOIN doctors d ON d.id = od.doctor_id AND d.is_active = true
-      JOIN organizations o ON o.id = od.organization_id AND o.is_active = true
-      WHERE bs.is_enabled = true
-    `;
-    const total = await this.db.queryOne(countSql, []);
-
-    return { doctors, total: parseInt(total?.total || '0') };
+    return { doctors, total: doctors.length };
   }
 
   /** GET /public/directory/specialties — listar especialidades disponibles */
