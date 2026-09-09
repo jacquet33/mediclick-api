@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { Module, Controller, Get } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseService } from './database/database.service';
 import { AuthController } from './modules/auth/auth.controller';
 import { AuthService } from './modules/auth/auth.service';
@@ -60,7 +60,7 @@ import { Public } from './common/guards/auth.guard';
 @Public()
 @Controller('api/v1')
 class HealthController {
-  constructor(private db: DatabaseService) {}
+  constructor(private db: DatabaseService, private config: ConfigService) {}
 
   @Get('health')
   async health() {
@@ -71,6 +71,14 @@ class HealthController {
       version: '1.0.0',
       database: dbOk ? 'connected' : 'disconnected',
       timestamp: new Date().toISOString(),
+    };
+  }
+
+  @Get('public/config')
+  publicConfig() {
+    return {
+      googleClientId: this.config.get('GOOGLE_CLIENT_ID') || '',
+      appleSignInEnabled: !!this.config.get('APPLE_CLIENT_ID'),
     };
   }
 }
