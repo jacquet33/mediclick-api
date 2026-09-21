@@ -369,10 +369,76 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:10
 
 </div>
 
+<div id="chatWidget" class="hidden" style="position:fixed;bottom:80px;right:16px;width:340px;max-height:480px;background:#fff;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.15);border:0.5px solid #e8e5e1;z-index:100;display:flex;flex-direction:column;overflow:hidden">
+  <div style="background:#0D9488;padding:14px 16px;color:#fff;display:flex;justify-content:space-between;align-items:center">
+    <div><strong style="font-size:14px" id="chatTitle">Asistente</strong><br><span style="font-size:11px;opacity:.8">Respondemos al instante</span></div>
+    <button onclick="toggleChat()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer">×</button>
+  </div>
+  <div id="chatMessages" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;max-height:300px"></div>
+  <div id="chatSuggestions" style="padding:0 12px 8px;display:flex;flex-wrap:wrap;gap:4px"></div>
+  <div style="padding:8px 12px 12px;border-top:0.5px solid #e8e5e1;display:flex;gap:8px">
+    <input id="chatInput" placeholder="Escribí tu consulta..." style="flex:1;padding:10px 12px;border:1px solid #e8e5e1;border-radius:8px;font-size:13px;outline:none;font-family:inherit" onkeydown="if(event.key==='Enter')sendChat()">
+    <button onclick="sendChat()" style="background:#0D9488;color:#fff;border:none;border-radius:8px;padding:10px 14px;cursor:pointer;font-size:14px">→</button>
+  </div>
+</div>
+<button id="chatFab" onclick="toggleChat()" style="position:fixed;bottom:20px;right:20px;width:56px;height:56px;border-radius:50%;background:#0D9488;color:#fff;border:none;box-shadow:0 4px 16px rgba(13,148,136,.3);cursor:pointer;font-size:24px;z-index:100;display:flex;align-items:center;justify-content:center">💬</button>
+
+<script>
 <script>
 const API = window.location.origin;
 const params = new URLSearchParams(window.location.search);
 const slug = params.get('slug') || window.location.pathname.split('/').filter(Boolean).pop();
+
+function toggleChat(){
+  chatOpen=!chatOpen;
+  document.getElementById('chatWidget').classList.toggle('hidden',!chatOpen);
+  document.getElementById('chatFab').style.display=chatOpen?'none':'flex';
+  if(!chatLoaded){loadChatbot();chatLoaded=true}
+}
+
+async function loadChatbot(){
+  try{
+    const cfg=await(await fetch(`${API}/api/v1/public/chatbot/${slug}`)).json();
+    if(cfg){
+      document.getElementById('chatTitle').textContent=`Asistente — ${cfg.doctor_name||'Consultorio'}`;
+      addBotMsg(cfg.welcome_message||'¡Hola! ¿En qué puedo ayudarte?');
+      const sugg=cfg.suggestedQuestions||[];
+      if(sugg.length){
+        document.getElementById('chatSuggestions').innerHTML=sugg.slice(0,4).map(q=>`<button onclick="askBot('${q.replace(/'/g,"\\'")}')" style="background:#F0FDFA;color:#0D9488;border:0.5px solid #0D948833;border-radius:16px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:inherit">${q}</button>`).join('');
+      }
+    }
+  }catch{addBotMsg('¡Hola! ¿En qué puedo ayudarte?')}
+}
+
+function addBotMsg(text){
+  const el=document.getElementById('chatMessages');
+  el.innerHTML+=`<div style="align-self:flex-start;background:#F5F5F4;border-radius:12px 12px 12px 4px;padding:10px 12px;max-width:85%;font-size:13px;line-height:1.5;white-space:pre-line">${text}</div>`;
+  el.scrollTop=el.scrollHeight;
+}
+function addUserMsg(text){
+  const el=document.getElementById('chatMessages');
+  el.innerHTML+=`<div style="align-self:flex-end;background:#0D9488;color:#fff;border-radius:12px 12px 4px 12px;padding:10px 12px;max-width:85%;font-size:13px">${text}</div>`;
+  el.scrollTop=el.scrollHeight;
+}
+
+async function sendChat(){
+  const input=document.getElementById('chatInput');
+  const msg=input.value.trim();
+  if(!msg)return;
+  input.value='';
+  addUserMsg(msg);
+  document.getElementById('chatSuggestions').innerHTML='';
+  try{
+    const r=await(await fetch(`${API}/api/v1/public/chatbot/${slug}/ask`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})})).json();
+    addBotMsg(r.answer);
+  }catch{addBotMsg('Disculpá, no pude procesar tu consulta. Intentá de nuevo.')}
+}
+
+function askBot(q){
+  document.getElementById('chatInput').value=q;
+  sendChat();
+}
+</script>
 
 let profile = null;
 let currentMonth = new Date();

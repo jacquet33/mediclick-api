@@ -30,6 +30,8 @@ import { BookingController, PublicBookingController } from './modules/booking/bo
 import { BookingService } from './modules/booking/booking.service';
 import { BookingPageController } from './modules/booking/page.controller';
 import { DirectoryController } from './modules/booking/directory.controller';
+import { PublicChatbotController, ChatbotConfigController } from './modules/chatbot/chatbot.controller';
+import { ChatbotService } from './modules/chatbot/chatbot.service';
 import { HubController } from './modules/hub/hub.controller';
 import { HubService } from './modules/hub/hub.service';
 import { GenericRestAdapter } from './modules/hub/adapters/generic-rest.adapter';
@@ -105,6 +107,8 @@ class HealthController {
     PublicBookingController,
     BookingPageController,
     DirectoryController,
+    PublicChatbotController,
+    ChatbotConfigController,
     HubController,
     InsurerController,
     NomenclatorController,
@@ -130,6 +134,7 @@ class HealthController {
     PrescriptionService,
     PrescriptionPdfService,
     PrescriptionTemplateService,
+    ChatbotService,
     MedicalRecordService,
     ChatService,
     ScheduleService,
