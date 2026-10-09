@@ -409,14 +409,14 @@ function navigateTo(id){
     'recetas':loadRecetas,
     'waitlist':loadWaitlist,
     'equipo':loadEquipo,
-    'facturacion':()=>{main.innerHTML=soonCard('Facturación')},
-    'config':()=>{main.innerHTML=soonCard('Configuración')},
+    'facturacion':loadFacturacion,
+    'config':loadConfig,
     'mis-turnos':loadMisTurnos,
     'mis-recetas':loadMisRecetas,
-    'mensajes':()=>{main.innerHTML=soonCard('Mensajes')},
+    'mensajes':loadMensajes,
     'mi-perfil':loadMiPerfil,
     'admin-dashboard':loadAdminDashboard,
-    'reportes':()=>{main.innerHTML=soonCard('Reportes')},
+    'reportes':loadReportes,
   };
 
   (views[id]||(() => {main.innerHTML=soonCard(id)}))();
@@ -694,6 +694,265 @@ async function loadEquipo(){
           <td>${m.medical_license||'—'}</td>
         </tr>`).join('')}
       </table></div></div>`;
+  }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
+}
+
+// ═══════════════════════════════════════════════════════════
+// FACTURACIÓN
+// ═══════════════════════════════════════════════════════════
+
+async function loadFacturacion(){
+  const main=document.getElementById('mainContent');
+  try{
+    const batches=await apiFetch('/api/v1/billing/batches');
+    const now=new Date();
+    const yr=now.getFullYear(), mo=now.getMonth()+1;
+    const months=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const statusMap={draft:'Borrador',audited:'Auditado',submitted:'Presentado',accepted:'Aceptado',rejected:'Rechazado',paid:'Cobrado'};
+    const statusColors={draft:'text-muted',audited:'warning',submitted:'primary',accepted:'success',rejected:'danger',paid:'success'};
+
+    main.innerHTML=`
+      <div class="topbar"><h1>Facturación</h1><div class="badge">${batches.length} lotes</div></div>
+      <div class="stats">
+        <div class="stat-card primary"><div class="stat-value">${batches.length}</div><div class="stat-label">Lotes totales</div></div>
+        <div class="stat-card success"><div class="stat-value">${batches.filter(b=>b.status==='paid').length}</div><div class="stat-label">Cobrados</div></div>
+        <div class="stat-card warning"><div class="stat-value">${batches.filter(b=>b.status==='submitted').length}</div><div class="stat-label">Presentados</div></div>
+        <div class="stat-card cyan"><div class="stat-value">${batches.filter(b=>b.status==='draft').length}</div><div class="stat-label">Borradores</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Lotes de facturación</div>
+        ${batches.length?`<div class="table-wrap"><table>
+          <tr><th>Período</th><th>Obra social</th><th>N° Lote</th><th>Items</th><th>Monto</th><th>Estado</th><th></th></tr>
+          ${batches.map(b=>`<tr>
+            <td><strong>${months[b.period_month]||b.period_month} ${b.period_year}</strong></td>
+            <td>${b.insurer_name||b.insurer_short||'—'}</td>
+            <td>${b.batch_number||'—'}</td>
+            <td>${b.total_items||b.item_count||0}</td>
+            <td><strong>$${Number(b.total_amount||0).toLocaleString('es-AR',{minimumFractionDigits:2})}</strong></td>
+            <td><span class="badge-sm ${statusColors[b.status]||''}">${statusMap[b.status]||b.status}</span></td>
+            <td>
+              ${b.status==='draft'?`<button class="btn btn-sm btn-primary" onclick="auditBatch('${b.id}')">Auditar</button>`:''}
+              <a href="${API}/api/v1/billing/batches/${b.id}/export" target="_blank" class="btn btn-sm btn-outline">CSV</a>
+            </td>
+          </tr>`).join('')}
+        </table></div>`:'<p class="muted center" style="padding:30px">No hay lotes creados aún. Los lotes se generan automáticamente a partir de turnos facturables.</p>'}
+      </div>`;
+  }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
+}
+
+async function auditBatch(id){
+  try{
+    const r=await apiFetch(`/api/v1/billing/batches/${id}/audit`,{method:'POST'});
+    alert(`Auditoría: ${r.ok} OK, ${r.warning} advertencias, ${r.blocked} bloqueados. ${r.can_submit?'Listo para presentar.':'Hay errores que corregir.'}`);
+    navigateTo('facturacion');
+  }catch(e){alert(e.message)}
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONFIGURACIÓN
+// ═══════════════════════════════════════════════════════════
+
+async function loadConfig(){
+  const main=document.getElementById('mainContent');
+  try{
+    const [schedule, bkSettings, reminderSettings] = await Promise.all([
+      apiFetch('/api/v1/schedules').catch(()=>null),
+      apiFetch('/api/v1/booking/settings').catch(()=>null),
+      apiFetch('/api/v1/reminder-settings').catch(()=>null),
+    ]);
+
+    const days=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+    const dayMap={monday:0,tuesday:1,wednesday:2,thursday:3,friday:4,saturday:5,sunday:6};
+    const slots=(schedule?.weekly_slots||[]).sort((a,b)=>(dayMap[a.day_of_week]??9)-(dayMap[b.day_of_week]??9));
+
+    main.innerHTML=`
+      <div class="topbar"><h1>Configuración</h1></div>
+
+      <div class="card">
+        <div class="card-title">📅 Horarios de atención</div>
+        ${slots.length?`<div class="table-wrap"><table>
+          <tr><th>Día</th><th>Desde</th><th>Hasta</th><th>Duración turno</th></tr>
+          ${slots.map(s=>`<tr>
+            <td><strong>${days[dayMap[s.day_of_week]]||s.day_of_week}</strong></td>
+            <td>${(s.start_time||'').substring(0,5)}</td>
+            <td>${(s.end_time||'').substring(0,5)}</td>
+            <td>${s.slot_duration||schedule?.slot_duration_minutes||20} min</td>
+          </tr>`).join('')}
+        </table></div>`:'<p class="muted" style="padding:12px 0">No hay horarios configurados. Configurá tus horarios desde la app iOS.</p>'}
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔗 Reserva online</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px">
+          <div><span class="muted">Estado</span><br><strong>${bkSettings?.is_active?'✅ Activo':'❌ Inactivo'}</strong></div>
+          <div><span class="muted">Slug</span><br><strong>${bkSettings?.slug||'No configurado'}</strong></div>
+          <div><span class="muted">Requiere aprobación</span><br><strong>${bkSettings?.requires_approval?'Sí':'No'}</strong></div>
+          <div><span class="muted">Máx. días anticipación</span><br><strong>${bkSettings?.max_advance_days||30} días</strong></div>
+        </div>
+        ${bkSettings?.slug?`<div style="margin-top:12px"><a href="/reservar.html?d=${bkSettings.slug}" target="_blank" class="btn btn-sm btn-primary" style="display:inline-flex;width:auto;padding:8px 16px;text-decoration:none">🌐 Ver página de reservas</a></div>`:''}
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔔 Recordatorios</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px">
+          <div><span class="muted">WhatsApp</span><br><strong>${reminderSettings?.whatsapp_enabled?'✅ Activado':'❌ Desactivado'}</strong></div>
+          <div><span class="muted">Email</span><br><strong>${reminderSettings?.email_enabled?'✅ Activado':'❌ Desactivado'}</strong></div>
+          <div><span class="muted">Horas antes</span><br><strong>${reminderSettings?.hours_before||24} hs</strong></div>
+          <div><span class="muted">Recordatorio follow-up</span><br><strong>${reminderSettings?.follow_up_enabled?'Sí':'No'}</strong></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🤖 Chatbot</div>
+        <p class="muted" style="font-size:13px">El chatbot está disponible en tu página de reservas. Responde preguntas frecuentes de tus pacientes automáticamente.</p>
+        <a href="/reservar.html${bkSettings?.slug?'?d='+bkSettings.slug:''}" target="_blank" class="btn btn-sm btn-outline" style="display:inline-flex;width:auto;padding:8px 16px;margin-top:8px;text-decoration:none">Ver chatbot en acción</a>
+      </div>`;
+  }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
+}
+
+// ═══════════════════════════════════════════════════════════
+// MENSAJES (PACIENTE)
+// ═══════════════════════════════════════════════════════════
+
+async function loadMensajes(){
+  const main=document.getElementById('mainContent');
+  try{
+    const convos=await apiFetch('/api/v1/chat/conversations');
+    main.innerHTML=`
+      <div class="topbar"><h1>Mensajes</h1></div>
+      ${convos.length?`<div class="card">
+        ${convos.map(c=>{
+          const name=c.doctor_name||c.other_name||'Doctor';
+          const lastMsg=c.last_message||'';
+          const unread=c.unread_count||0;
+          return `<div class="queue-item" style="cursor:pointer" onclick="openConvo('${c.id}','${name.replace(/'/g,"\\'")}')">
+            <div class="avatar">${initials(name)}</div>
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <strong>${name}</strong>
+                ${unread?`<span class="badge-sm danger" style="font-size:10px">${unread}</span>`:''}
+              </div>
+              <p class="muted" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:2px 0 0">${lastMsg}</p>
+            </div>
+          </div>`}).join('')}
+      </div>`:'<div class="card center" style="padding:40px"><p style="font-size:30px">💬</p><p class="muted mt-8">No tenés conversaciones todavía.</p></div>'}`;
+  }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
+}
+
+async function openConvo(id,name){
+  const main=document.getElementById('mainContent');
+  try{
+    const msgs=await apiFetch(`/api/v1/chat/conversations/${id}/messages`);
+    await apiFetch(`/api/v1/chat/conversations/${id}/read`,{method:'PATCH'}).catch(()=>{});
+    main.innerHTML=`
+      <div class="topbar">
+        <button class="btn btn-sm btn-outline" onclick="loadMensajes()" style="margin-right:12px">← Volver</button>
+        <h1>${name}</h1>
+      </div>
+      <div class="card" style="max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px" id="chatBox">
+        ${msgs.length?msgs.map(m=>{
+          const isMine=m.sender_type===userType||(userType==='doctor'&&m.sender_type==='doctor')||(userType==='patient'&&m.sender_type==='patient');
+          return `<div style="align-self:${isMine?'flex-end':'flex-start'};max-width:75%;padding:10px 14px;border-radius:14px;font-size:13px;background:${isMine?'var(--primary)':'var(--bg-soft)'};color:${isMine?'#fff':'var(--text)'}">
+            ${m.content}
+            <div style="font-size:10px;opacity:.6;margin-top:4px;text-align:right">${m.created_at?new Date(m.created_at).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}):''}</div>
+          </div>`}).join(''):'<p class="muted center" style="padding:20px">Sin mensajes</p>'}
+      </div>
+      <div class="card" style="padding:12px">
+        <div style="display:flex;gap:8px">
+          <input id="msgInput" type="text" placeholder="Escribí un mensaje..." style="flex:1;padding:10px 14px;border:1px solid var(--text-muted);border-radius:10px;font-size:13px;outline:none" onkeydown="if(event.key==='Enter')sendMsg('${id}')">
+          <button class="btn btn-primary" style="width:auto;padding:10px 20px" onclick="sendMsg('${id}')">Enviar</button>
+        </div>
+      </div>`;
+    const box=document.getElementById('chatBox');
+    if(box) box.scrollTop=box.scrollHeight;
+  }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
+}
+
+async function sendMsg(convoId){
+  const inp=document.getElementById('msgInput');
+  if(!inp||!inp.value.trim()) return;
+  const content=inp.value.trim();
+  inp.value='';
+  try{
+    await apiFetch('/api/v1/chat/messages',{method:'POST',body:{conversation_id:convoId,content}});
+    openConvo(convoId,document.querySelector('.topbar h1')?.textContent||'');
+  }catch(e){alert(e.message)}
+}
+
+// ═══════════════════════════════════════════════════════════
+// REPORTES (ADMIN/STAFF)
+// ═══════════════════════════════════════════════════════════
+
+async function loadReportes(){
+  const main=document.getElementById('mainContent');
+  try{
+    const today=new Date();
+    const weekAgo=new Date(today);weekAgo.setDate(today.getDate()-7);
+    const monthAgo=new Date(today);monthAgo.setDate(today.getDate()-30);
+    const fmt=d=>d.toISOString().split('T')[0];
+
+    const [todayAppts,weekAppts,monthAppts,patients]=await Promise.all([
+      apiFetch(`/api/v1/appointments?date=${fmt(today)}`),
+      apiFetch(`/api/v1/appointments?from=${fmt(weekAgo)}&to=${fmt(today)}`).catch(()=>[]),
+      apiFetch(`/api/v1/appointments?from=${fmt(monthAgo)}&to=${fmt(today)}`).catch(()=>[]),
+      apiFetch('/api/v1/patients').catch(()=>[]),
+    ]);
+
+    const completed=arr=>arr.filter(a=>a.status==='completed').length;
+    const cancelled=arr=>arr.filter(a=>a.status==='cancelled').length;
+    const noshow=arr=>arr.filter(a=>a.status==='no_show').length;
+    const rate=arr=>arr.length?Math.round(completed(arr)/arr.length*100):0;
+
+    main.innerHTML=`
+      <div class="topbar"><h1>Reportes</h1><div class="badge">${fmtDateLong(fmt(today))}</div></div>
+
+      <div class="stats">
+        <div class="stat-card primary"><div class="stat-value">${monthAppts.length}</div><div class="stat-label">Turnos (30 días)</div></div>
+        <div class="stat-card success"><div class="stat-value">${rate(monthAppts)}%</div><div class="stat-label">Tasa atención</div></div>
+        <div class="stat-card danger"><div class="stat-value">${noshow(monthAppts)}</div><div class="stat-label">Ausentes</div></div>
+        <div class="stat-card cyan"><div class="stat-value">${patients.length}</div><div class="stat-label">Pacientes total</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="card">
+          <div class="card-title">Última semana</div>
+          <div style="font-size:13px;display:grid;gap:8px">
+            <div style="display:flex;justify-content:space-between"><span class="muted">Turnos</span><strong>${weekAppts.length}</strong></div>
+            <div style="display:flex;justify-content:space-between"><span class="muted">Atendidos</span><strong style="color:var(--success)">${completed(weekAppts)}</strong></div>
+            <div style="display:flex;justify-content:space-between"><span class="muted">Cancelados</span><strong style="color:var(--danger)">${cancelled(weekAppts)}</strong></div>
+            <div style="display:flex;justify-content:space-between"><span class="muted">Ausentes</span><strong style="color:var(--warning)">${noshow(weekAppts)}</strong></div>
+            <div style="display:flex;justify-content:space-between"><span class="muted">Tasa atención</span><strong>${rate(weekAppts)}%</strong></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Último mes</div>
+          <div style="font-size:13px;display:grid;gap:8px">
+            <div style="display:flex;justify-content:space-between"><span class="muted">Turnos</span><strong>${monthAppts.length}</strong></div>
+            <div style="display:flex;justify-content:space-between"><span class="muted">Atendidos</span><strong style="color:var(--success)">${completed(monthAppts)}</strong></div>
+            <div style="display:flex;justify-content:space-between"><span class="muted">Cancelados</span><strong style="color:var(--danger)">${cancelled(monthAppts)}</strong></div>
+            <div style="display:flex;justify-content:space-between"><span class="muted">Ausentes</span><strong style="color:var(--warning)">${noshow(monthAppts)}</strong></div>
+            <div style="display:flex;justify-content:space-between"><span class="muted">Tasa atención</span><strong>${rate(monthAppts)}%</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Distribución por estado (último mes)</div>
+        <div style="display:flex;gap:4px;height:24px;border-radius:8px;overflow:hidden;margin-top:8px">
+          ${monthAppts.length?`
+            <div style="flex:${completed(monthAppts)};background:var(--success)" title="Atendidos: ${completed(monthAppts)}"></div>
+            <div style="flex:${cancelled(monthAppts)||0.01};background:var(--danger)" title="Cancelados: ${cancelled(monthAppts)}"></div>
+            <div style="flex:${noshow(monthAppts)||0.01};background:var(--warning)" title="Ausentes: ${noshow(monthAppts)}"></div>
+            <div style="flex:${monthAppts.length-completed(monthAppts)-cancelled(monthAppts)-noshow(monthAppts)||0.01};background:var(--cyan)" title="Otros: ${monthAppts.length-completed(monthAppts)-cancelled(monthAppts)-noshow(monthAppts)}"></div>
+          `:'<div style="flex:1;background:var(--bg-soft)"></div>'}
+        </div>
+        <div style="display:flex;gap:16px;margin-top:8px;font-size:11px">
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--success);margin-right:4px"></span>Atendidos</span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-right:4px"></span>Cancelados</span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--warning);margin-right:4px"></span>Ausentes</span>
+          <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--cyan);margin-right:4px"></span>Otros</span>
+        </div>
+      </div>`;
   }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
 }
 
