@@ -18,7 +18,8 @@ export const AdminOnly = () => SetMetadata(IS_ADMIN, true);
 
 /** Identidad verificada, derivada del token — nunca de headers */
 export interface AuthUser {
-  doctorId: string;
+  doctorId: string;       // ID del usuario (doctor, paciente o staff)
+  userType: string;       // 'doctor' | 'patient' | 'staff'
   email: string;
   organizationId?: string;
   orgRole?: string;
@@ -53,7 +54,7 @@ export class AuthGuard implements CanActivate {
     if (!token) throw new UnauthorizedException('Falta el token de acceso');
 
     // 1. Verificar firma y expiración
-    let payload: { sub: string; email: string };
+    let payload: { sub: string; email: string; userType?: string };
     try {
       payload = await this.jwt.verifyAsync(token, {
         secret: this.config.get<string>('JWT_SECRET'),
@@ -62,41 +63,71 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Token inválido o vencido');
     }
 
-    // 2. El doctor tiene que existir y estar activo
-    const doctor = await this.db.queryOne<{
-      id: string; email: string; is_active: boolean; is_platform_admin: boolean;
-    }>(
-      `SELECT id, email, is_active, COALESCE(is_platform_admin, false) AS is_platform_admin
-       FROM doctors WHERE id = $1`,
-      [payload.sub],
-    );
+    const userType = payload.userType || 'doctor';
 
-    if (!doctor?.is_active) {
+    // 2. Buscar usuario en la tabla correspondiente
+    let userRecord: { id: string; email: string; is_active: boolean; is_platform_admin: boolean } | null = null;
+
+    if (userType === 'patient') {
+      const patient = await this.db.queryOne<{
+        id: string; email: string; is_active: boolean;
+      }>(
+        `SELECT id, email, COALESCE(is_active, true) AS is_active FROM patient_auth WHERE id = $1`,
+        [payload.sub],
+      );
+      if (patient) {
+        userRecord = { ...patient, is_platform_admin: false };
+      }
+    } else if (userType === 'staff') {
+      const staff = await this.db.queryOne<{
+        id: string; email: string; is_active: boolean;
+      }>(
+        `SELECT id, email, COALESCE(is_active, true) AS is_active FROM staff WHERE id = $1`,
+        [payload.sub],
+      );
+      if (staff) {
+        userRecord = { ...staff, is_platform_admin: false };
+      }
+    } else {
+      // doctor (default)
+      userRecord = await this.db.queryOne<{
+        id: string; email: string; is_active: boolean; is_platform_admin: boolean;
+      }>(
+        `SELECT id, email, is_active, COALESCE(is_platform_admin, false) AS is_platform_admin
+         FROM doctors WHERE id = $1`,
+        [payload.sub],
+      );
+    }
+
+    if (!userRecord?.is_active) {
       throw new UnauthorizedException('Cuenta inactiva');
     }
 
     const user: AuthUser = {
-      doctorId: doctor.id,
-      email: doctor.email,
-      isPlatformAdmin: doctor.is_platform_admin,
+      doctorId: userRecord.id,
+      userType,
+      email: userRecord.email,
+      isPlatformAdmin: userRecord.is_platform_admin,
     };
 
     // 3. Rutas de admin de plataforma
     const needsAdmin = this.reflector.getAllAndOverride<boolean>(IS_ADMIN, [
       ctx.getHandler(), ctx.getClass(),
     ]);
-    if (needsAdmin && !doctor.is_platform_admin) {
+    if (needsAdmin && !userRecord.is_platform_admin) {
       throw new ForbiddenException('Requiere permisos de administrador');
     }
 
-    // 4. Si viene organización, verificar que el doctor pertenezca.
-    //    Esto es lo que impide leer datos de otro consultorio.
+    // 4. Si viene organización, verificar membresía.
+    //    Solo aplica a doctors y staff, no a pacientes.
     const orgId = req.header('x-organization-id');
-    if (orgId) {
+    if (orgId && userType !== 'patient') {
+      const memberTable = userType === 'staff' ? 'organization_staff' : 'organization_doctors';
+      const memberCol = userType === 'staff' ? 'staff_id' : 'doctor_id';
       const membership = await this.db.queryOne<{ role: string }>(
-        `SELECT role FROM organization_doctors
-         WHERE organization_id = $1 AND doctor_id = $2 AND is_active = true`,
-        [orgId, doctor.id],
+        `SELECT role FROM ${memberTable}
+         WHERE organization_id = $1 AND ${memberCol} = $2 AND is_active = true`,
+        [orgId, userRecord.id],
       );
 
       if (!membership) {

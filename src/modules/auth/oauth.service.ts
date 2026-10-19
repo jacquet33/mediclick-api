@@ -245,20 +245,21 @@ export class OAuthService {
     );
 
     // 5. Generar JWT tokens
-    const payload = { sub: doctor.id, email: doctor.email, role: doctor.role };
+    const payload = { sub: doctor.id, email: doctor.email, role: doctor.role, userType: 'doctor' as const };
     const [accessToken, refreshToken] = await Promise.all([
       this.jwt.signAsync(payload, {
         secret: this.config.get('JWT_SECRET'),
-        expiresIn: '30m',
+        expiresIn: '7d',
       }),
       this.jwt.signAsync(payload, {
         secret: this.config.get('JWT_REFRESH_SECRET'),
-        expiresIn: '7d',
+        expiresIn: '30d',
       }),
     ]);
 
-    // Guardar refresh token
-    const refreshHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+    // Guardar refresh token (usando bcrypt para consistencia con auth.service)
+    const bcryptLib = await import('bcrypt');
+    const refreshHash = await bcryptLib.hash(refreshToken, 10);
     await this.db.query(
       'UPDATE doctors SET refresh_token_hash = $1, last_login_at = NOW() WHERE id = $2',
       [refreshHash, doctorId],
