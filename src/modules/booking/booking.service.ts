@@ -446,6 +446,47 @@ export class BookingService {
       }
     });
 
+    // Notificar al doctor que el paciente canceló
+    const doctorInfo = await this.db.queryOne(
+      `SELECT od.doctor_id FROM organization_doctors od WHERE od.id = $1`,
+      [booking.org_doctor_id],
+    );
+    if (doctorInfo) {
+      this.pushService.sendToDoctor(doctorInfo.doctor_id, {
+        title: '❌ Turno cancelado por paciente',
+        body: `${booking.first_name} ${booking.last_name} canceló el turno del ${booking.requested_date} a las ${booking.requested_start_time?.substring(0, 5)}${reason ? ': ' + reason : ''}`,
+        category: 'appointment_cancelled',
+        data: { type: 'booking_cancelled', bookingId: booking.id, date: booking.requested_date },
+        sound: 'default',
+      }).catch(err => this.logger.warn(`Push notification failed: ${err.message}`));
+    }
+
+    // Notificar a la waitlist que se liberó un slot
+    try {
+      const waitlistEntries = await this.db.queryMany(
+        `SELECT we.*, d.first_name || ' ' || d.last_name AS doctor_name
+         FROM waitlist_entries we
+         JOIN organization_doctors od ON od.id = we.org_doctor_id
+         JOIN doctors d ON d.id = od.doctor_id
+         WHERE we.org_doctor_id = $1 AND we.status = 'waiting'
+         ORDER BY we.priority DESC, we.created_at ASC LIMIT 3`,
+        [booking.org_doctor_id],
+      );
+      for (const entry of waitlistEntries) {
+        if (entry.patient_auth_id) {
+          this.pushService.sendToPatient(entry.patient_auth_id, {
+            title: '🎉 ¡Se liberó un turno!',
+            body: `Hay disponibilidad con Dr/a. ${entry.doctor_name} el ${booking.requested_date}. Reservá antes de que se ocupe.`,
+            category: 'slot_released',
+            data: { type: 'slot_released', date: booking.requested_date },
+            sound: 'default',
+          }).catch(err => this.logger.warn(`Waitlist push failed: ${err.message}`));
+        }
+      }
+    } catch (err) {
+      this.logger.warn(`Waitlist notification failed: ${err.message}`);
+    }
+
     return {
       message: 'Reserva cancelada',
       refundEligible: canRefund,
