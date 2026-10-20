@@ -712,7 +712,7 @@ function showConfirmation(data){
         <input type="checkbox" id="reminderCheck" checked style="width:18px;height:18px;accent-color:#0D9488" onchange="toggleReminder(this.checked,'${data.id||''}')">
         🔔 Recordarme el día anterior
       </label>
-      <button onclick="window.location.href='reservar.html?slug=${slug}'" class="btn" style="background:var(--bg-soft,#F4FAFE);color:var(--text,#1C334F);border:1.5px solid #E0ECF5;font-size:14px">
+      <button onclick="window.location.href='/reservar/${slug}'" class="btn" style="background:var(--bg-soft,#F4FAFE);color:var(--text,#1C334F);border:1.5px solid #E0ECF5;font-size:14px">
         ← Reservar otro turno
       </button>
       <button onclick="window.close();window.location.href='/'" class="btn" style="background:none;color:var(--text-soft,#61809E);font-size:13px;border:none;min-height:auto;padding:8px">
