@@ -387,6 +387,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:10
 const API = window.location.origin;
 const params = new URLSearchParams(window.location.search);
 const slug = params.get('slug') || window.location.pathname.split('/').filter(Boolean).pop();
+let chatOpen=false, chatLoaded=false;
 
 function toggleChat(){
   chatOpen=!chatOpen;
@@ -438,7 +439,7 @@ function askBot(q){
   sendChat();
 }
 </script>
-
+<script>
 let profile = null;
 let currentMonth = new Date();
 let selectedDate = null;
