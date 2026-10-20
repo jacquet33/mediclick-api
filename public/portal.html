@@ -399,30 +399,32 @@ async function apiFetch(path,opts={}){
   if(orgs[0]) headers['x-organization-id']=orgs[0].org_id||orgs[0].organization_id||'';
   const r=await fetch(API+path,{method:opts.method||'GET',headers,body:opts.body?JSON.stringify(opts.body):undefined});
 
-  // Si el token expiró, intentar refresh automático
-  if(r.status===401 && refreshToken && userId && !isRefreshing && !path.includes('/auth/')){
-    isRefreshing=true;
-    try{
-      const rr=await fetch(API+'/api/v1/auth/refresh',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({userId,refreshToken})
-      });
-      if(rr.ok){
-        const rd=await rr.json();
-        token=rd.accessToken;
-        refreshToken=rd.refreshToken||refreshToken;
-        localStorage.setItem('mediclick_token',token);
-        if(rd.refreshToken) localStorage.setItem('mediclick_refreshToken',rd.refreshToken);
-        isRefreshing=false;
-        // Reintentar la request original con el nuevo token
-        return apiFetch(path,opts);
-      }
-    }catch(e){}
-    // Si el refresh también falla, hacer logout
-    isRefreshing=false;
+  // Si el token expiró (401)
+  if(r.status===401 && !isRefreshing && !path.includes('/auth/')){
+    // Intentar refresh si tenemos refreshToken válido
+    if(refreshToken && userId){
+      isRefreshing=true;
+      try{
+        const rr=await fetch(API+'/api/v1/auth/refresh',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({userId,refreshToken})
+        });
+        if(rr.ok){
+          const rd=await rr.json();
+          token=rd.accessToken;
+          refreshToken=rd.refreshToken||refreshToken;
+          localStorage.setItem('mediclick_token',token);
+          if(rd.refreshToken) localStorage.setItem('mediclick_refreshToken',rd.refreshToken);
+          isRefreshing=false;
+          return apiFetch(path,opts);
+        }
+      }catch(e){}
+      isRefreshing=false;
+    }
+    // Si no hay refreshToken o el refresh falló → logout silencioso
     logout();
-    throw new Error('Sesión expirada. Ingresá de nuevo.');
+    return;
   }
 
   const d=await r.json();
@@ -900,7 +902,7 @@ async function loadConfig(){
       <div class="topbar"><h1>Configuración</h1></div>
 
       <div class="card">
-        <div class="card-title">📅 Horarios de atención</div>
+        <div class="card-title" style="justify-content:space-between">📅 Horarios de atención <button class="btn btn-sm btn-primary" onclick="toggleScheduleEditor()">✏️ Editar</button></div>
         ${slots.length?`<div class="table-wrap"><table>
           <tr><th>Día</th><th>Desde</th><th>Hasta</th><th>Duración turno</th></tr>
           ${slots.map(s=>`<tr>
@@ -909,7 +911,33 @@ async function loadConfig(){
             <td>${(s.end_time||'').substring(0,5)}</td>
             <td>${s.slot_duration||schedule?.slot_duration_minutes||20} min</td>
           </tr>`).join('')}
-        </table></div>`:'<p class="muted" style="padding:12px 0">No hay horarios configurados. Configurá tus horarios desde la app iOS.</p>'}
+        </table></div>`:'<p class="muted" style="padding:12px 0">No hay horarios configurados. Hacé clic en Editar para configurarlos.</p>'}
+        <div id="scheduleEditor" class="hidden" style="margin-top:16px;border-top:1px solid #EEF3F9;padding-top:16px">
+          <p style="font-size:13px;font-weight:600;margin-bottom:12px">Seleccioná los días y horarios de atención:</p>
+          ${days.map((d,i)=>`
+            <label style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F2F6FA;font-size:14px">
+              <input type="checkbox" class="sched-day" data-day="${i}" ${slots.find(s=>dayMap[s.day_of_week]===i)?'checked':''} style="width:18px;height:18px;accent-color:var(--primary)">
+              <strong style="min-width:90px">${d}</strong>
+              <input type="time" class="sched-from" data-day="${i}" value="${slots.find(s=>dayMap[s.day_of_week]===i)?.start_time?.substring(0,5)||'08:00'}" style="padding:8px;border:1px solid #E0ECF5;border-radius:8px;font-size:14px;font-family:inherit">
+              <span style="color:var(--text-muted)">a</span>
+              <input type="time" class="sched-to" data-day="${i}" value="${slots.find(s=>dayMap[s.day_of_week]===i)?.end_time?.substring(0,5)||'17:00'}" style="padding:8px;border:1px solid #E0ECF5;border-radius:8px;font-size:14px;font-family:inherit">
+            </label>
+          `).join('')}
+          <div style="margin-top:12px">
+            <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Duración de cada turno</label>
+            <select id="schedDuration" style="padding:10px;border:1px solid #E0ECF5;border-radius:8px;font-size:14px;font-family:inherit;width:140px">
+              <option value="15" ${(schedule?.slot_duration_minutes||30)==15?'selected':''}>15 min</option>
+              <option value="20" ${(schedule?.slot_duration_minutes||30)==20?'selected':''}>20 min</option>
+              <option value="30" ${(schedule?.slot_duration_minutes||30)==30?'selected':''}>30 min</option>
+              <option value="45" ${(schedule?.slot_duration_minutes||30)==45?'selected':''}>45 min</option>
+              <option value="60" ${(schedule?.slot_duration_minutes||30)==60?'selected':''}>60 min</option>
+            </select>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:8px">
+            <button class="btn btn-sm btn-primary" onclick="saveSchedule()">💾 Guardar horarios</button>
+            <button class="btn btn-sm btn-outline" onclick="toggleScheduleEditor()">Cancelar</button>
+          </div>
+        </div>
       </div>
 
       <div class="card">
@@ -944,6 +972,28 @@ async function loadConfig(){
 // ═══════════════════════════════════════════════════════════
 // MENSAJES (PACIENTE)
 // ═══════════════════════════════════════════════════════════
+
+function toggleScheduleEditor(){document.getElementById('scheduleEditor').classList.toggle('hidden')}
+
+async function saveSchedule(){
+  const duration=parseInt(document.getElementById('schedDuration').value)||30;
+  const checks=document.querySelectorAll('.sched-day');
+  const schedules=[];
+  checks.forEach(cb=>{
+    if(!cb.checked) return;
+    const day=parseInt(cb.dataset.day);
+    const from=document.querySelector(`.sched-from[data-day="${day}"]`).value;
+    const to=document.querySelector(`.sched-to[data-day="${day}"]`).value;
+    if(from&&to) schedules.push({dayOfWeek:day,startTime:from,endTime:to,slotDurationMinutes:duration});
+  });
+  const doctorId=userData?.id||userData?.user_id;
+  if(!doctorId){alert('Error: no se pudo identificar al médico');return}
+  try{
+    await apiFetch('/api/v1/schedules',{method:'PUT',body:{doctorId,schedules}});
+    alert('✅ Horarios guardados correctamente');
+    loadConfig();
+  }catch(e){alert('Error: '+(e.message||'No se pudieron guardar los horarios'))}
+}
 
 async function loadMensajes(){
   const main=document.getElementById('mainContent');
