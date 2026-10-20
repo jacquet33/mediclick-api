@@ -621,6 +621,83 @@ export class BookingService {
     };
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // REGISTRO PÚBLICO DE PACIENTE EN CARTILLA
+  // ═══════════════════════════════════════════════════════════
+
+  async registerPatientPublic(slug: string, dto: any) {
+    const profile = await this.getPublicProfile(slug);
+
+    // Verificar duplicado por DNI o teléfono
+    if (dto.dni || dto.phone) {
+      const existing = await this.db.queryOne(
+        `SELECT id, first_name, last_name FROM patients
+         WHERE organization_id = $1 AND is_active = true
+           AND (($2::text IS NOT NULL AND dni = $2) OR ($3::text IS NOT NULL AND phone = $3))`,
+        [profile.organization_id, dto.dni || null, dto.phone || null],
+      );
+      if (existing) {
+        throw new ConflictException(
+          `Ya existe un paciente registrado con ese ${dto.dni ? 'DNI' : 'teléfono'}: ${existing.first_name} ${existing.last_name}`,
+        );
+      }
+    }
+
+    const patient = await this.db.queryOne(
+      `INSERT INTO patients (
+        organization_id, first_name, last_name, dni, email, phone,
+        date_of_birth, gender, address, city, province,
+        insurance_provider, insurance_number, insurance_plan,
+        notes, primary_doctor_id
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7::date,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+      RETURNING *`,
+      [
+        profile.organization_id,
+        dto.firstName || dto.first_name,
+        dto.lastName || dto.last_name,
+        dto.dni || null,
+        dto.email || null,
+        dto.phone || null,
+        dto.dateOfBirth || dto.date_of_birth || null,
+        dto.gender || null,
+        dto.address || null,
+        dto.city || null,
+        dto.province || null,
+        dto.insuranceProvider || dto.insurance_provider || null,
+        dto.insuranceNumber || dto.insurance_number || null,
+        dto.insurancePlan || dto.insurance_plan || null,
+        dto.notes || null,
+        profile.doctor_id,
+      ],
+    );
+
+    // Notificar al médico
+    this.pushService.sendToDoctor(profile.doctor_id, {
+      title: 'Nuevo paciente registrado',
+      body: `${patient.first_name} ${patient.last_name} se sumó a tu cartilla`,
+      data: { patientId: patient.id, type: 'new_patient' },
+      sound: 'default',
+      category: 'NEW_PATIENT',
+    }).catch(err => this.logger.warn(`Push notification failed: ${err.message}`));
+
+    this.logger.log(`Patient self-registered: ${patient.first_name} ${patient.last_name} via ${slug}`);
+
+    return {
+      message: '¡Registro exitoso!',
+      patient: {
+        id: patient.id,
+        firstName: patient.first_name,
+        lastName: patient.last_name,
+        email: patient.email,
+      },
+      doctor: {
+        name: profile.doctor_name,
+        specialty: profile.specialty,
+        orgName: profile.org_name,
+      },
+    };
+  }
+
   // ─── Helpers ────────────────────────────────────────────
 
   private async getOrgDoctorId(orgId: string, doctorId: string): Promise<string> {

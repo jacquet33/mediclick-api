@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0097A7">
+<title>Registro de paciente — MediClick</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --teal:#0097A7; --teal-light:#4DB6AC; --teal-bg:rgba(0,151,167,.06);
+  --primary:#2980D4; --cyan:#40C7ED;
+  --bg:#FAFBFC; --surface:#fff;
+  --success:#21BF8C; --danger:#F25C66; --warning:#FFB333;
+  --text:#1C2D3F; --text-soft:#627D98; --text-muted:#9FB3C8;
+  --border:#E4E7EB; --border-focus:#0097A7;
+  --radius:14px; --shadow:0 2px 12px rgba(0,0,0,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);min-height:100dvh;color:var(--text);-webkit-font-smoothing:antialiased}
+.wrap{max-width:480px;margin:0 auto;padding:0 0 40px;min-height:100dvh}
+
+/* ─── Header ──────────────────── */
+.header{
+  background:var(--surface);padding:32px 24px 24px;border-bottom:1px solid var(--border);
+}
+.header h1{font-size:22px;font-weight:700;color:var(--text);margin-bottom:6px}
+.header p{font-size:14px;color:var(--text-soft);line-height:1.5}
+.header .doc-ref{color:var(--teal);font-weight:600}
+.header hr{border:none;border-top:1px solid var(--border);margin-top:18px}
+
+/* ─── Avatar upload ──────────── */
+.avatar-section{
+  display:flex;align-items:center;gap:20px;padding:28px 24px;
+}
+.avatar-circle{
+  width:100px;height:100px;border-radius:50%;
+  background:var(--teal-bg);border:2px dashed var(--teal-light);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  position:relative;overflow:hidden;cursor:pointer;
+}
+.avatar-circle svg{width:56px;height:56px;color:var(--teal)}
+.avatar-circle img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.avatar-btn{
+  background:var(--teal);color:#fff;border:none;padding:12px 24px;
+  border-radius:24px;font-size:14px;font-weight:600;cursor:pointer;
+  font-family:inherit;white-space:nowrap;
+}
+.avatar-btn:active{opacity:.85}
+.avatar-hint{font-size:12px;color:var(--teal);margin-top:8px;line-height:1.4}
+
+/* ─── Form ───────────────────── */
+.form-section{padding:0 24px}
+.field{margin-bottom:18px}
+.field label{
+  display:block;font-size:13px;font-weight:600;color:var(--text);
+  margin-bottom:8px;
+}
+.field label .req{color:var(--danger);margin-left:2px}
+.field input,.field select,.field textarea{
+  width:100%;padding:14px 16px;font-size:15px;font-family:inherit;
+  border:1.5px solid var(--border);border-radius:12px;background:var(--surface);
+  color:var(--text);transition:border .2s,box-shadow .2s;outline:none;
+  -webkit-appearance:none;appearance:none;
+}
+.field input:focus,.field select:focus{
+  border-color:var(--border-focus);box-shadow:0 0 0 3px rgba(0,151,167,.1);
+}
+.field input::placeholder{color:var(--text-muted)}
+.field .hint{font-size:11px;color:var(--text-muted);margin-top:5px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* Phone with flag */
+.phone-wrap{display:flex;align-items:center;gap:0;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface);transition:border .2s,box-shadow .2s}
+.phone-wrap:focus-within{border-color:var(--border-focus);box-shadow:0 0 0 3px rgba(0,151,167,.1)}
+.phone-flag{display:flex;align-items:center;gap:6px;padding:14px 12px;background:#F7F8FA;border-right:1px solid var(--border);font-size:14px;flex-shrink:0;cursor:default}
+.phone-flag .flag{font-size:20px}
+.phone-wrap input{border:none!important;border-radius:0!important;box-shadow:none!important;padding-left:12px;flex:1}
+.phone-wrap input:focus{box-shadow:none!important}
+
+/* Select with chevron */
+.select-wrap{position:relative}
+.select-wrap select{padding-right:40px}
+.select-wrap::after{
+  content:'';position:absolute;right:16px;top:50%;transform:translateY(-50%);
+  width:10px;height:10px;border-right:2px solid var(--text-muted);border-bottom:2px solid var(--text-muted);
+  transform:translateY(-60%) rotate(45deg);pointer-events:none;
+}
+
+/* ─── Gender selector ────────── */
+.gender-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.gender-opt{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  padding:16px 8px;border:1.5px solid var(--border);border-radius:14px;
+  background:var(--surface);cursor:pointer;transition:.2s;
+}
+.gender-opt:hover{border-color:var(--teal-light);background:var(--teal-bg)}
+.gender-opt.active{border-color:var(--teal);background:var(--teal-bg);box-shadow:0 0 0 3px rgba(0,151,167,.1)}
+.gender-opt .icon{
+  width:56px;height:56px;border-radius:50%;background:#F0F2F4;
+  display:flex;align-items:center;justify-content:center;font-size:28px;
+  transition:.2s;
+}
+.gender-opt.active .icon{background:rgba(0,151,167,.12)}
+.gender-opt span{font-size:13px;font-weight:500;color:var(--text-soft)}
+.gender-opt.active span{color:var(--teal);font-weight:600}
+
+/* ─── Obra social search ─────── */
+.search-select{position:relative}
+.search-select .dd{
+  position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--border);
+  border-radius:12px;margin-top:4px;max-height:200px;overflow-y:auto;z-index:50;
+  box-shadow:0 8px 24px rgba(0,0,0,.1);display:none;
+}
+.search-select .dd.open{display:block}
+.search-select .dd-item{padding:12px 16px;font-size:14px;cursor:pointer;border-bottom:1px solid #F5F6F8}
+.search-select .dd-item:hover,.search-select .dd-item.hl{background:var(--teal-bg);color:var(--teal)}
+.search-select .dd-item:last-child{border-bottom:none}
+
+/* ─── Steps bar ──────────────── */
+.steps-bar{
+  display:flex;gap:6px;padding:0 24px;margin:20px 0;
+}
+.step-pill{flex:1;height:4px;border-radius:4px;background:var(--border);transition:.3s}
+.step-pill.active{background:var(--teal)}
+.step-pill.done{background:var(--success)}
+
+/* ─── Button ─────────────────── */
+.btn-area{padding:24px 24px 0}
+.btn{
+  width:100%;padding:16px;font-size:15px;font-weight:700;font-family:inherit;border:none;
+  border-radius:14px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn-primary{background:var(--teal);color:#fff;box-shadow:0 4px 16px rgba(0,151,167,.25)}
+.btn-primary:hover{background:#00838F;box-shadow:0 6px 20px rgba(0,151,167,.3)}
+.btn-primary:active{transform:scale(.98)}
+.btn-primary:disabled{opacity:.4;cursor:default;transform:none}
+.btn-outline{background:transparent;color:var(--text-soft);border:1.5px solid var(--border)}
+.btn-row{display:flex;gap:10px;padding:24px 24px 0}
+.btn-row .btn{flex:1}
+
+/* ─── Success screen ─────────── */
+.success-screen{
+  text-align:center;padding:60px 24px 40px;
+}
+.success-icon{
+  width:88px;height:88px;border-radius:50%;margin:0 auto 20px;
+  background:rgba(33,191,140,.1);display:flex;align-items:center;justify-content:center;
+}
+.success-icon svg{width:44px;height:44px;color:var(--success)}
+.success-screen h2{font-size:22px;margin-bottom:8px}
+.success-screen p{color:var(--text-soft);font-size:14px;line-height:1.6;max-width:320px;margin:0 auto}
+.success-card{
+  background:var(--surface);border-radius:var(--radius);padding:20px;margin:24px 24px 0;
+  box-shadow:var(--shadow);text-align:left;
+}
+.success-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F5F6F8;font-size:13px}
+.success-row:last-child{border-bottom:none}
+.success-row span:first-child{color:var(--text-soft)}
+.success-row span:last-child{font-weight:600;text-align:right}
+
+/* ─── Utilities ──────────────── */
+.hidden{display:none!important}
+.spinner{width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--teal);
+  border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ─── Footer ─────────────────── */
+.footer{text-align:center;padding:32px 24px 20px;font-size:12px;color:var(--text-muted)}
+.footer a{color:var(--teal);text-decoration:none;font-weight:600}
+
+/* ─── Error ──────────────────── */
+.field.error input,.field.error select{border-color:var(--danger)}
+.field .error-msg{font-size:11px;color:var(--danger);margin-top:4px;display:none}
+.field.error .error-msg{display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ═══ STEP 1: Datos personales ═══ -->
+<div id="step1">
+  <div class="header">
+    <h1>Datos del paciente</h1>
+    <p>Complete sus datos para sumarse a la cartilla de pacientes del <span class="doc-ref" id="docRef">Dr/a. ...</span></p>
+    <hr>
+  </div>
+
+  <div class="steps-bar">
+    <div class="step-pill active" id="sp1"></div>
+    <div class="step-pill" id="sp2"></div>
+  </div>
+
+  <!-- Avatar -->
+  <div class="avatar-section">
+    <div class="avatar-circle" id="avatarCircle" onclick="document.getElementById('avatarInput').click()">
+      <svg viewBox="0 0 24 24" fill="currentColor" id="avatarPlaceholder">
+        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+      </svg>
+      <img id="avatarPreview" class="hidden" alt="">
+    </div>
+    <div>
+      <button class="avatar-btn" onclick="document.getElementById('avatarInput').click()">
+        Subir Imagen de Perfil
+      </button>
+      <div class="avatar-hint">Se usara para reconocer al paciente mas rapidamente, aunque no es obligatorio</div>
+    </div>
+    <input type="file" id="avatarInput" accept="image/*" class="hidden" onchange="previewAvatar(this)">
+  </div>
+
+  <div class="form-section">
+    <div class="field-row">
+      <div class="field" id="fFirstName">
+        <label>Nombre <span class="req">*</span></label>
+        <input id="firstName" placeholder="Nombre Completo" autocomplete="given-name">
+        <div class="error-msg">Campo obligatorio</div>
+      </div>
+      <div class="field" id="fLastName">
+        <label>Apellido(s) <span class="req">*</span></label>
+        <input id="lastName" placeholder="Apellido(s)" autocomplete="family-name">
+        <div class="error-msg">Campo obligatorio</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>E-Mail (Opcional)</label>
+      <input id="email" type="email" placeholder="E-Mail" autocomplete="email">
+    </div>
+
+    <div class="field" id="fPhone">
+      <label>Telefono Movil</label>
+      <div class="phone-wrap">
+        <div class="phone-flag">
+          <span class="flag">🇦🇷</span>
+          <span>+54</span>
+        </div>
+        <input id="phone" type="tel" placeholder="11 1234 5678" autocomplete="tel">
+      </div>
+      <div class="error-msg">Ingrese un telefono</div>
+    </div>
+  </div>
+
+  <div class="btn-area">
+    <button class="btn btn-primary" onclick="goStep2()">Continuar</button>
+  </div>
+</div>
+
+<!-- ═══ STEP 2: Datos medicos ═══ -->
+<div id="step2" class="hidden">
+  <div class="header">
+    <h1>Datos del paciente</h1>
+    <p>Complete sus datos para sumarse a la cartilla de pacientes del <span class="doc-ref" id="docRef2">Dr/a. ...</span></p>
+    <hr>
+  </div>
+
+  <div class="steps-bar">
+    <div class="step-pill done" id="sp1b"></div>
+    <div class="step-pill active" id="sp2b"></div>
+  </div>
+
+  <div class="form-section" style="padding-top:20px">
+    <div class="field">
+      <label>Fecha de Nacimiento <span class="req">*</span></label>
+      <input id="dob" type="date" placeholder="Fecha de Nacimiento">
+    </div>
+
+    <div class="field">
+      <label>Tipo de Identificacion</label>
+      <div class="select-wrap">
+        <select id="idType">
+          <option value="DNI">DNI</option>
+          <option value="PASAPORTE">Pasaporte</option>
+          <option value="CUIT">CUIT/CUIL</option>
+          <option value="CI">CI</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field" id="fDni">
+      <label>N&deg; de Documento <span class="req">*</span></label>
+      <input id="dni" placeholder="N&deg; de Documento" inputmode="numeric">
+      <div class="error-msg">Ingrese su documento</div>
+    </div>
+
+    <div class="field">
+      <label>Sexo <span class="req">*</span></label>
+      <div class="gender-grid" id="genderGrid">
+        <div class="gender-opt" onclick="selectGender('masculino',this)">
+          <div class="icon">👦</div>
+          <span>Masculino</span>
+        </div>
+        <div class="gender-opt" onclick="selectGender('femenino',this)">
+          <div class="icon">👧</div>
+          <span>Femenino</span>
+        </div>
+        <div class="gender-opt" onclick="selectGender('otro',this)">
+          <div class="icon">🧑</div>
+          <span>Otro</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Cobertura Medica <span class="req">*</span></label>
+      <div class="search-select" id="insuranceSearch">
+        <input id="insurance" placeholder="Seleccionar..." autocomplete="off">
+        <div class="dd" id="insuranceDd"></div>
+      </div>
+    </div>
+
+    <div class="field" id="fInsNumber">
+      <label>N&deg; de Credencial</label>
+      <input id="insNumber" placeholder="Numero de afiliado">
+    </div>
+
+    <div class="field">
+      <label>Direccion</label>
+      <input id="address" placeholder="Calle y numero" autocomplete="street-address">
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Ciudad</label>
+        <input id="city" placeholder="Ciudad">
+      </div>
+      <div class="field">
+        <label>Provincia</label>
+        <div class="select-wrap">
+          <select id="province">
+            <option value="">Seleccionar</option>
+            <option>Buenos Aires</option><option>CABA</option><option>Catamarca</option>
+            <option>Chaco</option><option>Chubut</option><option>Cordoba</option>
+            <option>Corrientes</option><option>Entre Rios</option><option>Formosa</option>
+            <option>Jujuy</option><option>La Pampa</option><option>La Rioja</option>
+            <option>Mendoza</option><option>Misiones</option><option>Neuquen</option>
+            <option>Rio Negro</option><option>Salta</option><option>San Juan</option>
+            <option>San Luis</option><option>Santa Cruz</option><option>Santa Fe</option>
+            <option>Santiago del Estero</option><option>Tierra del Fuego</option><option>Tucuman</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-outline" onclick="backStep1()">&#8592; Volver</button>
+    <button class="btn btn-primary" id="btnSubmit" onclick="submitRegistration()">Registrarme</button>
+  </div>
+</div>
+
+<!-- ═══ SUCCESS ═══ -->
+<div id="stepSuccess" class="hidden">
+  <div class="success-screen">
+    <div class="success-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <h2>¡Registro exitoso!</h2>
+    <p id="successMsg">Ya estas en la cartilla de pacientes. El/la doctor/a puede ver tus datos.</p>
+  </div>
+  <div class="success-card" id="successCard"></div>
+  <div class="btn-area" style="margin-top:20px">
+    <a id="bookingLink" class="btn btn-primary" style="text-decoration:none">
+      Reservar un turno &#8594;
+    </a>
+  </div>
+</div>
+
+<!-- ═══ ERROR page ═══ -->
+<div id="errorPage" class="hidden">
+  <div class="success-screen">
+    <div class="success-icon" style="background:rgba(242,92,102,.1)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#F25C66" stroke-width="2.5" stroke-linecap="round">
+        <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
+      </svg>
+    </div>
+    <h2>Pagina no encontrada</h2>
+    <p>Este enlace de registro no existe o fue desactivado.</p>
+  </div>
+</div>
+
+<div class="footer">
+  Version 1.0.0 &middot; Powered by <a href="/">MediClick</a>
+</div>
+
+</div>
+
+<script>
+const API = window.location.origin;
+const params = new URLSearchParams(window.location.search);
+const slug = params.get('slug') || window.location.pathname.split('/').filter(Boolean).pop();
+
+let profile = null;
+let selectedGender = null;
+
+// ─── Obras sociales ─────────────────────────────────────
+const OBRAS_SOCIALES = [
+  "IOSPER","OSDE","Swiss Medical","Galeno","Medicus","OSECAC","OSPECON","OSPLAD",
+  "OSPJN","OSPRERA","PAMI","IOMA","Sancor Salud","Federada Salud","Accord Salud",
+  "ACA Salud","AMEBPBA","AMSA","APROSS","ASE","Avalian","Boreal","Casa","CEMIC",
+  "Colon Salud","Comei","DASUTEN","DIBA","Doremi","Hominis","Hospital Aleman",
+  "Hospital Britanico","Hospital Italiano","Jerarquicos Salud","Luis Pasteur",
+  "Medife","Napolitana","OMSIDA","OSADEF","OSAM","OSBA","OSCOEMA","OSCOYSE",
+  "OSDEPYM","OSDOP","OSEIV","OSIM","OSMATA","OSMISS","OSPATCA","OSPE",
+  "OSPEDYC","OSPIA","OSPN","OSPRN","OSTEE","OSTEPA","OSTIG","OSUTHGRA",
+  "Plan de Salud","Prevencion Salud","Red Sanitas","Union Personal","Omint",
+  "William Hope","Poder Judicial","Particular (sin obra social)"
+].sort();
+
+// ─── Init ───────────────────────────────────────────────
+async function init() {
+  if (!slug || slug === 'registro.html') { showError(); return; }
+  try {
+    const r = await fetch(`${API}/api/v1/public/booking/${slug}`);
+    if (!r.ok) throw new Error();
+    profile = await r.json();
+    document.getElementById('docRef').textContent = 'Dr/a. ' + profile.doctor_name;
+    document.getElementById('docRef2').textContent = 'Dr/a. ' + profile.doctor_name;
+    document.title = `Registro — Dr/a. ${profile.doctor_name} — MediClick`;
+    initInsuranceSearch();
+  } catch { showError(); }
+}
+
+function showError() {
+  document.getElementById('step1').classList.add('hidden');
+  document.getElementById('errorPage').classList.remove('hidden');
+}
+
+// ─── Avatar preview ─────────────────────────────────────
+function previewAvatar(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('avatarPreview');
+    img.src = e.target.result;
+    img.classList.remove('hidden');
+    document.getElementById('avatarPlaceholder').classList.add('hidden');
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+// ─── Gender ─────────────────────────────────────────────
+function selectGender(val, el) {
+  selectedGender = val;
+  document.querySelectorAll('.gender-opt').forEach(o => o.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ─── Insurance search ───────────────────────────────────
+function initInsuranceSearch() {
+  const input = document.getElementById('insurance');
+  const dd = document.getElementById('insuranceDd');
+  let hl = -1;
+
+  input.addEventListener('focus', () => {
+    if (!input.value.trim()) {
+      dd.innerHTML = OBRAS_SOCIALES.slice(0, 10).map(o =>
+        `<div class="dd-item" onclick="selectIns('${o}')">${o}</div>`
+      ).join('');
+      dd.classList.add('open');
+    }
+  });
+
+  input.addEventListener('input', () => {
+    const q = input.value.toLowerCase().trim();
+    const list = q.length < 1 ? OBRAS_SOCIALES.slice(0, 10) : OBRAS_SOCIALES.filter(o => o.toLowerCase().includes(q)).slice(0, 8);
+    if (!list.length) { dd.classList.remove('open'); return; }
+    dd.innerHTML = list.map(o => `<div class="dd-item" onclick="selectIns('${o}')">${o}</div>`).join('');
+    dd.classList.add('open');
+    hl = -1;
+  });
+
+  input.addEventListener('keydown', e => {
+    const items = dd.querySelectorAll('.dd-item');
+    if (e.key === 'ArrowDown') { e.preventDefault(); hl = Math.min(hl + 1, items.length - 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); hl = Math.max(hl - 1, 0); }
+    else if (e.key === 'Enter' && hl >= 0) { e.preventDefault(); items[hl].click(); return; }
+    else if (e.key === 'Escape') { dd.classList.remove('open'); return; }
+    items.forEach((el, i) => el.classList.toggle('hl', i === hl));
+  });
+
+  input.addEventListener('blur', () => setTimeout(() => dd.classList.remove('open'), 200));
+}
+
+function selectIns(val) {
+  document.getElementById('insurance').value = val;
+  document.getElementById('insuranceDd').classList.remove('open');
+}
+
+// ─── Steps ──────────────────────────────────────────────
+function goStep2() {
+  // Validate step 1
+  let ok = true;
+  const fn = document.getElementById('firstName').value.trim();
+  const ln = document.getElementById('lastName').value.trim();
+
+  if (!fn) { document.getElementById('fFirstName').classList.add('error'); ok = false; }
+  else { document.getElementById('fFirstName').classList.remove('error'); }
+  if (!ln) { document.getElementById('fLastName').classList.add('error'); ok = false; }
+  else { document.getElementById('fLastName').classList.remove('error'); }
+
+  if (!ok) return;
+
+  document.getElementById('step1').classList.add('hidden');
+  document.getElementById('step2').classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function backStep1() {
+  document.getElementById('step2').classList.add('hidden');
+  document.getElementById('step1').classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ─── Submit ─────────────────────────────────────────────
+async function submitRegistration() {
+  // Validate step 2
+  const dni = document.getElementById('dni').value.trim();
+  if (!dni) { document.getElementById('fDni').classList.add('error'); return; }
+  else { document.getElementById('fDni').classList.remove('error'); }
+
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px"></div> Registrando...';
+
+  const phone = document.getElementById('phone').value.trim();
+  const body = {
+    firstName: document.getElementById('firstName').value.trim(),
+    lastName: document.getElementById('lastName').value.trim(),
+    email: document.getElementById('email').value.trim() || undefined,
+    phone: phone ? '+54' + phone.replace(/\D/g, '') : undefined,
+    dateOfBirth: document.getElementById('dob').value || undefined,
+    dni: dni,
+    gender: selectedGender || undefined,
+    insuranceProvider: document.getElementById('insurance').value.trim() || undefined,
+    insuranceNumber: document.getElementById('insNumber').value.trim() || undefined,
+    address: document.getElementById('address').value.trim() || undefined,
+    city: document.getElementById('city').value.trim() || undefined,
+    province: document.getElementById('province').value || undefined,
+  };
+
+  try {
+    const r = await fetch(`${API}/api/v1/public/booking/${slug}/register-patient`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Error al registrar');
+    showSuccess(data, body);
+  } catch (e) {
+    alert(e.message || 'No se pudo completar el registro');
+    btn.disabled = false;
+    btn.innerHTML = 'Registrarme';
+  }
+}
+
+function showSuccess(data, body) {
+  document.getElementById('step2').classList.add('hidden');
+  document.getElementById('stepSuccess').classList.remove('hidden');
+
+  document.getElementById('successMsg').textContent =
+    `Ya estas en la cartilla del ${data.doctor?.name ? 'Dr/a. ' + data.doctor.name : 'medico'}. Podras ser atendido/a en ${data.doctor?.orgName || 'el consultorio'}.`;
+
+  const card = document.getElementById('successCard');
+  const ins = body.insuranceProvider || 'No informada';
+  card.innerHTML = `
+    <div class="success-row"><span>Paciente</span><span>${body.firstName} ${body.lastName}</span></div>
+    <div class="success-row"><span>DNI</span><span>${body.dni}</span></div>
+    <div class="success-row"><span>Medico</span><span>Dr/a. ${data.doctor?.name || ''}</span></div>
+    ${data.doctor?.specialty ? `<div class="success-row"><span>Especialidad</span><span>${data.doctor.specialty}</span></div>` : ''}
+    <div class="success-row"><span>Obra social</span><span>${ins}</span></div>
+  `;
+
+  document.getElementById('bookingLink').href = `/reservar.html?slug=${slug}`;
+}
+
+init();
+</script>
+</body>
+</html>

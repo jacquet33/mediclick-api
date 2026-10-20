@@ -50,6 +50,12 @@ export class PublicBookingController {
   cancel(@Param('token') token: string, @Body() body: { reason?: string }) {
     return this.bookingService.cancelBooking(token, body?.reason);
   }
+
+  /** POST /public/booking/:slug/register-patient — auto-registro en cartilla */
+  @Post(':slug/register-patient')
+  registerPatient(@Param('slug') slug: string, @Body() dto: any) {
+    return this.bookingService.registerPatientPublic(slug, dto);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
