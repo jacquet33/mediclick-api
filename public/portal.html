@@ -384,10 +384,12 @@ function buildNav(){
       ]},
       {section:'Pacientes',items:[
         {id:'pacientes',icon:'👥',label:'Pacientes'},
+        {id:'historial',icon:'📋',label:'Historial médico'},
         {id:'recetas',icon:'💊',label:'Recetas'},
         {id:'waitlist',icon:'🔔',label:'Lista de espera'},
       ]},
       {section:'Gestión',items:[
+        {id:'obras-sociales',icon:'🏛️',label:'Obras sociales'},
         {id:'equipo',icon:'👔',label:'Equipo y roles'},
         {id:'facturacion',icon:'💰',label:'Facturación'},
         {id:'config',icon:'⚙️',label:'Configuración'},
@@ -397,6 +399,8 @@ function buildNav(){
     items=[
       {section:'Mi salud',items:[
         {id:'mis-turnos',icon:'📅',label:'Mis turnos'},
+        {id:'reservar-turno',icon:'🗓️',label:'Reservar turno'},
+        {id:'mi-historial',icon:'📋',label:'Mi historial'},
         {id:'mis-recetas',icon:'💊',label:'Mis recetas'},
         {id:'mensajes',icon:'💬',label:'Mensajes'},
       ]},
@@ -445,7 +449,11 @@ function navigateTo(id){
     'equipo':loadEquipo,
     'facturacion':loadFacturacion,
     'config':loadConfig,
+    'historial':loadHistorial,
+    'obras-sociales':loadObrasSociales,
     'mis-turnos':loadMisTurnos,
+    'reservar-turno':loadReservarTurno,
+    'mi-historial':loadMiHistorial,
     'mis-recetas':loadMisRecetas,
     'mensajes':loadMensajes,
     'mi-perfil':loadMiPerfil,
@@ -991,6 +999,199 @@ async function loadReportes(){
 }
 
 // ═══════════════════════════════════════════════════════════
+// HISTORIAL MÉDICO (Doctor)
+// ═══════════════════════════════════════════════════════════
+
+async function loadHistorial(){
+  const main=document.getElementById('mainContent');
+  main.innerHTML=`
+    <div class="topbar"><h1>Historial médico</h1></div>
+    <div class="card">
+      <p class="muted" style="margin-bottom:12px">Buscá un paciente para ver su historia clínica</p>
+      <div style="display:flex;gap:10px">
+        <input id="histSearch" placeholder="Nombre, DNI o email del paciente..." style="flex:1;padding:12px;border:1.5px solid #E0ECF5;border-radius:10px;font-size:14px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')searchPatientHist()">
+        <button class="btn btn-primary" style="width:auto;padding:12px 20px" onclick="searchPatientHist()">Buscar</button>
+      </div>
+      <div id="histResults" style="margin-top:16px"></div>
+    </div>
+    <div id="histDetail"></div>`;
+}
+
+async function searchPatientHist(){
+  const q=document.getElementById('histSearch').value.trim();
+  if(!q) return;
+  const box=document.getElementById('histResults');
+  box.innerHTML='<div class="spinner"></div>';
+  try{
+    const patients=await apiFetch(`/api/v1/patients?search=${encodeURIComponent(q)}`);
+    const list=patients.data||patients;
+    if(!list.length){box.innerHTML='<p class="muted">No se encontraron pacientes</p>';return}
+    box.innerHTML=list.map(p=>`
+      <div class="queue-item" style="cursor:pointer" onclick="viewPatientHistory('${p.id}','${(p.first_name+' '+p.last_name).replace(/'/g,"\\'")}')">
+        <div class="avatar">${initials(p.first_name+' '+p.last_name)}</div>
+        <div style="flex:1"><strong>${p.first_name} ${p.last_name}</strong><br><span class="muted">${p.dni||''} · ${p.email||''}</span></div>
+        <span class="muted">${p.insurance_provider||'Particular'}</span>
+      </div>`).join('');
+  }catch(e){box.innerHTML=`<p class="error">${e.message}</p>`}
+}
+
+async function viewPatientHistory(patientId,name){
+  const box=document.getElementById('histDetail');
+  box.innerHTML='<div class="spinner"></div>';
+  try{
+    const [records,timeline]=await Promise.all([
+      apiFetch(`/api/v1/medical-records?patient_id=${patientId}`),
+      apiFetch(`/api/v1/patients/${patientId}/timeline`).catch(()=>[]),
+    ]);
+    const recs=records.data||records;
+    const tl=timeline.data||timeline;
+    box.innerHTML=`
+      <div class="card" style="margin-top:16px">
+        <div class="card-title">📋 Historia clínica — ${name}</div>
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <button class="btn btn-sm btn-primary" onclick="showNewRecord('${patientId}')">+ Nueva nota</button>
+        </div>
+        ${recs.length?recs.map(r=>`
+          <div class="card" style="border-left:3px solid var(--primary);margin-bottom:10px">
+            <div class="flex-between">
+              <strong>${r.record_type||r.type||'Consulta'}</strong>
+              <span class="muted">${fmtDate(r.created_at||r.date)}</span>
+            </div>
+            ${r.diagnosis?`<p style="margin-top:6px"><strong>Diagnóstico:</strong> ${r.diagnosis}</p>`:''}
+            ${r.notes||r.clinical_notes?`<p style="margin-top:4px;font-size:13px;color:var(--text-soft)">${r.notes||r.clinical_notes}</p>`:''}
+            ${r.treatment?`<p style="margin-top:4px;font-size:13px"><strong>Tratamiento:</strong> ${r.treatment}</p>`:''}
+          </div>`).join('')
+        :'<p class="muted">Sin registros médicos aún</p>'}
+      </div>
+      ${tl.length?`<div class="card">
+        <div class="card-title">📅 Timeline</div>
+        ${tl.slice(0,20).map(e=>`
+          <div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #F2F6FA">
+            <span class="muted" style="min-width:80px;font-size:12px">${fmtDate(e.date||e.created_at)}</span>
+            <div><strong style="font-size:13px">${e.type||e.event_type||''}</strong><br><span class="muted">${e.description||e.summary||''}</span></div>
+          </div>`).join('')}
+      </div>`:''}`;
+  }catch(e){box.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
+}
+
+async function showNewRecord(patientId){
+  const box=document.getElementById('histDetail');
+  const prev=box.innerHTML;
+  box.innerHTML=`
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">Nueva nota clínica</div>
+      <div class="field"><label>Tipo</label>
+        <select id="recType" style="width:100%;padding:12px;border:1.5px solid #E0ECF5;border-radius:10px;font-size:14px;font-family:inherit">
+          <option value="consultation">Consulta</option>
+          <option value="follow_up">Control</option>
+          <option value="emergency">Urgencia</option>
+          <option value="study_result">Resultado de estudio</option>
+        </select>
+      </div>
+      <div class="field"><label>Diagnóstico</label><input id="recDiag" placeholder="Diagnóstico principal"></div>
+      <div class="field"><label>Notas clínicas</label><textarea id="recNotes" rows="4" placeholder="Observaciones, síntomas, examen físico..." style="width:100%;padding:12px;border:1.5px solid #E0ECF5;border-radius:10px;font-size:14px;font-family:inherit;resize:vertical"></textarea></div>
+      <div class="field"><label>Tratamiento</label><textarea id="recTreat" rows="2" placeholder="Indicaciones y tratamiento" style="width:100%;padding:12px;border:1.5px solid #E0ECF5;border-radius:10px;font-size:14px;font-family:inherit;resize:vertical"></textarea></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-primary" style="width:auto;padding:12px 24px" onclick="saveRecord('${patientId}')">Guardar</button>
+        <button class="btn btn-outline" style="width:auto;padding:12px 24px" onclick="viewPatientHistory('${patientId}','')">Cancelar</button>
+      </div>
+    </div>`;
+}
+
+async function saveRecord(patientId){
+  try{
+    await apiFetch('/api/v1/medical-records',{method:'POST',body:{
+      patient_id:patientId,
+      record_type:document.getElementById('recType').value,
+      diagnosis:document.getElementById('recDiag').value,
+      notes:document.getElementById('recNotes').value,
+      treatment:document.getElementById('recTreat').value,
+    }});
+    viewPatientHistory(patientId,'');
+  }catch(e){alert(e.message)}
+}
+
+// ═══════════════════════════════════════════════════════════
+// OBRAS SOCIALES (Doctor/Admin)
+// ═══════════════════════════════════════════════════════════
+
+async function loadObrasSociales(){
+  const main=document.getElementById('mainContent');
+  main.innerHTML='<div class="spinner"></div>';
+  try{
+    const [insurers,coverage]=await Promise.all([
+      apiFetch('/api/v1/patients/insurers').catch(()=>[]),
+      apiFetch('/api/v1/hub/coverage').catch(()=>[]),
+    ]);
+    const insList=insurers.data||insurers;
+    const covList=coverage.data||coverage;
+    main.innerHTML=`
+      <div class="topbar"><h1>Obras sociales</h1></div>
+
+      <div class="card">
+        <div class="card-title">🔍 Validar afiliado</div>
+        <p class="muted" style="margin-bottom:12px">Verificá la cobertura de un paciente con su obra social</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end">
+          <div class="field" style="margin:0"><label>Obra social</label><input id="valInsurer" placeholder="Ej: OSDE, Swiss Medical..."></div>
+          <div class="field" style="margin:0"><label>N° afiliado</label><input id="valNumber" placeholder="Número de credencial"></div>
+          <button class="btn btn-primary" style="width:auto;padding:12px 20px;height:46px" onclick="validateAffiliate()">Validar</button>
+        </div>
+        <div id="valResult" style="margin-top:12px"></div>
+      </div>
+
+      ${insList.length?`<div class="card">
+        <div class="card-title">🏛️ Obras sociales de tus pacientes</div>
+        <div class="table-wrap"><table>
+          <tr><th>Obra social</th><th>Pacientes</th></tr>
+          ${insList.map(ins=>`<tr>
+            <td><strong>${ins.name||ins.insurance_provider||'—'}</strong></td>
+            <td>${ins.count||ins.patient_count||'—'}</td>
+          </tr>`).join('')}
+        </table></div>
+      </div>`:''}
+
+      ${covList.length?`<div class="card">
+        <div class="card-title">📡 Cobertura del sistema</div>
+        <div class="table-wrap"><table>
+          <tr><th>Obra social</th><th>Tipo</th><th>Estado</th></tr>
+          ${covList.slice(0,30).map(c=>`<tr>
+            <td>${c.name||'—'}</td>
+            <td><span class="badge-sm confirmed">${c.adapter_type||c.connector_type||'manual'}</span></td>
+            <td>${c.is_active!==false?'✅ Activa':'❌ Inactiva'}</td>
+          </tr>`).join('')}
+        </table></div>
+      </div>`:''}`;
+  }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
+}
+
+async function validateAffiliate(){
+  const box=document.getElementById('valResult');
+  const insurer=document.getElementById('valInsurer').value.trim();
+  const number=document.getElementById('valNumber').value.trim();
+  if(!insurer||!number){box.innerHTML='<p class="error">Completá obra social y número</p>';return}
+  box.innerHTML='<div class="spinner"></div>';
+  try{
+    // Resolver nombre a ID
+    const resolved=await apiFetch(`/api/v1/hub/resolve?q=${encodeURIComponent(insurer)}`);
+    const insurerId=resolved.id||resolved.insurer_id||(resolved.data&&resolved.data.id);
+    if(!insurerId){box.innerHTML='<p class="error">No se encontró esa obra social</p>';return}
+
+    const result=await apiFetch('/api/v1/hub/validate',{method:'POST',body:{
+      insurer_id:insurerId,
+      affiliate_number:number,
+    }});
+    const r=result.data||result;
+    box.innerHTML=`
+      <div style="padding:14px;border-radius:10px;background:${r.valid||r.is_valid?'#e0f7ed':'#fce8e8'};margin-top:8px">
+        <strong>${r.valid||r.is_valid?'✅ Afiliado válido':'❌ Afiliado no válido'}</strong>
+        ${r.affiliate_name?`<br><span>Nombre: ${r.affiliate_name}</span>`:''}
+        ${r.plan?`<br><span>Plan: ${r.plan}</span>`:''}
+        ${r.message?`<br><span class="muted">${r.message}</span>`:''}
+      </div>`;
+  }catch(e){box.innerHTML=`<p class="error">${e.message}</p>`}
+}
+
+// ═══════════════════════════════════════════════════════════
 // VISTAS DEL PACIENTE
 // ═══════════════════════════════════════════════════════════
 
@@ -1012,6 +1213,159 @@ async function loadMisTurnos(){
         <span class="badge-sm ${a.status}">${statusLabel(a.status)}</span>
       </div>`}).join('')
     :'<div class="card center" style="padding:40px"><p style="font-size:30px">📅</p><p class="muted mt-8">No tenés turnos próximos</p><a href="/reservar.html" class="btn btn-primary mt-16" style="display:inline-flex;width:auto;padding:12px 24px;text-decoration:none">Reservar turno</a></div>'}`;
+}
+
+// ─── Reservar turno (paciente) ─────────────────────────────
+
+async function loadReservarTurno(){
+  const main=document.getElementById('mainContent');
+  main.innerHTML=`
+    <div class="topbar"><h1>Reservar turno</h1></div>
+    <div class="card">
+      <p class="muted" style="margin-bottom:12px">Buscá un profesional por especialidad, nombre o ubicación</p>
+      <div style="display:flex;gap:10px">
+        <input id="bookSearch" placeholder="Ej: cardiólogo, traumatología, Dr. García..." style="flex:1;padding:12px;border:1.5px solid #E0ECF5;border-radius:10px;font-size:14px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')searchDoctors()">
+        <button class="btn btn-primary" style="width:auto;padding:12px 20px" onclick="searchDoctors()">Buscar</button>
+      </div>
+    </div>
+    <div id="bookDoctorList"></div>
+    <div id="bookSlots"></div>`;
+  // Cargar especialidades como sugerencia
+  try{
+    const specs=await apiFetch('/api/v1/public/directory/specialties').catch(()=>[]);
+    const list=specs.data||specs;
+    if(list.length){
+      document.getElementById('bookDoctorList').innerHTML=`
+        <div class="card"><div class="card-title">Especialidades disponibles</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          ${list.map(s=>`<span style="padding:8px 14px;background:var(--bg-soft);border-radius:20px;font-size:13px;cursor:pointer;transition:.15s"
+            onmouseover="this.style.background='var(--cyan)';this.style.color='#fff'"
+            onmouseout="this.style.background='var(--bg-soft)';this.style.color='var(--text)'"
+            onclick="document.getElementById('bookSearch').value='${(s.specialty||s.name||'').replace(/'/g,"\\'")}';searchDoctors()">${s.specialty||s.name} (${s.count||''})</span>`).join('')}
+        </div></div>`;
+    }
+  }catch(e){}
+}
+
+async function searchDoctors(){
+  const q=document.getElementById('bookSearch').value.trim();
+  if(!q) return;
+  const box=document.getElementById('bookDoctorList');
+  box.innerHTML='<div class="spinner"></div>';
+  document.getElementById('bookSlots').innerHTML='';
+  try{
+    const results=await apiFetch(`/api/v1/public/directory/doctors?q=${encodeURIComponent(q)}&limit=10`);
+    const docs=results.data||results;
+    if(!docs.length){box.innerHTML='<div class="card"><p class="muted center">No se encontraron profesionales</p></div>';return}
+    box.innerHTML=docs.map(d=>`
+      <div class="card" style="cursor:pointer;transition:.15s" onmouseover="this.style.borderColor='var(--cyan)'" onmouseout="this.style.borderColor='rgba(79,166,240,.06)'" onclick="selectDoctor('${d.slug||d.id}','${(d.first_name+' '+d.last_name).replace(/'/g,"\\'")}','${(d.specialty||'').replace(/'/g,"\\'")}')">
+        <div class="flex" style="gap:14px">
+          <div class="avatar" style="width:48px;height:48px;font-size:16px">${initials(d.first_name+' '+d.last_name)}</div>
+          <div style="flex:1">
+            <strong style="font-size:15px">Dr/a. ${d.first_name} ${d.last_name}</strong>
+            <br><span class="muted">${d.specialty||''}</span>
+            ${d.city?`<br><span style="font-size:12px;color:var(--text-muted)">📍 ${d.city}</span>`:''}
+          </div>
+          ${d.consultation_fee?`<span style="font-size:15px;font-weight:600;color:var(--primary)">$${d.consultation_fee}</span>`:''}
+        </div>
+      </div>`).join('');
+  }catch(e){box.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
+}
+
+async function selectDoctor(slug,name,specialty){
+  const box=document.getElementById('bookSlots');
+  const today=new Date().toISOString().split('T')[0];
+  box.innerHTML='<div class="spinner"></div>';
+  // Buscar slots para los próximos 5 días
+  let allSlots=[];
+  for(let i=0;i<5;i++){
+    const d=new Date();d.setDate(d.getDate()+i);
+    const dateStr=d.toISOString().split('T')[0];
+    try{
+      const slots=await apiFetch(`/api/v1/public/booking/${slug}/slots?date=${dateStr}`);
+      const sl=slots.data||slots;
+      if(sl.length) allSlots.push({date:dateStr,slots:sl});
+    }catch(e){}
+  }
+  if(!allSlots.length){
+    box.innerHTML=`<div class="card"><p class="muted center" style="padding:20px">No hay turnos disponibles en los próximos 5 días</p></div>`;
+    return;
+  }
+  box.innerHTML=`
+    <div class="card">
+      <div class="card-title">🗓️ Turnos disponibles — Dr/a. ${name}</div>
+      <p class="muted" style="margin-bottom:14px">${specialty}</p>
+      ${allSlots.map(day=>{
+        const dt=new Date(day.date+'T12:00:00');
+        const dayName=dt.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+        return `<div style="margin-bottom:16px">
+          <p style="font-weight:600;margin-bottom:8px;text-transform:capitalize">${dayName}</p>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            ${day.slots.map(s=>`<button class="btn btn-outline btn-sm" style="min-width:70px"
+              onclick="confirmBooking('${slug}','${name}','${day.date}','${s.start_time||s.time||s}','${specialty}')">${(s.start_time||s.time||s+'').substring(0,5)}</button>`).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+async function confirmBooking(slug,doctorName,date,time,specialty){
+  const dt=new Date(date+'T12:00:00');
+  const dayStr=dt.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+  if(!confirm(`¿Confirmar turno?\n\nDr/a. ${doctorName} (${specialty})\n${dayStr} a las ${time.substring(0,5)} hs`)) return;
+  try{
+    const u=userData||{};
+    await apiFetch(`/api/v1/public/booking/${slug}`,{method:'POST',body:{
+      date,
+      start_time:time,
+      patient_name:(u.first_name||'')+' '+(u.last_name||''),
+      patient_phone:u.phone||'',
+      patient_email:u.email||'',
+      reason:'Consulta',
+    }});
+    alert('✅ Turno reservado con éxito');
+    navigateTo('mis-turnos');
+  }catch(e){alert('Error: '+e.message)}
+}
+
+// ─── Mi historial (paciente) ──────────────────────────────
+
+async function loadMiHistorial(){
+  const main=document.getElementById('mainContent');
+  main.innerHTML='<div class="spinner"></div>';
+  const patientId=userData?.id||userData?.patient_id||'';
+  if(!patientId){main.innerHTML='<div class="card"><p class="muted center" style="padding:30px">No se pudo cargar tu historial</p></div>';return}
+  try{
+    const [records,timeline]=await Promise.all([
+      apiFetch(`/api/v1/medical-records?patient_id=${patientId}`).catch(()=>[]),
+      apiFetch(`/api/v1/patients/${patientId}/timeline`).catch(()=>[]),
+    ]);
+    const recs=(records.data||records)||[];
+    const tl=(timeline.data||timeline)||[];
+    main.innerHTML=`
+      <div class="topbar"><h1>Mi historial médico</h1></div>
+      ${recs.length?recs.map(r=>`
+        <div class="card" style="border-left:3px solid var(--primary)">
+          <div class="flex-between">
+            <strong>${r.record_type||r.type||'Consulta'}</strong>
+            <span class="muted">${fmtDate(r.created_at||r.date)}</span>
+          </div>
+          ${r.doctor_name?`<p style="margin-top:4px;font-size:13px;color:var(--text-soft)">Dr/a. ${r.doctor_name}</p>`:''}
+          ${r.diagnosis?`<p style="margin-top:6px"><strong>Diagnóstico:</strong> ${r.diagnosis}</p>`:''}
+          ${r.notes||r.clinical_notes?`<p style="margin-top:4px;font-size:13px;color:var(--text-soft)">${r.notes||r.clinical_notes}</p>`:''}
+          ${r.treatment?`<p style="margin-top:4px;font-size:13px"><strong>Tratamiento:</strong> ${r.treatment}</p>`:''}
+        </div>`).join('')
+      :'<div class="card center" style="padding:40px"><p style="font-size:30px">📋</p><p class="muted mt-8">Tu historial médico va a aparecer acá a medida que te atiendas</p></div>'}
+
+      ${tl.length?`<div class="card">
+        <div class="card-title">📅 Timeline</div>
+        ${tl.slice(0,15).map(e=>`
+          <div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #F2F6FA">
+            <span class="muted" style="min-width:80px;font-size:12px">${fmtDate(e.date||e.created_at)}</span>
+            <div><strong style="font-size:13px">${e.type||e.event_type||''}</strong><br><span class="muted">${e.description||e.summary||''}</span></div>
+          </div>`).join('')}
+      </div>`:''}`;
+  }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
 }
 
 async function loadMisRecetas(){
