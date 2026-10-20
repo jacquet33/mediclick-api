@@ -704,10 +704,20 @@ function showConfirmation(data){
   const waPhone='';
   const shareWaUrl=`https://wa.me/?text=${encodeURIComponent(waMsg)}`;
   document.getElementById('summaryContent').innerHTML+=`
-    <div style="margin-top:14px;display:flex;gap:8px">
-      <a href="${shareWaUrl}" target="_blank" class="btn btn-primary" style="background:#25D366;flex:1;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px">
+    <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">
+      <a href="${shareWaUrl}" target="_blank" class="btn btn-primary" style="background:#25D366;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px">
         📱 Compartir por WhatsApp
       </a>
+      <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#F0FDFA;border-radius:12px;cursor:pointer;font-size:13px;color:#0D9488;font-weight:500">
+        <input type="checkbox" id="reminderCheck" checked style="width:18px;height:18px;accent-color:#0D9488" onchange="toggleReminder(this.checked,'${data.id||''}')">
+        🔔 Recordarme el día anterior
+      </label>
+      <button onclick="window.location.href='reservar.html?slug=${slug}'" class="btn" style="background:var(--bg-soft,#F4FAFE);color:var(--text,#1C334F);border:1.5px solid #E0ECF5;font-size:14px">
+        ← Reservar otro turno
+      </button>
+      <button onclick="window.close();window.location.href='/'" class="btn" style="background:none;color:var(--text-soft,#61809E);font-size:13px;border:none;min-height:auto;padding:8px">
+        Cerrar
+      </button>
     </div>`;
   if(data.paymentInfo){
     const p=data.paymentInfo;
@@ -811,6 +821,19 @@ async function registerAccount(){
   }catch(e){
     alert(e.message||'No se pudo crear la cuenta');
     btn.disabled=false;btn.textContent='Crear cuenta';
+  }
+}
+
+async function toggleReminder(enabled, appointmentId){
+  if(!appointmentId) return;
+  try{
+    await fetch(`${API}/api/v1/public/booking/reminder`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({appointmentId, enabled, slug})
+    });
+  }catch(e){
+    console.log('Reminder toggle failed', e);
   }
 }
 
