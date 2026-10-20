@@ -384,7 +384,6 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:10
 <button id="chatFab" onclick="toggleChat()" style="position:fixed;bottom:20px;right:20px;width:56px;height:56px;border-radius:50%;background:#0D9488;color:#fff;border:none;box-shadow:0 4px 16px rgba(13,148,136,.3);cursor:pointer;font-size:24px;z-index:100;display:flex;align-items:center;justify-content:center">💬</button>
 
 <script>
-<script>
 const API = window.location.origin;
 const params = new URLSearchParams(window.location.search);
 const slug = params.get('slug') || window.location.pathname.split('/').filter(Boolean).pop();

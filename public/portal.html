@@ -269,7 +269,7 @@ async function doRegister(){
 
 function saveSession(r){
   token=r.accessToken;userType=r.userType;userData=r.user||r.doctor;
-  refreshToken=r.refreshToken||'';
+  if(r.refreshToken) refreshToken=r.refreshToken;
   userId=userData?.id||userData?.user_id||'';
   localStorage.setItem('mediclick_token',token);
   localStorage.setItem('mediclick_refreshToken',refreshToken);
@@ -475,7 +475,8 @@ async function loadDoctorDashboard(){
   const main=document.getElementById('mainContent');
   const today=new Date().toISOString().split('T')[0];
   try{
-    const [appts]=await Promise.all([apiFetch(`/api/v1/appointments?date=${today}`)]);
+    const [_appts]=await Promise.all([apiFetch(`/api/v1/appointments?date=${today}`)]);
+    const appts=_appts.data||_appts;if(!Array.isArray(appts))throw new Error('Formato inesperado');
     const waiting=appts.filter(a=>a.status==='confirmed');
     const inProg=appts.filter(a=>a.status==='in_progress');
     const done=appts.filter(a=>a.status==='completed');
@@ -518,7 +519,8 @@ async function loadWaitingRoom(){
   const main=document.getElementById('mainContent');
   const today=new Date().toISOString().split('T')[0];
   try{
-    const appts=await apiFetch(`/api/v1/appointments?date=${today}`);
+    const _appts=await apiFetch(`/api/v1/appointments?date=${today}`);
+    const appts=_appts.data||_appts;
     const confirmed=appts.filter(a=>a.status==='confirmed');
     const checkedIn=appts.filter(a=>a.status==='checked_in');
     const inProg=appts.filter(a=>a.status==='in_progress');
@@ -596,9 +598,10 @@ async function renderCalView(){
   const allAppts=[];
   for(const d of dates){
     try{
-      const appts=await apiFetch(`/api/v1/appointments?date=${fmtISO(d)}`);
-      appts.forEach(a=>a._date=fmtISO(d));
-      allAppts.push(...appts);
+      const _r=await apiFetch(`/api/v1/appointments?date=${fmtISO(d)}`);
+      const appts=_r.data||_r;
+      (Array.isArray(appts)?appts:[]).forEach(a=>a._date=fmtISO(d));
+      allAppts.push(...(Array.isArray(appts)?appts:[]));
     }catch{}
   }
 
@@ -660,7 +663,8 @@ async function renderCalView(){
 async function loadPacientes(){
   const main=document.getElementById('mainContent');
   try{
-    const pts=await apiFetch('/api/v1/patients');
+    const _pts=await apiFetch('/api/v1/patients');
+    const pts=_pts.data||_pts;
     main.innerHTML=`
       <div class="topbar"><h1>Pacientes</h1><div class="badge">${pts.length} registrados</div></div>
       <div class="card"><div class="table-wrap"><table>
@@ -677,7 +681,8 @@ async function loadPacientes(){
 async function loadRecetas(){
   const main=document.getElementById('mainContent');
   try{
-    const rxs=await apiFetch('/api/v1/prescriptions');
+    const _rxs=await apiFetch('/api/v1/prescriptions');
+    const rxs=_rxs.data||_rxs;
     main.innerHTML=`
       <div class="topbar"><h1>Recetas</h1></div>
       <div class="card"><div class="table-wrap"><table>
@@ -696,7 +701,8 @@ async function loadRecetas(){
 async function loadWaitlist(){
   const main=document.getElementById('mainContent');
   try{
-    const[entries,stats]=await Promise.all([apiFetch('/api/v1/waitlist'),apiFetch('/api/v1/waitlist/stats')]);
+    const[_entries,stats]=await Promise.all([apiFetch('/api/v1/waitlist'),apiFetch('/api/v1/waitlist/stats')]);
+    const entries=_entries.data||_entries;
     main.innerHTML=`
       <div class="topbar"><h1>Lista de espera</h1></div>
       <div class="stats">
@@ -724,7 +730,8 @@ async function loadEquipo(){
   const orgId=orgs[0]?.org_id||orgs[0]?.organization_id;
   if(!orgId){main.innerHTML=soonCard('Equipo');return}
   try{
-    const members=await apiFetch(`/api/v1/organizations/${orgId}/members`);
+    const _members=await apiFetch(`/api/v1/organizations/${orgId}/members`);
+    const members=_members.data||_members;
     main.innerHTML=`
       <div class="topbar"><h1>Equipo y roles</h1><div class="badge">${members.length} miembros</div></div>
       <div class="card"><div class="table-wrap"><table>
@@ -746,7 +753,8 @@ async function loadEquipo(){
 async function loadFacturacion(){
   const main=document.getElementById('mainContent');
   try{
-    const batches=await apiFetch('/api/v1/billing/batches');
+    const _batches=await apiFetch('/api/v1/billing/batches');
+    const batches=_batches.data||_batches;
     const now=new Date();
     const yr=now.getFullYear(), mo=now.getMonth()+1;
     const months=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -859,7 +867,8 @@ async function loadConfig(){
 async function loadMensajes(){
   const main=document.getElementById('mainContent');
   try{
-    const convos=await apiFetch('/api/v1/chat/conversations');
+    const _convos=await apiFetch('/api/v1/chat/conversations');
+    const convos=_convos.data||_convos;
     main.innerHTML=`
       <div class="topbar"><h1>Mensajes</h1></div>
       ${convos.length?`<div class="card">
@@ -884,7 +893,8 @@ async function loadMensajes(){
 async function openConvo(id,name){
   const main=document.getElementById('mainContent');
   try{
-    const msgs=await apiFetch(`/api/v1/chat/conversations/${id}/messages`);
+    const _msgs=await apiFetch(`/api/v1/chat/conversations/${id}/messages`);
+    const msgs=_msgs.data||_msgs;
     await apiFetch(`/api/v1/chat/conversations/${id}/read`,{method:'PATCH'}).catch(()=>{});
     main.innerHTML=`
       <div class="topbar">
@@ -933,12 +943,14 @@ async function loadReportes(){
     const monthAgo=new Date(today);monthAgo.setDate(today.getDate()-30);
     const fmt=d=>d.toISOString().split('T')[0];
 
-    const [todayAppts,weekAppts,monthAppts,patients]=await Promise.all([
+    const unwrap=r=>Array.isArray(r)?r:(r&&r.data?r.data:[]);
+    const [_ta,_wa,_ma,_pa]=await Promise.all([
       apiFetch(`/api/v1/appointments?date=${fmt(today)}`),
       apiFetch(`/api/v1/appointments?from=${fmt(weekAgo)}&to=${fmt(today)}`).catch(()=>[]),
       apiFetch(`/api/v1/appointments?from=${fmt(monthAgo)}&to=${fmt(today)}`).catch(()=>[]),
       apiFetch('/api/v1/patients').catch(()=>[]),
     ]);
+    const todayAppts=unwrap(_ta),weekAppts=unwrap(_wa),monthAppts=unwrap(_ma),patients=unwrap(_pa);
 
     const completed=arr=>arr.filter(a=>a.status==='completed').length;
     const cancelled=arr=>arr.filter(a=>a.status==='cancelled').length;
@@ -1400,7 +1412,8 @@ async function loadAdminDashboard(){
   const main=document.getElementById('mainContent');
   const today=new Date().toISOString().split('T')[0];
   try{
-    const appts=await apiFetch(`/api/v1/appointments?date=${today}`);
+    const _appts=await apiFetch(`/api/v1/appointments?date=${today}`);
+    const appts=_appts.data||_appts;
     const total=appts.length;
     const done=appts.filter(a=>a.status==='completed').length;
     const waiting=appts.filter(a=>a.status==='confirmed').length;
