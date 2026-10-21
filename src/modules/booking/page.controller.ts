@@ -12,6 +12,12 @@ export class BookingPageController {
     res.sendFile(join(__dirname, '..', '..', '..', 'public', 'reservar.html'));
   }
 
+  /** Página con consultorio específico: /reservar/:slug/:orgSlug */
+  @Get('reservar/:slug/:orgSlug')
+  servePageWithOrg(@Param('slug') slug: string, @Param('orgSlug') orgSlug: string, @Res() res: Response) {
+    res.sendFile(join(__dirname, '..', '..', '..', 'public', 'reservar.html'));
+  }
+
   /** Panel de cobertura del hub: /cobertura */
   @Get('cobertura')
   serveCoverage(@Res() res: Response) {

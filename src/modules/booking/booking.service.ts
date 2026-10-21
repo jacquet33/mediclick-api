@@ -161,6 +161,120 @@ export class BookingService {
   // PÚBLICO (lado paciente — sin auth)
   // ═══════════════════════════════════════════════════════════
 
+  /** Todos los consultorios de un doctor por doctor-slug */
+  async getPublicDoctorLocations(doctorSlug: string) {
+    // Buscar doctor por slug derivado del nombre
+    const locations = await this.db.queryMany(
+      `SELECT
+        bs.public_slug,
+        bs.booking_mode,
+        bs.requires_deposit,
+        bs.deposit_amount,
+        d.id AS doctor_id,
+        d.first_name || ' ' || d.last_name AS doctor_name,
+        d.specialty,
+        d.avatar_url,
+        d.medical_license,
+        o.id AS organization_id,
+        o.name AS org_name,
+        o.type AS org_type,
+        o.address,
+        o.city,
+        o.province,
+        o.phone AS org_phone,
+        o.logo_url
+      FROM booking_settings bs
+      JOIN organization_doctors od ON od.id = bs.org_doctor_id AND od.is_active = true
+      JOIN doctors d ON d.id = od.doctor_id
+      JOIN organizations o ON o.id = od.organization_id
+      WHERE bs.is_enabled = true
+        AND EXISTS (
+          SELECT 1 FROM booking_settings bs2
+          JOIN organization_doctors od2 ON od2.id = bs2.org_doctor_id
+          JOIN doctors d2 ON d2.id = od2.doctor_id
+          WHERE d2.id = d.id
+            AND bs2.public_slug LIKE $1 || '%'
+        )
+      ORDER BY o.name`,
+      [doctorSlug],
+    );
+
+    if (locations.length === 0) {
+      // Intentar match exacto: tal vez el slug es "alejandro-jacquet" y hay "alejandro-jacquet" y "alejandro-jacquet-1"
+      // Buscar por doctor_id que tenga algún slug que empiece con doctorSlug
+      const byName = await this.db.queryMany(
+        `SELECT
+          bs.public_slug,
+          bs.booking_mode,
+          bs.requires_deposit,
+          bs.deposit_amount,
+          d.id AS doctor_id,
+          d.first_name || ' ' || d.last_name AS doctor_name,
+          d.specialty,
+          d.avatar_url,
+          d.medical_license,
+          o.id AS organization_id,
+          o.name AS org_name,
+          o.type AS org_type,
+          o.address,
+          o.city,
+          o.province,
+          o.phone AS org_phone,
+          o.logo_url
+        FROM doctors d
+        JOIN organization_doctors od ON od.doctor_id = d.id AND od.is_active = true
+        JOIN booking_settings bs ON bs.org_doctor_id = od.id AND bs.is_enabled = true
+        JOIN organizations o ON o.id = od.organization_id
+        WHERE LOWER(REPLACE(TRANSLATE(d.first_name || '-' || d.last_name, 'áéíóúñÁÉÍÓÚÑ', 'aeiounAEIOUN'), ' ', '-')) = $1
+        ORDER BY o.name`,
+        [doctorSlug.toLowerCase()],
+      );
+
+      if (byName.length === 0) {
+        throw new NotFoundException('Doctor no encontrado');
+      }
+      return {
+        doctor_name: byName[0].doctor_name,
+        specialty: byName[0].specialty,
+        avatar_url: byName[0].avatar_url,
+        medical_license: byName[0].medical_license,
+        locations: byName.map(l => ({
+          public_slug: l.public_slug,
+          org_name: l.org_name,
+          org_type: l.org_type,
+          address: l.address,
+          city: l.city,
+          province: l.province,
+          org_phone: l.org_phone,
+          logo_url: l.logo_url,
+          booking_mode: l.booking_mode,
+          requires_deposit: l.requires_deposit,
+          deposit_amount: l.deposit_amount,
+        })),
+      };
+    }
+
+    return {
+      doctor_name: locations[0].doctor_name,
+      specialty: locations[0].specialty,
+      avatar_url: locations[0].avatar_url,
+      medical_license: locations[0].medical_license,
+      locations: locations.map(l => ({
+        public_slug: l.public_slug,
+        org_name: l.org_name,
+        org_type: l.org_type,
+        address: l.address,
+        city: l.city,
+        province: l.province,
+        org_phone: l.org_phone,
+        logo_url: l.logo_url,
+        booking_mode: l.booking_mode,
+        requires_deposit: l.requires_deposit,
+        deposit_amount: l.deposit_amount,
+      })),
+    };
+  }
+
   /** Perfil público del médico por slug */
   async getPublicProfile(slug: string) {
     const profile = await this.db.queryOne(

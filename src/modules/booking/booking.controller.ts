@@ -12,7 +12,13 @@ import { Public } from '../../common/guards/auth.guard';
 export class PublicBookingController {
   constructor(private bookingService: BookingService) {}
 
-  /** GET /public/booking/:slug — perfil del médico */
+  /** GET /public/booking/doctor/:doctorSlug — todos los consultorios del doctor */
+  @Get('doctor/:doctorSlug')
+  getDoctorLocations(@Param('doctorSlug') doctorSlug: string) {
+    return this.bookingService.getPublicDoctorLocations(doctorSlug);
+  }
+
+  /** GET /public/booking/:slug — perfil del médico (por org_doctor slug) */
   @Get(':slug')
   getProfile(@Param('slug') slug: string) {
     return this.bookingService.getPublicProfile(slug);

@@ -391,7 +391,22 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:10
 <script>
 const API = window.location.origin;
 const params = new URLSearchParams(window.location.search);
-const slug = params.get('slug') || window.location.pathname.split('/').filter(Boolean).pop();
+// Parse URL: /reservar/:doctorSlug/:orgSlug? or ?slug=xxx
+const pathParts = window.location.pathname.split('/').filter(Boolean);
+let slug = params.get('slug');
+let doctorSlug = null;
+let orgSlug = null;
+if (!slug && pathParts[0] === 'reservar') {
+  if (pathParts.length >= 3) {
+    // /reservar/alejandro-jacquet/centro-medico-parana
+    doctorSlug = pathParts[1];
+    orgSlug = pathParts[2];
+  } else if (pathParts.length === 2) {
+    // /reservar/alejandro-jacquet — could be doctor slug or org_doctor slug
+    slug = pathParts[1];
+    doctorSlug = pathParts[1];
+  }
+}
 let chatOpen=false, chatLoaded=false;
 
 function toggleChat(){
@@ -466,7 +481,70 @@ const OBRAS_SOCIALES = [
 
 // ─── Init ────────────────────────────────────────────────
 async function init(){
-  if(!slug){showError();return}
+  if(!slug && !doctorSlug){showError();return}
+
+  // Si tenemos orgSlug, buscar el perfil directamente filtrando por org
+  if(orgSlug && doctorSlug){
+    try {
+      const dr = await fetch(`${API}/api/v1/public/booking/doctor/${doctorSlug}`);
+      if(!dr.ok) throw new Error();
+      const data = await dr.json();
+      const loc = data.locations.find(l => {
+        // Derivar slug del org_name para matchear
+        const oSlug = l.org_name.toLowerCase()
+          .normalize('NFD').replace(/[̀-ͯ]/g,'')
+          .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+        return oSlug === orgSlug || l.public_slug === orgSlug;
+      });
+      if(loc){
+        slug = loc.public_slug;
+        return loadProfile();
+      }
+    } catch(e){}
+  }
+
+  // Intentar cargar como slug de org_doctor directo
+  try {
+    const r = await fetch(`${API}/api/v1/public/booking/${slug}`);
+    if(r.ok) {
+      profile = await r.json();
+      // Verificar si este doctor tiene múltiples consultorios
+      try {
+        const dr = await fetch(`${API}/api/v1/public/booking/doctor/${doctorSlug || slug}`);
+        if(dr.ok){
+          const data = await dr.json();
+          if(data.locations && data.locations.length > 1){
+            renderLocationPicker(data);
+            return;
+          }
+        }
+      } catch(e){}
+      renderProfile();
+      renderCalendar();
+      initInsuranceSearch();
+      return;
+    }
+  } catch(e){}
+
+  // Si falló como org_doctor slug, intentar como doctor slug
+  if(doctorSlug){
+    try {
+      const dr = await fetch(`${API}/api/v1/public/booking/doctor/${doctorSlug}`);
+      if(!dr.ok) throw new Error();
+      const data = await dr.json();
+      if(data.locations.length === 1){
+        slug = data.locations[0].public_slug;
+        return loadProfile();
+      }
+      renderLocationPicker(data);
+      return;
+    } catch(e){}
+  }
+
+  showError();
+}
+
+async function loadProfile(){
   try {
     const r = await fetch(`${API}/api/v1/public/booking/${slug}`);
     if(!r.ok) throw new Error();
@@ -475,6 +553,70 @@ async function init(){
     renderCalendar();
     initInsuranceSearch();
   } catch(e){ showError() }
+}
+
+function renderLocationPicker(data){
+  const wrap = document.querySelector('.wrap');
+  const header = wrap.querySelector('.header');
+  // Update header with doctor info
+  document.getElementById('docName').textContent = 'Dr/a. ' + data.doctor_name;
+  document.getElementById('docSpec').textContent = data.specialty || 'Medicina General';
+  if(data.medical_license)
+    document.getElementById('docLic').textContent = 'MP ' + data.medical_license;
+  const initials = data.doctor_name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  const av = document.getElementById('avatar');
+  if(data.avatar_url) av.innerHTML=`<img src="${data.avatar_url}" alt="">`;
+  else av.textContent = initials;
+  document.getElementById('orgInfo').innerHTML = '';
+  document.title = `Turno con Dr/a. ${data.doctor_name} — MediClick`;
+
+  // Hide all content after header, show location picker
+  const cards = wrap.querySelectorAll('.card, .steps');
+  cards.forEach(c => c.style.display = 'none');
+
+  const picker = document.createElement('div');
+  picker.className = 'card';
+  picker.id = 'locationPicker';
+  picker.innerHTML = `
+    <h3 style="font-size:16px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:20px">🏥</span> ¿Dónde te querés atender?
+    </h3>
+    <p style="font-size:13px;color:var(--text-soft);margin-bottom:16px">
+      Dr/a. ${data.doctor_name} atiende en ${data.locations.length} consultorios
+    </p>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${data.locations.map(loc => `
+        <button onclick="selectLocation('${loc.public_slug}','${(loc.org_name||'').replace(/'/g,"\\'")}')"
+          class="btn" style="background:var(--surface);color:var(--text);border:1.5px solid #E0ECF5;
+          text-align:left;padding:16px;display:flex;flex-direction:column;gap:6px;
+          border-radius:14px;transition:all .2s;cursor:pointer;min-height:auto"
+          onmouseover="this.style.borderColor='var(--primary)';this.style.background='var(--bg-soft)'"
+          onmouseout="this.style.borderColor='#E0ECF5';this.style.background='var(--surface)'">
+          <span style="font-weight:600;font-size:15px">${loc.org_name}</span>
+          ${loc.address ? `<span style="font-size:12px;color:var(--text-soft)">📍 ${loc.address}${loc.city?', '+loc.city:''}</span>` : ''}
+          ${loc.org_phone ? `<span style="font-size:12px;color:var(--text-soft)">📞 ${loc.org_phone}</span>` : ''}
+          ${loc.requires_deposit ? `<span style="font-size:11px;color:var(--warning)">💰 Requiere seña: $${loc.deposit_amount?.toLocaleString('es-AR')||''}</span>` : ''}
+        </button>
+      `).join('')}
+    </div>
+  `;
+  header.after(picker);
+}
+
+function selectLocation(selectedSlug, orgName){
+  slug = selectedSlug;
+  // Remove picker and show cards again
+  const picker = document.getElementById('locationPicker');
+  if(picker) picker.remove();
+  const wrap = document.querySelector('.wrap');
+  wrap.querySelectorAll('.card, .steps').forEach(c => c.style.display = '');
+  // Update URL without reload
+  const newOrgSlug = orgName.toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const basePath = doctorSlug || slug;
+  history.replaceState(null, '', `/reservar/${basePath}/${newOrgSlug}`);
+  loadProfile();
 }
 
 function showError(){
