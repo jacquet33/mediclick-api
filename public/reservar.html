@@ -751,8 +751,16 @@ function showConfirmation(data){
         <div class="pay-detail"><span>Titular</span><strong>${p.accountHolder||'—'}</strong></div>
         <div class="pay-detail"><span>CBU</span><strong>${p.cbu}<button class="copy-btn" onclick="copyTxt('${p.cbu}')">Copiar</button></strong></div>
         ${p.alias?`<div class="pay-detail"><span>Alias</span><strong>${p.alias}<button class="copy-btn" onclick="copyTxt('${p.alias}')">Copiar</button></strong></div>`:''}`;
+      if(p.alias){
+        h+=`<div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+          <button onclick="openMercadoPago('${p.alias}')" class="btn" style="background:linear-gradient(135deg,#009EE3,#0077C0);color:#fff;font-size:14px;font-weight:600;gap:8px;border:none;box-shadow:0 4px 14px rgba(0,158,227,.35)">
+            <span style="font-size:18px">💸</span> Copiar alias y abrir Mercado Pago
+          </button>
+          <p style="font-size:11px;color:var(--text-muted);text-align:center;margin:0">Se copiará el alias. En Mercado Pago, elegí "Transferir" y pegá el alias.</p>
+        </div>`;
+      }
     } else h+=`<div class="pay-detail"><span>Método</span><strong>Efectivo en consultorio</strong></div>`;
-    h+=`</div><div class="note">Tenés ${p.deadlineMinutes} minutos para completar el pago.</div></div>`;
+    h+=`</div><div class="note">⏱️ Tenés <strong>${p.deadlineMinutes} minutos</strong> para completar el pago. Si no se acredita, el turno puede liberarse.</div></div>`;
     document.getElementById('paymentInfo').innerHTML=h;
   }
 
@@ -808,6 +816,21 @@ async function submitWaitlist(){
 }
 
 function copyTxt(t){navigator.clipboard.writeText(t).catch(()=>{});const btn=document.activeElement||event?.target;if(btn){btn.textContent='✓';setTimeout(()=>btn.textContent='Copiar',1500)}}
+
+function openMercadoPago(alias){
+  navigator.clipboard.writeText(alias).then(()=>{
+    const btn=event?.target?.closest('button');
+    if(btn){const orig=btn.innerHTML;btn.innerHTML='<span style="font-size:18px">✅</span> Alias copiado — Abriendo Mercado Pago...';btn.style.background='linear-gradient(135deg,#10B981,#059669)';
+      setTimeout(()=>{btn.innerHTML=orig;btn.style.background='linear-gradient(135deg,#009EE3,#0077C0)'},3000)}
+    const appLink='mercadopago://transfer';
+    const webLink='https://www.mercadopago.com.ar/money-transfer';
+    const start=Date.now();
+    window.location.href=appLink;
+    setTimeout(()=>{if(Date.now()-start<2000)window.open(webLink,'_blank')},1500);
+  }).catch(()=>{
+    prompt('Copiá este alias y pegalo en Mercado Pago:',alias);
+  });
+}
 
 async function registerAccount(){
   const email=document.getElementById('regEmail').value.trim();
