@@ -709,7 +709,7 @@ function showConfirmation(data){
         📱 Compartir por WhatsApp
       </a>
       <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:#F0FDFA;border-radius:12px;cursor:pointer;font-size:13px;color:#0D9488;font-weight:500">
-        <input type="checkbox" id="reminderCheck" checked style="width:18px;height:18px;accent-color:#0D9488" onchange="toggleReminder(this.checked,'${data.id||''}')">
+        <input type="checkbox" id="reminderCheck" checked style="width:18px;height:18px;accent-color:#0D9488" onchange="toggleReminder(this.checked,'${data.booking?.id||''}')">
         🔔 Recordarme el día anterior
       </label>
       <button onclick="window.location.href='/reservar/${slug}'" class="btn" style="background:var(--bg-soft,#F4FAFE);color:var(--text,#1C334F);border:1.5px solid #E0ECF5;font-size:14px">
