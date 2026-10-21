@@ -304,15 +304,14 @@ export class BookingService {
          dto.requestedEndTime, bookingRow.id, holdExpiry.toISOString()],
       );
 
-      // Si es 'open', crear el turno directamente
-      if (status === 'confirmed') {
-        const appt = await this.createAppointmentFromBooking(client, bookingRow, profile);
-        await client.query(
-          `UPDATE booking_requests SET appointment_id = $1 WHERE id = $2`,
-          [appt.id, bookingRow.id],
-        );
-        bookingRow.appointment_id = appt.id;
-      }
+      // Siempre crear el appointment con el status correspondiente
+      // para que aparezca en la agenda del médico (iOS y web)
+      const appt = await this.createAppointmentFromBooking(client, bookingRow, profile, status);
+      await client.query(
+        `UPDATE booking_requests SET appointment_id = $1 WHERE id = $2`,
+        [appt.id, bookingRow.id],
+      );
+      bookingRow.appointment_id = appt.id;
 
       // Notificar al médico (push real + DB)
       const pushTitle = status === 'confirmed' ? 'Nuevo turno reservado' : 'Nueva solicitud de turno';
@@ -541,31 +540,41 @@ export class BookingService {
         patientId = newPatient.rows[0].id;
       }
 
-      // Crear turno
-      const appt = await client.query(
-        `INSERT INTO appointments (organization_id, org_doctor_id, patient_id, date,
-                                   start_time, end_time, status, reason, is_first_visit,
-                                   created_by_type, created_by_id)
-         VALUES ($1,$2,$3,$4::date,$5::time,$6::time,'confirmed',$7,$8,'patient',$3)
-         RETURNING *`,
-        [orgId, booking.org_doctor_id, patientId, booking.requested_date,
-         booking.requested_start_time, booking.requested_end_time,
-         booking.reason, booking.is_first_visit],
-      );
+      // Actualizar el appointment existente a 'confirmed' (ya fue creado en createBooking)
+      let apptResult;
+      if (booking.appointment_id) {
+        apptResult = await client.query(
+          `UPDATE appointments SET status = 'confirmed', patient_id = $1
+           WHERE id = $2 RETURNING *`,
+          [patientId, booking.appointment_id],
+        );
+      } else {
+        // Fallback: crear appointment si no existe (bookings antiguos pre-fix)
+        apptResult = await client.query(
+          `INSERT INTO appointments (organization_id, org_doctor_id, patient_id, date,
+                                     start_time, end_time, status, reason, is_first_visit,
+                                     created_by_type, created_by_id)
+           VALUES ($1,$2,$3,$4::date,$5::time,$6::time,'confirmed',$7,$8,'patient',$3)
+           RETURNING *`,
+          [orgId, booking.org_doctor_id, patientId, booking.requested_date,
+           booking.requested_start_time, booking.requested_end_time,
+           booking.reason, booking.is_first_visit],
+        );
+      }
 
       await client.query(
         `UPDATE booking_requests
          SET status = 'confirmed', patient_id = $1, appointment_id = $2,
              reviewed_at = NOW(), reviewed_by = $3
          WHERE id = $4`,
-        [patientId, appt.rows[0].id, doctorId, requestId],
+        [patientId, apptResult.rows[0].id, doctorId, requestId],
       );
 
       await client.query(`DELETE FROM slot_holds WHERE booking_request_id = $1`, [requestId]);
 
-      this.logger.log(`Booking approved: ${requestId} → appointment ${appt.rows[0].id}`);
+      this.logger.log(`Booking approved: ${requestId} → appointment ${apptResult.rows[0].id}`);
 
-      return { appointment: appt.rows[0], patientId };
+      return { appointment: apptResult.rows[0], patientId };
     });
   }
 
@@ -767,7 +776,7 @@ export class BookingService {
     return slug;
   }
 
-  private async createAppointmentFromBooking(client: any, booking: any, profile: any) {
+  private async createAppointmentFromBooking(client: any, booking: any, profile: any, appointmentStatus = 'confirmed') {
     let patientId = booking.patient_id;
 
     if (!patientId) {
@@ -787,11 +796,11 @@ export class BookingService {
       `INSERT INTO appointments (organization_id, org_doctor_id, patient_id, date,
                                  start_time, end_time, status, reason, is_first_visit,
                                  created_by_type, created_by_id)
-       VALUES ($1,$2,$3,$4::date,$5::time,$6::time,'confirmed',$7,$8,'patient',$3)
+       VALUES ($1,$2,$3,$4::date,$5::time,$6::time,$7,$8,$9,'patient',$3)
        RETURNING *`,
       [profile.organization_id, profile.org_doctor_id, patientId, booking.requested_date,
        booking.requested_start_time, booking.requested_end_time,
-       booking.reason, booking.is_first_visit],
+       appointmentStatus, booking.reason, booking.is_first_visit],
     );
 
     return appt.rows[0];

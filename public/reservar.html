@@ -234,10 +234,13 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:10
     <div class="field">
       <label>Obra social / Prepaga</label>
       <div class="search-select" id="insuranceSearch">
-        <input id="insurance" placeholder="Buscá tu obra social..." autocomplete="off">
+        <input id="insurance" placeholder="Escribí para buscar en la lista..." autocomplete="off" style="padding-right:42px">
+        <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:#61809E;font-size:16px;display:flex;align-items:center;gap:2px"
+              id="insListIcon">▾</span>
         <button class="clear hidden" id="insClear" onclick="clearInsurance()">×</button>
         <div class="dd" id="insuranceDd"></div>
       </div>
+      <div class="hint">Elegí de la lista o escribí para buscar</div>
     </div>
 
     <div class="field">
@@ -511,9 +514,24 @@ function initInsuranceSearch(){
   const clear = document.getElementById('insClear');
   let highlighted = -1;
 
+  input.addEventListener('focus', ()=>{
+    if(!input.value.trim()){
+      const initial = OBRAS_SOCIALES.slice(0,8);
+      dd.innerHTML = initial.map((o,i)=>`<div class="dd-item" data-val="${o}" onclick="selectInsurance('${o}')">${o}</div>`).join('');
+      dd.classList.add('open');
+      highlighted = -1;
+    }
+  });
+
   input.addEventListener('input', ()=>{
     const q = input.value.toLowerCase().trim();
-    if(q.length < 1){dd.classList.remove('open');return}
+    if(q.length < 1){
+      const initial = OBRAS_SOCIALES.slice(0,8);
+      dd.innerHTML = initial.map((o,i)=>`<div class="dd-item" data-val="${o}" onclick="selectInsurance('${o}')">${o}</div>`).join('');
+      dd.classList.add('open');
+      highlighted = -1;
+      return;
+    }
     const matches = OBRAS_SOCIALES.filter(o=>o.toLowerCase().includes(q)).slice(0,8);
     if(!matches.length){dd.classList.remove('open');return}
     dd.innerHTML = matches.map((o,i)=>`<div class="dd-item" data-val="${o}" onclick="selectInsurance('${o}')">${o}</div>`).join('');
@@ -537,10 +555,12 @@ function selectInsurance(val){
   document.getElementById('insurance').value = val;
   document.getElementById('insuranceDd').classList.remove('open');
   document.getElementById('insClear').classList.remove('hidden');
+  document.getElementById('insListIcon').style.display='none';
 }
 function clearInsurance(){
   document.getElementById('insurance').value='';
   document.getElementById('insClear').classList.add('hidden');
+  document.getElementById('insListIcon').style.display='flex';
 }
 
 // ─── Calendar ────────────────────────────────────────────
