@@ -57,7 +57,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:10
 .field label{display:block;font-size:12px;font-weight:600;color:var(--text-soft);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
 .field input,.field select,.field textarea{width:100%;padding:14px 14px;font-size:15px;font-family:inherit;
   border:1.5px solid #E0ECF5;border-radius:12px;background:#FAFCFE;color:var(--text);
-  transition:border .2s,box-shadow .2s;outline:none;-webkit-appearance:none}
+  transition:border .2s,box-shadow .2s;outline:none;-webkit-appearance:none;appearance:none}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2361809E' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(64,199,237,.15)}
 .field input::placeholder{color:var(--text-muted)}
 .field .hint{font-size:11px;color:var(--text-muted);margin-top:4px}
@@ -84,8 +86,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:10
 .cal-nav:active{background:var(--bg-soft)}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
 .cal-head{font-size:11px;font-weight:600;color:var(--text-muted);padding:6px 0}
-.cal-day{font-size:13px;padding:10px 0;border:none;background:none;border-radius:10px;cursor:pointer;
-  color:var(--text);font-weight:500;transition:.15s}
+.cal-day{font-size:13px;padding:12px 0;border:none;background:none;border-radius:10px;cursor:pointer;
+  color:var(--text);font-weight:500;transition:.15s;min-height:44px;display:flex;align-items:center;justify-content:center}
 .cal-day:hover:not(:disabled):not(.active){background:var(--bg-soft)}
 .cal-day.active{background:linear-gradient(135deg,var(--cyan),var(--primary));color:#fff;font-weight:700;
   box-shadow:0 3px 10px rgba(64,199,237,.35)}
@@ -785,14 +787,14 @@ async function submitWaitlist(){
   }
 }
 
-function copyTxt(t){navigator.clipboard.writeText(t);event.target.textContent='✓';setTimeout(()=>event.target.textContent='Copiar',1500)}
+function copyTxt(t){navigator.clipboard.writeText(t).catch(()=>{});const btn=document.activeElement||event?.target;if(btn){btn.textContent='✓';setTimeout(()=>btn.textContent='Copiar',1500)}}
 
 async function registerAccount(){
   const email=document.getElementById('regEmail').value.trim();
   const pw=document.getElementById('regPassword').value;
   if(!email||pw.length<6){alert('Ingresá email y contraseña (mín. 6 caracteres)');return}
 
-  const btn=event.target;btn.disabled=true;btn.textContent='Creando...';
+  const btn=document.querySelector('#registerForm .btn-primary');btn.disabled=true;btn.textContent='Creando...';
 
   try{
     const r=await fetch(`${API}/api/v1/auth/register/patient`,{
