@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { DatabaseService } from '../../database/database.service';
 import * as https from 'https';
 import * as crypto from 'crypto';
+import * as fs from 'fs';
 
 interface PushPayload {
   title: string;
@@ -233,9 +234,19 @@ export class PushNotificationService {
   private async sendAPNs(deviceToken: string, payload: PushPayload): Promise<void> {
     const keyId = this.config.get('APNS_KEY_ID');
     const teamId = this.config.get('APNS_TEAM_ID');
-    const keyContent = this.config.get('APNS_KEY');
     const bundleId = this.config.get('APNS_BUNDLE_ID') || 'com.mediclick.app';
-    const isProduction = this.config.get('APNS_PRODUCTION') !== 'false';
+    const isProduction = this.config.get('APNS_ENVIRONMENT') === 'production'
+      || (this.config.get('APNS_PRODUCTION') !== 'false' && !this.config.get('APNS_ENVIRONMENT'));
+
+    // Soportar key inline (APNS_KEY) o desde archivo (APNS_KEY_PATH)
+    let keyContent = this.config.get('APNS_KEY');
+    if (!keyContent) {
+      const keyPath = this.config.get('APNS_KEY_PATH');
+      if (keyPath && fs.existsSync(keyPath)) {
+        keyContent = fs.readFileSync(keyPath, 'utf-8');
+        this.logger.log('APNs key loaded from file');
+      }
+    }
 
     if (!keyId || !teamId || !keyContent) {
       this.logger.warn('APNs not configured — skipping push');
