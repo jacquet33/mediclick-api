@@ -15,9 +15,20 @@
   --text:#1C334F; --text-soft:#61809E; --text-muted:#99B3C9;
   --radius:16px; --shadow:0 4px 20px rgba(41,128,212,.12);
 }
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:100dvh;color:var(--text);-webkit-font-smoothing:antialiased}
-.wrap{max-width:440px;margin:0 auto;padding:16px;min-height:100dvh;display:flex;flex-direction:column}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{touch-action:manipulation}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:100dvh;color:var(--text);-webkit-font-smoothing:antialiased;
+  padding-bottom:env(safe-area-inset-bottom,0)}
+.wrap{max-width:440px;margin:0 auto;padding:16px;min-height:100dvh;display:flex;flex-direction:column;
+  padding-bottom:calc(16px + env(safe-area-inset-bottom,0))}
+
+/* ─── Toast (validaciones mobile) ── */
+.toast{position:fixed;top:0;left:0;right:0;z-index:200;transform:translateY(-100%);transition:transform .3s ease}
+.toast.show{transform:translateY(0)}
+.toast-inner{max-width:440px;margin:0 auto;padding:14px 20px;
+  background:linear-gradient(135deg,#F25C66,#E74C58);color:#fff;font-size:14px;font-weight:600;
+  text-align:center;box-shadow:0 4px 20px rgba(242,92,102,.35);
+  padding-top:calc(14px + env(safe-area-inset-top,0))}
 
 /* ─── Header ──────────────────── */
 .header{
@@ -73,16 +84,20 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:10
   border-radius:12px;margin-top:4px;max-height:200px;overflow-y:auto;z-index:50;
   box-shadow:0 8px 24px rgba(0,0,0,.12);display:none}
 .search-select .dd.open{display:block}
-.search-select .dd-item{padding:12px 14px;font-size:14px;cursor:pointer;border-bottom:1px solid #F0F4F8}
+.search-select .dd-item{padding:14px;font-size:15px;cursor:pointer;border-bottom:1px solid #F0F4F8;
+  min-height:48px;display:flex;align-items:center}
 .search-select .dd-item:hover,.search-select .dd-item.highlight{background:var(--bg-soft);color:var(--primary)}
 .search-select .dd-item:last-child{border-bottom:none}
 .search-select .clear{position:absolute;right:12px;top:50%;transform:translateY(-50%);
-  background:none;border:none;font-size:18px;color:var(--text-muted);cursor:pointer;padding:4px}
+  background:none;border:none;font-size:20px;color:var(--text-muted);cursor:pointer;padding:8px;
+  min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center}
 
 /* ─── Calendar ────────────────── */
 .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .cal-header h3{font-size:15px;font-weight:600}
-.cal-nav{background:none;border:none;font-size:20px;color:var(--primary);cursor:pointer;padding:8px;border-radius:8px}
+.cal-nav{background:none;border:none;font-size:22px;color:var(--primary);cursor:pointer;
+  padding:8px 12px;border-radius:8px;min-width:44px;min-height:44px;
+  display:flex;align-items:center;justify-content:center}
 .cal-nav:active{background:var(--bg-soft)}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
 .cal-head{font-size:11px;font-weight:600;color:var(--text-muted);padding:6px 0}
@@ -157,6 +172,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:10
 </style>
 </head>
 <body>
+<div class="toast" id="toast"><div class="toast-inner" id="toastMsg"></div></div>
 <div class="wrap">
 
 <!-- ═══ HEADER ═══ -->
@@ -402,6 +418,16 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:10
 <button id="chatFab" onclick="toggleChat()" style="position:fixed;bottom:20px;right:20px;width:56px;height:56px;border-radius:50%;background:#0D9488;color:#fff;border:none;box-shadow:0 4px 16px rgba(13,148,136,.3);cursor:pointer;font-size:24px;z-index:100;display:flex;align-items:center;justify-content:center">💬</button>
 
 <script>
+// ─── Toast para validaciones (reemplaza alert) ─────
+let toastTimer;
+function showToast(msg, ms=3000){
+  const t=document.getElementById('toast'), m=document.getElementById('toastMsg');
+  m.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'), ms);
+}
+document.getElementById('toast').addEventListener('click',function(){this.classList.remove('show')});
+
 const API = window.location.origin;
 const params = new URLSearchParams(window.location.search);
 // Parse URL: /reservar/:doctorSlug/:orgSlug? or ?slug=xxx
@@ -831,12 +857,12 @@ async function submitBooking(){
   const firstName=document.getElementById('firstName').value.trim();
   const lastName=document.getElementById('lastName').value.trim();
   const phone=document.getElementById('phone').value.trim();
-  if(!firstName||!lastName||!phone){alert('Completá nombre, apellido y celular');return}
+  if(!firstName||!lastName||!phone){showToast('Completá nombre, apellido y celular');return}
 
   // Validar obra social si es obligatoria
   const insuranceVal=document.getElementById('insurance').value.trim();
   if(profile.requires_insurance_info && !insuranceVal){
-    alert('Seleccioná tu obra social o elegí "Particular (sin obra social)"');
+    showToast('Seleccioná tu obra social o elegí "Particular"');
     document.getElementById('insurance').focus();
     return;
   }
@@ -867,7 +893,7 @@ async function submitBooking(){
     if(!r.ok) throw new Error(data.message||'Error');
     showConfirmation(data);goStep(3);
   }catch(e){
-    alert(e.message||'No se pudo completar la reserva');
+    showToast(e.message||'No se pudo completar la reserva', 4000);
     btn.disabled=false;btn.textContent='Confirmar turno';
   }
 }
@@ -975,7 +1001,7 @@ function closeWaitlist(){document.getElementById('waitlistModal').classList.add(
 async function submitWaitlist(){
   const name=document.getElementById('wlName').value.trim();
   const phone=document.getElementById('wlPhone').value.trim();
-  if(!name||!phone){alert('Completá nombre y celular');return}
+  if(!name||!phone){showToast('Completá nombre y celular');return}
 
   const btn=document.getElementById('btnWaitlist');
   btn.disabled=true;btn.textContent='Enviando...';
@@ -1007,7 +1033,7 @@ async function submitWaitlist(){
         <p class="muted">Te vamos a avisar si se libera un turno el ${selectedDate}.</p>
       </div>`;
   }catch(e){
-    alert(e.message||'Error al registrar');
+    showToast(e.message||'Error al registrar', 4000);
     btn.disabled=false;btn.textContent='Avisame';
   }
 }
@@ -1032,7 +1058,7 @@ function openMercadoPago(alias){
 async function registerAccount(){
   const email=document.getElementById('regEmail').value.trim();
   const pw=document.getElementById('regPassword').value;
-  if(!email||pw.length<6){alert('Ingresá email y contraseña (mín. 6 caracteres)');return}
+  if(!email||pw.length<6){showToast('Ingresá email y contraseña (mín. 6 caracteres)');return}
 
   const btn=document.querySelector('#registerForm .btn-primary');btn.disabled=true;btn.textContent='Creando...';
 
@@ -1061,7 +1087,7 @@ async function registerAccount(){
     document.getElementById('registerForm').classList.add('hidden');
     document.getElementById('registerSuccess').classList.remove('hidden');
   }catch(e){
-    alert(e.message||'No se pudo crear la cuenta');
+    showToast(e.message||'No se pudo crear la cuenta', 4000);
     btn.disabled=false;btn.textContent='Crear cuenta';
   }
 }
