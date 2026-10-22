@@ -232,7 +232,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:10
     </div>
 
     <div class="field">
-      <label>Obra social / Prepaga</label>
+      <label>Obra social / Prepaga <span id="insRequired" class="hidden" style="color:var(--danger);font-weight:700">*</span></label>
       <div class="search-select" id="insuranceSearch">
         <input id="insurance" placeholder="Escribí para buscar en la lista..." autocomplete="off" style="padding-right:42px">
         <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:#61809E;font-size:16px;display:flex;align-items:center;gap:2px"
@@ -240,7 +240,20 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);min-height:10
         <button class="clear hidden" id="insClear" onclick="clearInsurance()">×</button>
         <div class="dd" id="insuranceDd"></div>
       </div>
-      <div class="hint">Elegí de la lista o escribí para buscar</div>
+      <div class="hint" id="insHint">Elegí de la lista o escribí para buscar</div>
+    </div>
+
+    <!-- Aviso para pacientes sin obra social -->
+    <div id="particularNotice" class="hidden" style="background:linear-gradient(135deg,#FFF8E1,#FFF3CD);border:1.5px solid #FFB333;border-radius:12px;padding:14px 16px;margin-bottom:14px">
+      <div style="font-size:14px;font-weight:600;color:#7A5D00;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+        <span style="font-size:18px">💰</span> Información de pago
+      </div>
+      <p style="font-size:13px;color:#7A5D00;line-height:1.5;margin:0">
+        Al no contar con obra social, deberá abonar la consulta
+        <strong>por transferencia bancaria o en efectivo</strong>
+        al momento de la consulta.
+        <span id="feeAmount"></span>
+      </p>
     </div>
 
     <div class="field">
@@ -646,6 +659,12 @@ function renderProfile(){
     if(profile.payment_methods==='transfer') sel.innerHTML='<option value="transfer">Transferencia bancaria</option>';
     else if(profile.payment_methods==='cash') sel.innerHTML='<option value="cash">Efectivo en el consultorio</option>';
   }
+  // Marcar obra social como obligatoria si el médico lo requiere
+  if(profile.requires_insurance_info){
+    document.getElementById('insRequired').classList.remove('hidden');
+    document.getElementById('insHint').textContent='Obligatorio — Elegí tu obra social o "Particular (sin obra social)"';
+    document.getElementById('insurance').setAttribute('required','true');
+  }
   document.title = `Turno con Dr/a. ${profile.doctor_name} — MediClick`;
 }
 
@@ -698,11 +717,26 @@ function selectInsurance(val){
   document.getElementById('insuranceDd').classList.remove('open');
   document.getElementById('insClear').classList.remove('hidden');
   document.getElementById('insListIcon').style.display='none';
+  // Mostrar aviso si eligió "Particular (sin obra social)"
+  const isParticular = val.toLowerCase().includes('particular') || val.toLowerCase().includes('sin obra');
+  const notice = document.getElementById('particularNotice');
+  if(isParticular && !profile.requires_deposit){
+    notice.classList.remove('hidden');
+    const feeEl = document.getElementById('feeAmount');
+    if(profile.consultation_fee){
+      feeEl.innerHTML = `<br>Valor de la consulta: <strong>$${Number(profile.consultation_fee).toLocaleString('es-AR')}</strong>`;
+    } else {
+      feeEl.textContent = '';
+    }
+  } else {
+    notice.classList.add('hidden');
+  }
 }
 function clearInsurance(){
   document.getElementById('insurance').value='';
   document.getElementById('insClear').classList.add('hidden');
   document.getElementById('insListIcon').style.display='flex';
+  document.getElementById('particularNotice').classList.add('hidden');
 }
 
 // ─── Calendar ────────────────────────────────────────────
@@ -799,6 +833,14 @@ async function submitBooking(){
   const phone=document.getElementById('phone').value.trim();
   if(!firstName||!lastName||!phone){alert('Completá nombre, apellido y celular');return}
 
+  // Validar obra social si es obligatoria
+  const insuranceVal=document.getElementById('insurance').value.trim();
+  if(profile.requires_insurance_info && !insuranceVal){
+    alert('Seleccioná tu obra social o elegí "Particular (sin obra social)"');
+    document.getElementById('insurance').focus();
+    return;
+  }
+
   const btn=document.getElementById('btnSubmit');
   btn.disabled=true;btn.innerHTML='<div class="spinner" style="width:20px;height:20px;margin:0;border-width:2px"></div> Enviando...';
 
@@ -862,6 +904,19 @@ function showConfirmation(data){
     <div class="summary-row"><span>Hora</span><span>${selectedSlot.start.substring(0,5)} hs</span></div>
     <div class="summary-row"><span>Lugar</span><span>${profile.org_name||'—'}</span></div>
     ${profile.address?`<div class="summary-row"><span>Dirección</span><span>${profile.address}</span></div>`:''}`;
+
+  // Recordatorio de pago para pacientes particulares
+  const insVal=document.getElementById('insurance')?.value||'';
+  const isParticular=insVal.toLowerCase().includes('particular')||insVal.toLowerCase().includes('sin obra');
+  if(isParticular && !profile.requires_deposit){
+    const fee=profile.consultation_fee?`<br>Valor: <strong>$${Number(profile.consultation_fee).toLocaleString('es-AR')}</strong>`:'';
+    document.getElementById('summaryContent').innerHTML+=`
+      <div style="background:linear-gradient(135deg,#FFF8E1,#FFF3CD);border:1.5px solid #FFB333;border-radius:12px;padding:14px 16px;margin-top:12px">
+        <div style="font-size:13px;font-weight:600;color:#7A5D00;display:flex;align-items:center;gap:6px">
+          💰 Recordá: aboná la consulta por transferencia o efectivo al momento de la visita.${fee}
+        </div>
+      </div>`;
+  }
 
   // WhatsApp share button
   const waMsg=`¡Turno confirmado! 📅\n\nDr/a. ${profile.doctor_name}\n📅 ${fmt}\n⏰ ${selectedSlot.start.substring(0,5)} hs\n🏥 ${profile.org_name||''}\n${profile.address||''}\n\n— MediClick`;
