@@ -695,35 +695,45 @@ function renderProfile(){
 }
 
 // ─── Insurance search ────────────────────────────────────
-function initInsuranceSearch(){
+let insuranceInitialized = false;
+
+function renderDdItems(items){
+  return items.map(o=>{
+    const escaped = o.replace(/'/g, "\\'");
+    return `<div class="dd-item" data-val="${o}" onclick="selectInsurance('${escaped}')">${o}</div>`;
+  }).join('');
+}
+
+function showInsuranceDropdown(){
   const input = document.getElementById('insurance');
   const dd = document.getElementById('insuranceDd');
-  const clear = document.getElementById('insClear');
+  const q = input.value.toLowerCase().trim();
+  if(q.length < 1){
+    dd.innerHTML = renderDdItems(OBRAS_SOCIALES.slice(0,8));
+  } else {
+    const matches = OBRAS_SOCIALES.filter(o=>o.toLowerCase().includes(q)).slice(0,8);
+    if(!matches.length){dd.classList.remove('open');return}
+    dd.innerHTML = renderDdItems(matches);
+  }
+  dd.classList.add('open');
+}
+
+function initInsuranceSearch(){
+  if(insuranceInitialized) return; // prevent duplicate listeners
+  insuranceInitialized = true;
+
+  const input = document.getElementById('insurance');
+  const dd = document.getElementById('insuranceDd');
   let highlighted = -1;
 
   input.addEventListener('focus', ()=>{
-    if(!input.value.trim()){
-      const initial = OBRAS_SOCIALES.slice(0,8);
-      dd.innerHTML = initial.map((o,i)=>`<div class="dd-item" data-val="${o}" onclick="selectInsurance('${o}')">${o}</div>`).join('');
-      dd.classList.add('open');
-      highlighted = -1;
-    }
+    highlighted = -1;
+    showInsuranceDropdown();
   });
 
   input.addEventListener('input', ()=>{
-    const q = input.value.toLowerCase().trim();
-    if(q.length < 1){
-      const initial = OBRAS_SOCIALES.slice(0,8);
-      dd.innerHTML = initial.map((o,i)=>`<div class="dd-item" data-val="${o}" onclick="selectInsurance('${o}')">${o}</div>`).join('');
-      dd.classList.add('open');
-      highlighted = -1;
-      return;
-    }
-    const matches = OBRAS_SOCIALES.filter(o=>o.toLowerCase().includes(q)).slice(0,8);
-    if(!matches.length){dd.classList.remove('open');return}
-    dd.innerHTML = matches.map((o,i)=>`<div class="dd-item" data-val="${o}" onclick="selectInsurance('${o}')">${o}</div>`).join('');
-    dd.classList.add('open');
     highlighted = -1;
+    showInsuranceDropdown();
   });
 
   input.addEventListener('keydown', e=>{
@@ -1106,6 +1116,15 @@ async function toggleReminder(enabled, appointmentId){
 }
 
 init();
+
+// Handle bfcache restoration (back/forward navigation on mobile Chrome)
+window.addEventListener('pageshow', (e) => {
+  if(e.persisted){
+    // Page restored from bfcache — re-initialize insurance search
+    insuranceInitialized = false;
+    initInsuranceSearch();
+  }
+});
 </script>
 </body>
 </html>
