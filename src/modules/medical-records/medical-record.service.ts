@@ -4,8 +4,16 @@ import { DatabaseService } from '../../database/database.service';
 export interface CreateMedicalRecordDto {
   patientId: string;
   appointmentId?: string;
+  recordType?: string;
   chiefComplaint: string;
   presentIllness?: string;
+  personalHistory?: string;
+  familyHistory?: string;
+  currentMedications?: string;
+  allergies?: string;
+  habits?: string;
+  systemsReview?: string;
+  otherSymptoms?: string;
   vitalSigns?: {
     bloodPressure?: string;
     heartRate?: number;
@@ -14,15 +22,22 @@ export interface CreateMedicalRecordDto {
     spO2?: number;
     weight?: number;
     height?: number;
+    waistCircumference?: number;
+    shoulderWidth?: number;
   };
   physicalExam?: string;
+  findings?: string;
   diagnosis: string;
   diagnosisCode?: string;
   secondaryDiagnoses?: { diagnosis: string; code?: string }[];
   treatmentPlan?: string;
+  instructions?: string;
   labOrders?: string[];
   imagingOrders?: string[];
   referrals?: string[];
+  followUp?: string;
+  prevention?: string;
+  occupation?: string;
   privateNotes?: string;
 }
 
@@ -61,19 +76,25 @@ export class MedicalRecordService {
     const record = await this.db.queryOne(
       `INSERT INTO medical_records (
         patient_id, doctor_id, organization_id, appointment_id,
-        chief_complaint, present_illness, vital_signs, physical_exam,
+        record_type, chief_complaint, present_illness,
+        personal_history, family_history, current_medications,
+        allergies, habits, systems_review, other_symptoms,
+        vital_signs, physical_exam, findings,
         diagnosis, diagnosis_code, secondary_diagnoses,
-        treatment_plan, lab_orders, imaging_orders, referrals, private_notes
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+        treatment_plan, instructions, lab_orders, imaging_orders,
+        referrals, follow_up, prevention, occupation, private_notes
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29)
       RETURNING *`,
       [
         dto.patientId, doctorId, orgId, dto.appointmentId,
-        dto.chiefComplaint, dto.presentIllness,
-        JSON.stringify(dto.vitalSigns || {}), dto.physicalExam,
+        dto.recordType || 'consulta', dto.chiefComplaint, dto.presentIllness,
+        dto.personalHistory, dto.familyHistory, dto.currentMedications,
+        dto.allergies, dto.habits, dto.systemsReview, dto.otherSymptoms,
+        JSON.stringify(dto.vitalSigns || {}), dto.physicalExam, dto.findings,
         dto.diagnosis, dto.diagnosisCode,
         JSON.stringify(dto.secondaryDiagnoses || []),
-        dto.treatmentPlan, dto.labOrders || [], dto.imagingOrders || [],
-        dto.referrals || [], dto.privateNotes,
+        dto.treatmentPlan, dto.instructions, dto.labOrders || [], dto.imagingOrders || [],
+        dto.referrals || [], dto.followUp, dto.prevention, dto.occupation, dto.privateNotes,
       ],
     );
 
@@ -96,11 +117,18 @@ export class MedicalRecordService {
     let idx = 1;
 
     const mapping: Record<string, string> = {
-      chiefComplaint: 'chief_complaint', presentIllness: 'present_illness',
-      physicalExam: 'physical_exam', diagnosis: 'diagnosis',
-      diagnosisCode: 'diagnosis_code', treatmentPlan: 'treatment_plan',
+      recordType: 'record_type', chiefComplaint: 'chief_complaint',
+      presentIllness: 'present_illness', personalHistory: 'personal_history',
+      familyHistory: 'family_history', currentMedications: 'current_medications',
+      allergies: 'allergies', habits: 'habits',
+      systemsReview: 'systems_review', otherSymptoms: 'other_symptoms',
+      physicalExam: 'physical_exam', findings: 'findings',
+      diagnosis: 'diagnosis', diagnosisCode: 'diagnosis_code',
+      treatmentPlan: 'treatment_plan', instructions: 'instructions',
       labOrders: 'lab_orders', imagingOrders: 'imaging_orders',
-      referrals: 'referrals', privateNotes: 'private_notes',
+      referrals: 'referrals', followUp: 'follow_up',
+      prevention: 'prevention', occupation: 'occupation',
+      privateNotes: 'private_notes',
     };
 
     for (const [key, col] of Object.entries(mapping)) {
