@@ -51,7 +51,7 @@ export class ProfileService {
     sets.push(`updated_at = NOW()`);
     vals.push(doctorId);
 
-    await this.db.execute(
+    await this.db.query(
       `UPDATE doctors SET ${sets.join(', ')} WHERE id = $${idx}`,
       vals,
     );
@@ -87,7 +87,7 @@ export class ProfileService {
     // Store the full data URI so we know the mime type when rendering
     const dataUri = `data:${mimeType};base64,${rawBase64}`;
 
-    await this.db.execute(
+    await this.db.query(
       `UPDATE doctors SET signature_image = $1, updated_at = NOW() WHERE id = $2`,
       [dataUri, doctorId],
     );
@@ -99,7 +99,7 @@ export class ProfileService {
 
   /** Delete signature image */
   async deleteSignature(doctorId: string) {
-    await this.db.execute(
+    await this.db.query(
       `UPDATE doctors SET signature_image = NULL, updated_at = NOW() WHERE id = $1`,
       [doctorId],
     );
