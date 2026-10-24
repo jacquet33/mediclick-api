@@ -21,6 +21,7 @@ interface PrescriptionData {
   doctor_phone: string;
   doctor_medical_license: string;
   doctor_specialty: string;
+  doctor_signature_image: string | null;
   // Paciente
   patient_first_name: string;
   patient_last_name: string;
@@ -59,11 +60,12 @@ export class PrescriptionPdfService {
   async generatePdf(orgId: string, prescriptionId: string): Promise<Buffer> {
     // 1) Cargar datos completos (sin filtrar por org, el ID es único)
     const rx = await this.db.queryOne(
-      `SELECT 
+      `SELECT
         rx.*,
         d.first_name AS doctor_first_name, d.last_name AS doctor_last_name,
         d.email AS doctor_email, d.phone AS doctor_phone,
         d.medical_license AS doctor_medical_license, d.specialty AS doctor_specialty,
+        d.signature_image AS doctor_signature_image,
         p.first_name AS patient_first_name, p.last_name AS patient_last_name,
         p.dni AS patient_dni, p.date_of_birth AS patient_date_of_birth,
         p.gender AS patient_gender, p.blood_type AS patient_blood_type,
@@ -286,8 +288,30 @@ export class PrescriptionPdfService {
       // Empujar firma hacia abajo (mínimo a 2/3 de la página)
       const signatureY = Math.max(y + 60, doc.page.height - 250);
 
-      // Línea punteada de firma
+      // Render signature image if available
       const sigCenterX = LEFT + W / 2;
+      if (rx.doctor_signature_image) {
+        try {
+          // Parse data URI → Buffer
+          const match = rx.doctor_signature_image.match(/^data:image\/\w+;base64,(.+)$/);
+          if (match) {
+            const imgBuffer = Buffer.from(match[1], 'base64');
+            const sigImgW = 160;
+            const sigImgH = 80;
+            doc.image(imgBuffer, sigCenterX - sigImgW / 2, signatureY - sigImgH - 5, {
+              width: sigImgW,
+              height: sigImgH,
+              fit: [sigImgW, sigImgH],
+              align: 'center',
+              valign: 'bottom',
+            });
+          }
+        } catch (err) {
+          this.logger.warn(`Could not render signature image: ${err.message}`);
+        }
+      }
+
+      // Línea punteada de firma
       const sigLineW = 180;
       for (let sx = sigCenterX - sigLineW / 2; sx < sigCenterX + sigLineW / 2; sx += 5) {
         doc.moveTo(sx, signatureY).lineTo(sx + 2, signatureY).lineWidth(0.8).strokeColor('#999999').stroke();

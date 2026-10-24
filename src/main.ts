@@ -52,6 +52,8 @@ import { PushController } from './modules/push/push.controller';
 import { PushNotificationService } from './modules/push/push.service';
 import { SubscriptionController } from './modules/subscriptions/subscription.controller';
 import { SubscriptionService } from './modules/subscriptions/subscription.service';
+import { ProfileController } from './modules/profile/profile.controller';
+import { ProfileService } from './modules/profile/profile.service';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './common/guards/auth.guard';
@@ -121,6 +123,7 @@ class HealthController {
     PushController,
     SubscriptionController,
     PushController,
+    ProfileController,
   ],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },
@@ -150,6 +153,7 @@ class HealthController {
     WaitlistService,
     PushNotificationService,
     SubscriptionService,
+    ProfileService,
     { provide: APP_GUARD, useClass: ProGuard },
   ],
 })
