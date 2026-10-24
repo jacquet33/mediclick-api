@@ -627,11 +627,11 @@ function renderLocationPicker(data){
     <div style="display:flex;flex-direction:column;gap:10px">
       ${data.locations.map(loc => `
         <button onclick="selectLocation('${loc.public_slug}','${(loc.org_name||'').replace(/'/g,"\\'")}')"
-          class="btn" style="background:var(--surface);color:var(--text);border:1.5px solid #E0ECF5;
+          class="btn" style="background:var(--surface);color:var(--text);border:1.5px solid var(--arena);
           text-align:left;padding:16px;display:flex;flex-direction:column;gap:6px;
           border-radius:14px;transition:all .2s;cursor:pointer;min-height:auto"
-          onmouseover="this.style.borderColor='var(--primary)';this.style.background='var(--bg-soft)'"
-          onmouseout="this.style.borderColor='#E0ECF5';this.style.background='var(--surface)'">
+          onmouseover="this.style.borderColor='var(--lavanda)';this.style.background='var(--bg-soft)'"
+          onmouseout="this.style.borderColor='var(--arena)';this.style.background='var(--surface)'">
           <span style="font-weight:600;font-size:15px">${loc.org_name}</span>
           ${loc.address ? `<span style="font-size:12px;color:var(--text-soft)">📍 ${loc.address}${loc.city?', '+loc.city:''}</span>` : ''}
           ${loc.org_phone ? `<span style="font-size:12px;color:var(--text-soft)">📞 ${loc.org_phone}</span>` : ''}
