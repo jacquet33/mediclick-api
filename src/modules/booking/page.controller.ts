@@ -2,8 +2,10 @@ import { Controller, Get, Param, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { join } from 'path';
 import { Public } from '../../common/guards/auth.guard';
+import { PublicThrottle } from '../../common/decorators/throttle.decorator';
 
 @Public()
+@PublicThrottle()
 @Controller()
 export class BookingPageController {
   /** Página pública de reservas: /reservar/:slug */

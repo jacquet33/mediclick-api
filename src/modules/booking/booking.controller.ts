@@ -2,12 +2,14 @@ import { Controller, Get, Post, Put, Patch, Body, Param, Query } from '@nestjs/c
 import { BookingService, BookingSettingsDto, CreateBookingDto } from './booking.service';
 import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/guards/auth.guard';
+import { PublicThrottle } from '../../common/decorators/throttle.decorator';
 
 // ═══════════════════════════════════════════════════════════
 // PÚBLICO — sin autenticación (para pacientes)
 // ═══════════════════════════════════════════════════════════
 
 @Public()
+@PublicThrottle()
 @Controller('api/v1/public/booking')
 export class PublicBookingController {
   constructor(private bookingService: BookingService) {}

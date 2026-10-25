@@ -1,11 +1,13 @@
 import { Controller, Get, Post, Delete, Body, Param, Query } from '@nestjs/common';
 import { ChatbotService } from './chatbot.service';
 import { Public } from '../../common/guards/auth.guard';
+import { PublicThrottle } from '../../common/decorators/throttle.decorator';
 import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
 
 // ═══ Público (widget en la web) ═══
 
 @Public()
+@PublicThrottle()
 @Controller('api/v1/public/chatbot')
 export class PublicChatbotController {
   constructor(private service: ChatbotService) {}

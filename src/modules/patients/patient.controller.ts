@@ -1,13 +1,16 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Req } from '@nestjs/common';
+import { Request } from 'express';
 import { PatientService, CreatePatientDto } from './patient.service';
 import { PatientHistoryService } from './patient-history.service';
-import { OrgId } from '../../common/decorators/current-user.decorator';
+import { AuditService } from '../audit/audit.service';
+import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
 
 @Controller('api/v1/patients')
 export class PatientController {
   constructor(
     private patientService: PatientService,
     private historyService: PatientHistoryService,
+    private auditService: AuditService,
   ) {}
 
   @Get()
@@ -32,13 +35,35 @@ export class PatientController {
   }
 
   @Get(':id/history')
-  getHistory(@OrgId() orgId: string, @Param('id') id: string) {
-    return this.historyService.getFullHistory(orgId, id);
+  async getHistory(
+    @OrgId() orgId: string,
+    @DoctorId() doctorId: string,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
+    const history = await this.historyService.getFullHistory(orgId, id);
+    this.auditService.logAccess(
+      doctorId, 'doctor', 'VIEW_PATIENT_HISTORY',
+      'patients', id,
+      req.ip, req.headers['user-agent'] as string,
+    );
+    return history;
   }
 
   @Get(':id')
-  findById(@OrgId() orgId: string, @Param('id') id: string) {
-    return this.patientService.findById(orgId, id);
+  async findById(
+    @OrgId() orgId: string,
+    @DoctorId() doctorId: string,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
+    const patient = await this.patientService.findById(orgId, id);
+    this.auditService.logAccess(
+      doctorId, 'doctor', 'VIEW_PATIENT',
+      'patients', id,
+      req.ip, req.headers['user-agent'] as string,
+    );
+    return patient;
   }
 
   @Get(':id/timeline')

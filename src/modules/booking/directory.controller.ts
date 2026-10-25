@@ -1,8 +1,10 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { Public } from '../../common/guards/auth.guard';
+import { PublicThrottle } from '../../common/decorators/throttle.decorator';
 import { DatabaseService } from '../../database/database.service';
 
 @Public()
+@PublicThrottle()
 @Controller('api/v1/public/directory')
 export class DirectoryController {
   constructor(private db: DatabaseService) {}

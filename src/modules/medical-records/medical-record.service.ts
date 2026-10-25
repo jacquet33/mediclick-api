@@ -52,7 +52,7 @@ export class MedicalRecordService {
       `SELECT mr.*, d.first_name || ' ' || d.last_name AS doctor_name
        FROM medical_records mr
        JOIN doctors d ON d.id = mr.doctor_id
-       WHERE mr.patient_id = $1 AND mr.organization_id = $2
+       WHERE mr.patient_id = $1 AND mr.organization_id = $2 AND mr.deleted_at IS NULL
        ORDER BY mr.date DESC`,
       [patientId, orgId],
     );
@@ -65,7 +65,7 @@ export class MedicalRecordService {
        FROM medical_records mr
        JOIN doctors d ON d.id = mr.doctor_id
        JOIN patients p ON p.id = mr.patient_id
-       WHERE mr.id = $1 AND mr.organization_id = $2`,
+       WHERE mr.id = $1 AND mr.organization_id = $2 AND mr.deleted_at IS NULL`,
       [id, orgId],
     );
     if (!record) throw new NotFoundException('Registro no encontrado');
@@ -73,6 +73,15 @@ export class MedicalRecordService {
   }
 
   async create(orgId: string, doctorId: string, dto: CreateMedicalRecordDto) {
+    // Fetch doctor's professional data for firma electrónica (Ley 26.529)
+    const doctor = await this.db.queryOne(
+      `SELECT first_name, last_name, medical_license, medical_license_province, specialty
+       FROM doctors WHERE id = $1`,
+      [doctorId],
+    );
+
+    const doctorFullName = doctor ? `${doctor.first_name} ${doctor.last_name}` : null;
+
     const record = await this.db.queryOne(
       `INSERT INTO medical_records (
         patient_id, doctor_id, organization_id, appointment_id,
@@ -82,8 +91,9 @@ export class MedicalRecordService {
         vital_signs, physical_exam, findings,
         diagnosis, diagnosis_code, secondary_diagnoses,
         treatment_plan, instructions, lab_orders, imaging_orders,
-        referrals, follow_up, prevention, occupation, private_notes
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29)
+        referrals, follow_up, prevention, occupation, private_notes,
+        doctor_license, doctor_license_province, doctor_specialty, doctor_full_name
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33)
       RETURNING *`,
       [
         dto.patientId, doctorId, orgId, dto.appointmentId,
@@ -95,6 +105,10 @@ export class MedicalRecordService {
         JSON.stringify(dto.secondaryDiagnoses || []),
         dto.treatmentPlan, dto.instructions, dto.labOrders || [], dto.imagingOrders || [],
         dto.referrals || [], dto.followUp, dto.prevention, dto.occupation, dto.privateNotes,
+        doctor?.medical_license || null,
+        doctor?.medical_license_province || null,
+        doctor?.specialty || null,
+        doctorFullName,
       ],
     );
 
@@ -157,6 +171,18 @@ export class MedicalRecordService {
     return this.db.queryOne(
       `UPDATE medical_records SET ${fields.join(', ')} WHERE id = $${idx} AND organization_id = $${idx + 1} RETURNING *`,
       values,
+    );
+  }
+
+  /**
+   * Soft-delete: marca el registro como eliminado sin borrarlo físicamente.
+   * Ley 26.529 — inalterabilidad: los registros clínicos nunca se borran.
+   */
+  async softDelete(orgId: string, id: string, doctorId: string) {
+    await this.findById(orgId, id);
+    return this.db.queryOne(
+      `UPDATE medical_records SET deleted_at = NOW() WHERE id = $1 AND organization_id = $2 RETURNING *`,
+      [id, orgId],
     );
   }
 }

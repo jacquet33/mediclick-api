@@ -54,14 +54,24 @@ import { SubscriptionController } from './modules/subscriptions/subscription.con
 import { SubscriptionService } from './modules/subscriptions/subscription.service';
 import { ProfileController } from './modules/profile/profile.controller';
 import { ProfileService } from './modules/profile/profile.service';
+import { AuditController } from './modules/audit/audit.controller';
+import { AuditService } from './modules/audit/audit.service';
+import { ConsentController } from './modules/consent/consent.controller';
+import { ConsentService } from './modules/consent/consent.service';
 import { JwtModule } from '@nestjs/jwt';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './common/guards/auth.guard';
 import { ProGuard } from './common/guards/pro.guard';
+import { RedisService } from './common/redis.service';
+import { ThrottlerRedisStorage } from './common/throttler-redis.storage';
+import helmet from 'helmet';
 
 import { Public } from './common/guards/auth.guard';
+import { SkipThrottle } from './common/decorators/throttle.decorator';
 
 @Public()
+@SkipThrottle()
 @Controller('api/v1')
 class HealthController {
   constructor(private db: DatabaseService, private config: ConfigService) {}
@@ -91,6 +101,7 @@ class HealthController {
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     JwtModule.register({ global: true }),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
   ],
   controllers: [
     HealthController,
@@ -124,9 +135,15 @@ class HealthController {
     SubscriptionController,
     PushController,
     ProfileController,
+    AuditController,
+    ConsentController,
   ],
   providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
+    RedisService,
+    ThrottlerRedisStorage,
+    { provide: 'ThrottlerStorage', useExisting: ThrottlerRedisStorage },
     DatabaseService,
     AuthService,
     OAuthService,
@@ -154,6 +171,8 @@ class HealthController {
     PushNotificationService,
     SubscriptionService,
     ProfileService,
+    AuditService,
+    ConsentService,
     { provide: APP_GUARD, useClass: ProGuard },
   ],
 })
@@ -174,6 +193,7 @@ function snakeToCamel(obj: any): any {
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: true });
+  app.use(helmet());
   app.useStaticAssets(join(__dirname, '..', 'public'));
   
   // Auto-convert snake_case → camelCase on all incoming JSON bodies
