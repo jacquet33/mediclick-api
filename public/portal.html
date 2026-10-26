@@ -747,7 +747,7 @@ async function loadPacientes(){
   const main=document.getElementById('mainContent');
   try{
     const _pts=await apiFetch('/api/v1/patients');
-    const pts=_pts.data||_pts;
+    const pts=_pts.data||_pts;if(!Array.isArray(pts)){main.innerHTML='<div class="card"><p class="error">Error cargando pacientes</p></div>';return;}
     main.innerHTML=`
       <div class="topbar"><h1>Pacientes</h1><div class="badge">${pts.length} registrados</div></div>
       <div class="card"><div class="table-wrap"><table>

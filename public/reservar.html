@@ -572,12 +572,13 @@ async function init(){
       const dr = await fetch(`${API}/api/v1/public/booking/doctor/${doctorSlug}`);
       if(!dr.ok) throw new Error();
       const data = await dr.json();
-      if(data.locations.length === 1){
+      if(data.locations && data.locations.length === 1){
         slug = data.locations[0].public_slug;
         return loadProfile();
+      } else if(data.locations && data.locations.length > 1){
+        renderLocationPicker(data);
+        return;
       }
-      renderLocationPicker(data);
-      return;
     } catch(e){}
   }
 
@@ -1116,7 +1117,12 @@ async function toggleReminder(enabled, appointmentId){
   }
 }
 
-init();
+init().catch(()=>showError());
+// Safety: si después de 15s sigue mostrando "Cargando...", mostrar error
+setTimeout(()=>{
+  const dn=document.getElementById('docName');
+  if(dn && dn.textContent==='Cargando...') showError();
+},15000);
 
 // Handle bfcache restoration (back/forward navigation on mobile Chrome)
 window.addEventListener('pageshow', (e) => {
