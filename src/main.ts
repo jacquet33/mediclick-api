@@ -226,7 +226,7 @@ async function bootstrap() {
         ? (origin, callback) => {
             // Allow requests with no origin (mobile apps, server-to-server)
             if (!origin) return callback(null, true);
-            if (allowedOrigins.some(o => origin === o || origin.endsWith(o))) {
+            if (allowedOrigins.includes(origin)) {
               return callback(null, true);
             }
             callback(new Error('CORS not allowed'));
