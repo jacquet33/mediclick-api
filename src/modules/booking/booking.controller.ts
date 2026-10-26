@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Put, Patch, Body, Param, Query } from '@nestjs/common';
 import { BookingService } from './booking.service';
 import { CreateBookingDto, BookingSettingsDto } from '../../common/dto/booking.dto';
+import { PublicRegisterPatientDto } from '../../common/dto/public-patient.dto';
 import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/guards/auth.guard';
 import { PublicThrottle } from '../../common/decorators/throttle.decorator';
@@ -62,7 +63,7 @@ export class PublicBookingController {
 
   /** POST /public/booking/:slug/register-patient — auto-registro en cartilla */
   @Post(':slug/register-patient')
-  registerPatient(@Param('slug') slug: string, @Body() dto: any) {
+  registerPatient(@Param('slug') slug: string, @Body() dto: PublicRegisterPatientDto) {
     return this.bookingService.registerPatientPublic(slug, dto);
   }
 }
