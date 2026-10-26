@@ -262,6 +262,9 @@ async function bootstrap() {
     }
     next();
   });
+  // Graceful shutdown — let in-flight requests finish before exiting
+  app.enableShutdownHooks();
+
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');
   console.log(`MediClick API v1.0.0 running on port ${port}`);
