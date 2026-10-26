@@ -227,7 +227,7 @@ export class MercadoPagoService {
       const payment = (await response.json()) as Record<string, unknown>;
       const status = payment.status as string;
       const externalRef = payment.external_reference as string;
-      const preapprovalId = payment.metadata?.preapproval_id as string;
+      const preapprovalId = (payment.metadata as Record<string, unknown>)?.preapproval_id as string;
 
       if (!externalRef) {
         this.logger.warn('MP payment without external_reference');
