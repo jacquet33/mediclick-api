@@ -4,7 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { join } from 'path';
 import { SanitizeInterceptor } from './common/interceptors/sanitize.interceptor';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
-import { Module, Controller, Get } from '@nestjs/common';
+import { Module, Controller, Get, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseService } from './database/database.service';
 import { AuthController } from './modules/auth/auth.controller';
@@ -79,6 +79,8 @@ import { ProGuard } from './common/guards/pro.guard';
 import { RedisService } from './common/redis.service';
 import { ThrottlerRedisStorage } from './common/throttler-redis.storage';
 import helmet from 'helmet';
+import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
+import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware';
 
 import { Public } from './common/guards/auth.guard';
 import { SkipThrottle } from './common/decorators/throttle.decorator';
@@ -198,7 +200,13 @@ class HealthController {
     { provide: APP_GUARD, useClass: ProGuard },
   ],
 })
-class AppModule {}
+class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(RequestIdMiddleware, RequestLoggerMiddleware)
+      .forRoutes('*');
+  }
+}
 
 // Convert snake_case body keys to camelCase (iOS sends snake_case, NestJS DTOs expect camelCase)
 function snakeToCamel(obj: any): any {

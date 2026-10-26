@@ -60,10 +60,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       );
     }
 
+    const requestId = (request as any).requestId;
+
     response.status(status).json({
       statusCode: status,
       message,
       ...(errors && { errors }),
+      ...(requestId && { requestId }),
       timestamp: new Date().toISOString(),
       path: request.url,
     });

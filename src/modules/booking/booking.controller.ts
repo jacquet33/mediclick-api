@@ -121,9 +121,9 @@ export class BookingController {
     @OrgId() orgId: string,
     @DoctorId() doctorId: string,
     @Param('id') id: string,
-    @Body() body: { reason?: string },
+    @Body() dto: CancelBookingDto,
   ) {
-    return this.bookingService.rejectRequest(orgId, doctorId, id, body?.reason);
+    return this.bookingService.rejectRequest(orgId, doctorId, id, dto?.reason);
   }
 
   /** PATCH /booking/requests/:id/confirm-payment */
