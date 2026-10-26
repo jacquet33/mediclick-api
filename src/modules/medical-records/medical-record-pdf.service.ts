@@ -96,7 +96,8 @@ export class MedicalRecordPdfService {
     const appointments = await this.db.queryMany(
       `SELECT a.*, d.first_name || ' ' || d.last_name AS doctor_name
        FROM appointments a
-       JOIN doctors d ON d.id = a.doctor_id
+       JOIN organization_doctors od ON od.id = a.org_doctor_id
+       JOIN doctors d ON d.id = od.doctor_id
        WHERE a.patient_id = $1 AND a.organization_id = $2
        ORDER BY a.date ASC, a.start_time ASC`,
       [patientId, orgId],
