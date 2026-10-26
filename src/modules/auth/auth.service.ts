@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { DatabaseService } from '../../database/database.service';
+import { EmailService } from '../email/email.service';
 
 export interface TokenPayload {
   sub: string;
@@ -72,6 +73,7 @@ export class AuthService {
     private db: DatabaseService,
     private jwt: JwtService,
     private config: ConfigService,
+    private emailService: EmailService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════
@@ -278,6 +280,12 @@ export class AuthService {
       this.logger.log(`Onboarding completo para ${doctor.email}: org=${orgId}, slug=${slug}`);
       return doctor;
     });
+
+    // Enviar email de bienvenida (fire-and-forget, no bloquea el registro)
+    this.emailService.sendWelcome(
+      result.email,
+      `${dto.firstName} ${dto.lastName}`,
+    ).catch((err) => this.logger.warn('Welcome email failed', err));
 
     return this.buildDoctorSession({ ...result, user_id: result.id, password_hash: passwordHash, user_type: 'doctor' });
   }

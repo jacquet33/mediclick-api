@@ -64,6 +64,9 @@ import { ReminderCronController } from './modules/reminders/reminder-cron.contro
 import { ReminderCronService } from './modules/reminders/reminder-cron.service';
 import { DashboardController } from './modules/dashboard/dashboard.controller';
 import { DashboardService } from './modules/dashboard/dashboard.service';
+import { PaymentController } from './modules/payments/payment.controller';
+import { MercadoPagoService } from './modules/payments/mercadopago.service';
+import { EmailService } from './modules/email/email.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
@@ -139,13 +142,13 @@ class HealthController {
     PublicWaitlistController,
     PushController,
     SubscriptionController,
-    PushController,
     ProfileController,
     AuditController,
     ConsentController,
     OnboardingController,
     ReminderCronController,
     DashboardController,
+    PaymentController,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
@@ -185,6 +188,8 @@ class HealthController {
     OnboardingService,
     ReminderCronService,
     DashboardService,
+    MercadoPagoService,
+    EmailService,
     { provide: APP_GUARD, useClass: ProGuard },
   ],
 })

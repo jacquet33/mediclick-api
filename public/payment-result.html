@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resultado del Pago — MediClick</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #FFF7F3;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 460px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 4px 24px rgba(22,25,37,0.08);
+    }
+    .icon { font-size: 64px; margin-bottom: 16px; }
+    h1 { color: #161925; font-size: 24px; margin-bottom: 12px; }
+    p { color: #666; line-height: 1.6; margin-bottom: 24px; }
+    .btn {
+      display: inline-block;
+      padding: 14px 32px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 16px;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: #879DFF; color: white; }
+    .btn-secondary { background: #DCC7BB; color: #161925; margin-left: 8px; }
+    .logo { color: #879DFF; font-size: 20px; font-weight: 700; margin-bottom: 32px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">MediClick</div>
+    <div id="content">
+      <div class="icon">⏳</div>
+      <h1>Procesando...</h1>
+      <p>Verificando el estado de tu pago.</p>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get('status') || params.get('collection_status') || '';
+    const content = document.getElementById('content');
+
+    const states = {
+      approved: {
+        icon: '✅',
+        title: '¡Pago aprobado!',
+        text: 'Tu plan Pro ya está activo. Disfrutá de turnos ilimitados, recordatorios automáticos y todas las funcionalidades.',
+        btnText: 'Ir a mi panel',
+        btnClass: 'btn-primary',
+      },
+      pending: {
+        icon: '⏳',
+        title: 'Pago pendiente',
+        text: 'Tu pago está siendo procesado. Te notificaremos cuando se acredite. Esto puede tomar hasta 48hs con algunos medios de pago.',
+        btnText: 'Volver',
+        btnClass: 'btn-secondary',
+      },
+      failure: {
+        icon: '❌',
+        title: 'Pago rechazado',
+        text: 'No pudimos procesar tu pago. Verificá los datos de tu medio de pago e intentá nuevamente.',
+        btnText: 'Reintentar',
+        btnClass: 'btn-primary',
+      },
+    };
+
+    const state = states[status] || states.pending;
+
+    content.innerHTML = `
+      <div class="icon">${state.icon}</div>
+      <h1>${state.title}</h1>
+      <p>${state.text}</p>
+      <a href="https://mediclick.art3d-studio.com.ar" class="btn ${state.btnClass}">${state.btnText}</a>
+    `;
+  </script>
+</body>
+</html>
