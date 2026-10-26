@@ -7,6 +7,7 @@ COPY . .
 RUN npx nest build
 
 FROM node:20-alpine
+RUN apk add --no-cache dumb-init pixman cairo pango jpeg giflib
 RUN addgroup -g 1001 -S mediclick && adduser -S mediclick -u 1001
 WORKDIR /app
 COPY --from=builder /app/dist ./dist
@@ -17,4 +18,5 @@ USER mediclick
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/v1/health || exit 1
-CMD ["node", "dist/main"]
+# dumb-init ensures SIGTERM is forwarded to Node.js for graceful shutdown
+CMD ["dumb-init", "node", "dist/main"]
