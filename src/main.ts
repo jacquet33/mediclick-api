@@ -58,6 +58,8 @@ import { AuditController } from './modules/audit/audit.controller';
 import { AuditService } from './modules/audit/audit.service';
 import { ConsentController } from './modules/consent/consent.controller';
 import { ConsentService } from './modules/consent/consent.service';
+import { OnboardingController } from './modules/onboarding/onboarding.controller';
+import { OnboardingService } from './modules/onboarding/onboarding.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
@@ -137,6 +139,7 @@ class HealthController {
     ProfileController,
     AuditController,
     ConsentController,
+    OnboardingController,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
@@ -173,6 +176,7 @@ class HealthController {
     ProfileService,
     AuditService,
     ConsentService,
+    OnboardingService,
     { provide: APP_GUARD, useClass: ProGuard },
   ],
 })

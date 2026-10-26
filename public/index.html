@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0D9488">
+<meta name="theme-color" content="#161925">
 <meta name="description" content="MediClick — Encontrá tu médico y reservá turno online. Buscá por especialidad, obra social o ubicación.">
 <title>MediClick — Turnos médicos online</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--teal:#0D9488;--teal-light:#F0FDFA;--bg:#FAFAF9;--surface:#fff;--text:#1A1A1A;--soft:#666;--muted:#999;--border:#E8E5E1;--danger:#EF4444;--success:#10B981;--warning:#F59E0B;--radius:16px}
+:root{--teal:#879DFF;--teal-light:#F0F2FF;--bg:#FFF7F3;--surface:#fff;--text:#161925;--soft:#5A5D6D;--muted:#999;--border:#DCC7BB;--danger:#EF4444;--success:#10B981;--warning:#F59E0B;--radius:16px}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}
@@ -21,11 +21,11 @@ nav{background:var(--surface);border-bottom:0.5px solid var(--border);position:s
 .nav-links{display:flex;gap:8px}
 .nav-links a{font-size:13px;font-weight:500;padding:8px 16px;border-radius:8px;transition:.15s}
 .nav-links a:hover{background:var(--teal-light)}
-.nav-links .btn-login{background:var(--text);color:#fff;border-radius:8px}
+.nav-links .btn-login{background:var(--teal);color:#fff;border-radius:8px}
 .nav-links .btn-login:hover{opacity:.85}
 
 /* Hero */
-.hero{background:linear-gradient(135deg,#F0FDFA 0%,#FAFAF9 100%);padding:60px 20px 40px}
+.hero{background:linear-gradient(135deg,#F0F2FF 0%,#FFF7F3 100%);padding:60px 20px 40px}
 .hero-inner{max-width:800px;margin:0 auto;text-align:center}
 .hero h1{font-size:clamp(28px,5vw,44px);font-weight:700;color:var(--text);line-height:1.2;margin-bottom:12px}
 .hero h1 span{color:var(--teal)}
@@ -53,7 +53,7 @@ nav{background:var(--surface);border-bottom:0.5px solid var(--border);position:s
 
 /* Doctor card */
 .doc-card{background:var(--surface);border-radius:var(--radius);padding:20px;border:0.5px solid var(--border);transition:.2s;cursor:pointer}
-.doc-card:hover{border-color:var(--teal);box-shadow:0 4px 16px rgba(13,148,136,.08)}
+.doc-card:hover{border-color:var(--teal);box-shadow:0 4px 16px rgba(135,157,255,.15)}
 .doc-top{display:flex;gap:14px;margin-bottom:14px}
 .doc-avatar{width:52px;height:52px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;flex-shrink:0}
 .doc-name{font-size:16px;font-weight:600;margin-bottom:2px}
@@ -65,7 +65,7 @@ nav{background:var(--surface);border-bottom:0.5px solid var(--border);position:s
 .doc-tag{font-size:11px;font-weight:500;padding:3px 10px;border-radius:12px;background:var(--teal-light);color:var(--teal)}
 .doc-actions{display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border)}
 .doc-actions .btn{flex:1;padding:10px;font-size:13px;font-weight:600;border:none;border-radius:10px;cursor:pointer;font-family:inherit;transition:.15s}
-.doc-actions .btn-book{background:var(--text);color:#fff}
+.doc-actions .btn-book{background:var(--teal);color:#fff}
 .doc-actions .btn-book:hover{opacity:.85}
 .doc-actions .btn-profile{background:var(--bg);color:var(--soft);border:0.5px solid var(--border)}
 
@@ -76,7 +76,7 @@ nav{background:var(--surface);border-bottom:0.5px solid var(--border);position:s
 .feat h3{font-size:15px;font-weight:600;margin-bottom:6px}
 .feat p{font-size:13px;color:var(--soft);line-height:1.5;margin-bottom:10px}
 .feat-link{font-size:13px;font-weight:600;color:var(--teal)}
-.feat:hover{border-color:var(--teal);box-shadow:0 4px 16px rgba(13,148,136,.06)}
+.feat:hover{border-color:var(--teal);box-shadow:0 4px 16px rgba(135,157,255,.12)}
 
 /* Footer */
 footer{background:var(--surface);border-top:0.5px solid var(--border);padding:30px 20px;text-align:center;margin-top:40px}
@@ -94,6 +94,7 @@ footer p{font-size:12px;color:var(--muted)}
 <div class="nav-inner">
   <a href="/" class="logo">⚕️ <span>medi</span>click</a>
   <div class="nav-links">
+    <a href="/para-medicos.html">Para médicos</a>
     <a href="/portal.html">Ingresar</a>
     <a href="/portal.html" class="btn-login">Soy médico</a>
   </div>
@@ -155,6 +156,7 @@ footer p{font-size:12px;color:var(--muted)}
 
 <footer>
   <p>© 2026 MediClick — Turnos médicos online · Entre Ríos, Argentina</p>
+  <p style="margin-top:8px"><a href="/terminos.html" style="color:var(--teal);font-size:12px">Términos y Condiciones</a> · <a href="/privacidad.html" style="color:var(--teal);font-size:12px">Política de Privacidad</a></p>
 </footer>
 
 <script>

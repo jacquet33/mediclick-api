@@ -223,14 +223,63 @@ export class AuthService {
     if (exists) throw new ConflictException('Email o matrícula ya registrados');
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
-    const doctor = await this.db.queryOne<{ id: string; email: string; role: string }>(
-      `INSERT INTO doctors (email, password_hash, first_name, last_name, phone, medical_license, specialty)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, email, role`,
-      [dto.email.toLowerCase(), passwordHash, dto.firstName, dto.lastName,
-       dto.phone || null, dto.medicalLicense, dto.specialty || 'Clínica médica'],
-    );
 
-    return this.buildDoctorSession({ ...doctor, user_id: doctor.id, password_hash: passwordHash, user_type: 'doctor' });
+    // Transacción: crear doctor + org individual + agenda default + booking page
+    const result = await this.db.transaction(async (client) => {
+      const doc = await client.query(
+        `INSERT INTO doctors (email, password_hash, first_name, last_name, phone, medical_license, specialty)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, email, role`,
+        [dto.email.toLowerCase(), passwordHash, dto.firstName, dto.lastName,
+         dto.phone || null, dto.medicalLicense, dto.specialty || 'Clínica médica'],
+      );
+      const doctor = doc.rows[0];
+
+      // Auto-crear organización individual
+      const orgName = `Dr. ${dto.firstName} ${dto.lastName}`.trim();
+      const org = await client.query(
+        `INSERT INTO organizations (name, type) VALUES ($1, 'individual') RETURNING id`,
+        [orgName],
+      );
+      const orgId = org.rows[0].id;
+
+      // Vincular doctor como owner
+      const membership = await client.query(
+        `INSERT INTO organization_doctors (organization_id, doctor_id, role, is_owner) VALUES ($1, $2, 'owner', true) RETURNING id`,
+        [orgId, doctor.id],
+      );
+      const orgDoctorId = membership.rows[0].id;
+
+      // Agenda default: Lunes a Viernes 9:00-18:00, turnos de 30min
+      for (let day = 1; day <= 5; day++) {
+        await client.query(
+          `INSERT INTO doctor_schedules (org_doctor_id, day_of_week, start_time, end_time, slot_duration_minutes, max_patients_per_slot)
+           VALUES ($1, $2, '09:00'::time, '18:00'::time, 30, 1)`,
+          [orgDoctorId, day],
+        );
+      }
+
+      // Auto-crear booking page con slug del nombre
+      const baseSlug = `${dto.firstName}-${dto.lastName}`.toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      let slug = baseSlug;
+      let suffix = 1;
+      while (true) {
+        const taken = await client.query(
+          'SELECT 1 FROM booking_settings WHERE public_slug = $1', [slug]);
+        if (taken.rows.length === 0) break;
+        slug = `${baseSlug}-${++suffix}`;
+      }
+      await client.query(
+        `INSERT INTO booking_settings (org_doctor_id, public_slug, is_enabled) VALUES ($1, $2, true)`,
+        [orgDoctorId, slug],
+      );
+
+      this.logger.log(`Onboarding completo para ${doctor.email}: org=${orgId}, slug=${slug}`);
+      return doctor;
+    });
+
+    return this.buildDoctorSession({ ...result, user_id: result.id, password_hash: passwordHash, user_type: 'doctor' });
   }
 
   // ═══════════════════════════════════════════════════════════

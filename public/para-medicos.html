@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#161925">
+<meta name="description" content="MediClick para médicos — Gestioná tu consultorio, turnos, historia clínica y facturación desde una sola app.">
+<title>MediClick para Médicos — Tu consultorio digital</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--crema:#FFF7F3;--arena:#DCC7BB;--tinta:#161925;--lavanda:#879DFF;--lavanda-light:#F0F2FF;--soft:#5A5D6D;--muted:#999;--surface:#fff;--radius:16px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--crema);color:var(--tinta);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+
+/* Nav */
+nav{background:var(--surface);border-bottom:0.5px solid var(--arena);position:sticky;top:0;z-index:50}
+.nav-inner{max-width:1100px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:20px;font-weight:700;color:var(--tinta);display:flex;align-items:center;gap:8px}
+.logo span{color:var(--lavanda)}
+.nav-links{display:flex;gap:8px;align-items:center}
+.nav-links a{font-size:13px;font-weight:500;padding:8px 16px;border-radius:8px;transition:.15s}
+.nav-links a:hover{background:var(--lavanda-light)}
+.btn-cta{background:var(--lavanda)!important;color:#fff!important;border-radius:8px!important;font-weight:600!important}
+.btn-cta:hover{opacity:.9}
+
+/* Hero */
+.hero{background:linear-gradient(135deg,var(--lavanda-light) 0%,var(--crema) 60%);padding:80px 20px 60px}
+.hero-inner{max-width:900px;margin:0 auto;text-align:center}
+.hero h1{font-size:clamp(30px,5vw,48px);font-weight:800;line-height:1.15;margin-bottom:16px}
+.hero h1 em{font-style:normal;color:var(--lavanda)}
+.hero .sub{font-size:18px;color:var(--soft);margin-bottom:32px;max-width:600px;margin-inline:auto;line-height:1.6}
+.hero-buttons{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.hero-buttons a{padding:14px 32px;border-radius:12px;font-size:15px;font-weight:600;transition:.15s}
+.hero-buttons .primary{background:var(--lavanda);color:#fff}
+.hero-buttons .primary:hover{opacity:.9}
+.hero-buttons .secondary{background:var(--surface);color:var(--tinta);border:1px solid var(--arena)}
+.hero-buttons .secondary:hover{border-color:var(--lavanda);color:var(--lavanda)}
+
+.badge{display:inline-block;background:var(--surface);border:1px solid var(--arena);border-radius:20px;padding:6px 16px;font-size:12px;font-weight:600;color:var(--lavanda);margin-bottom:20px;letter-spacing:.3px}
+
+/* Stats */
+.stats{display:flex;justify-content:center;gap:40px;margin-top:40px;flex-wrap:wrap}
+.stat{text-align:center}
+.stat strong{display:block;font-size:28px;font-weight:800;color:var(--lavanda)}
+.stat span{font-size:12px;color:var(--muted);font-weight:500}
+
+/* Features */
+.features-section{max-width:1100px;margin:60px auto;padding:0 20px}
+.features-section h2{font-size:28px;font-weight:700;text-align:center;margin-bottom:8px}
+.features-section .sub{text-align:center;color:var(--soft);margin-bottom:40px;font-size:15px}
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.feat-card{background:var(--surface);border-radius:var(--radius);padding:28px;border:0.5px solid var(--arena);transition:.2s}
+.feat-card:hover{border-color:var(--lavanda);box-shadow:0 4px 20px rgba(135,157,255,.1);transform:translateY(-2px)}
+.feat-icon{width:48px;height:48px;border-radius:12px;background:var(--lavanda-light);display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:16px}
+.feat-card h3{font-size:16px;font-weight:700;margin-bottom:6px}
+.feat-card p{font-size:13px;color:var(--soft);line-height:1.6}
+
+/* How it works */
+.how-section{background:var(--tinta);color:#fff;padding:60px 20px;margin-top:60px}
+.how-inner{max-width:900px;margin:0 auto}
+.how-inner h2{font-size:28px;font-weight:700;text-align:center;margin-bottom:40px}
+.how-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px}
+.how-step{text-align:center}
+.step-num{width:40px;height:40px;border-radius:50%;background:var(--lavanda);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;margin:0 auto 12px}
+.how-step h3{font-size:15px;font-weight:600;margin-bottom:6px}
+.how-step p{font-size:13px;color:rgba(255,255,255,.7);line-height:1.5}
+
+/* Pricing */
+.pricing-section{max-width:900px;margin:60px auto;padding:0 20px}
+.pricing-section h2{font-size:28px;font-weight:700;text-align:center;margin-bottom:8px}
+.pricing-section .sub{text-align:center;color:var(--soft);margin-bottom:40px;font-size:15px}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.plan{background:var(--surface);border-radius:var(--radius);padding:32px;border:0.5px solid var(--arena);position:relative}
+.plan.popular{border:2px solid var(--lavanda)}
+.plan.popular::before{content:'Más elegido';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--lavanda);color:#fff;font-size:11px;font-weight:600;padding:4px 14px;border-radius:20px}
+.plan h3{font-size:18px;font-weight:700;margin-bottom:4px}
+.plan .price{font-size:32px;font-weight:800;color:var(--lavanda);margin-bottom:4px}
+.plan .price span{font-size:14px;font-weight:500;color:var(--muted)}
+.plan .desc{font-size:13px;color:var(--soft);margin-bottom:20px}
+.plan ul{list-style:none;margin-bottom:24px}
+.plan li{font-size:13px;padding:6px 0;color:var(--soft);display:flex;align-items:center;gap:8px}
+.plan li::before{content:'✓';color:var(--lavanda);font-weight:700}
+.plan .plan-btn{display:block;text-align:center;padding:12px;border-radius:10px;font-size:14px;font-weight:600;transition:.15s}
+.plan .plan-btn.primary{background:var(--lavanda);color:#fff}
+.plan .plan-btn.primary:hover{opacity:.9}
+.plan .plan-btn.outline{background:var(--crema);color:var(--tinta);border:1px solid var(--arena)}
+.plan .plan-btn.outline:hover{border-color:var(--lavanda)}
+
+/* CTA */
+.cta-section{background:linear-gradient(135deg,var(--lavanda) 0%,#6B7FE0 100%);padding:60px 20px;text-align:center;margin-top:60px}
+.cta-section h2{font-size:28px;font-weight:700;color:#fff;margin-bottom:12px}
+.cta-section p{font-size:16px;color:rgba(255,255,255,.85);margin-bottom:28px;max-width:500px;margin-inline:auto}
+.cta-section a{display:inline-block;background:#fff;color:var(--lavanda);padding:14px 36px;border-radius:12px;font-size:15px;font-weight:700;transition:.15s}
+.cta-section a:hover{opacity:.9}
+
+/* Footer */
+footer{background:var(--surface);border-top:0.5px solid var(--arena);padding:30px 20px;text-align:center}
+footer p{font-size:12px;color:var(--muted)}
+footer a{color:var(--lavanda)}
+
+@media(max-width:600px){
+  .hero{padding:50px 16px 40px}
+  .stats{gap:20px}
+  .features-grid,.how-steps,.pricing-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<nav>
+<div class="nav-inner">
+  <a href="/" class="logo">⚕️ <span>medi</span>click</a>
+  <div class="nav-links">
+    <a href="/">Pacientes</a>
+    <a href="/portal.html">Ingresar</a>
+    <a href="/registro.html" class="btn-cta">Empezar gratis</a>
+  </div>
+</div>
+</nav>
+
+<section class="hero">
+<div class="hero-inner">
+  <div class="badge">PARA MÉDICOS Y CONSULTORIOS</div>
+  <h1>Tu consultorio digital,<br>en <em>una sola app</em></h1>
+  <p class="sub">Turnos online, historia clínica, recetas digitales, facturación y cobros. Todo lo que necesitás para gestionar tu práctica médica desde el celular.</p>
+  <div class="hero-buttons">
+    <a href="/registro.html" class="primary">Crear cuenta gratis</a>
+    <a href="#features" class="secondary">Ver funcionalidades</a>
+  </div>
+  <div class="stats">
+    <div class="stat"><strong>24/7</strong><span>Turnos online</span></div>
+    <div class="stat"><strong>100%</strong><span>Digital</span></div>
+    <div class="stat"><strong>30s</strong><span>Para activarte</span></div>
+    <div class="stat"><strong>80+</strong><span>Obras sociales</span></div>
+  </div>
+</div>
+</section>
+
+<section class="features-section" id="features">
+  <h2>Todo para tu consultorio</h2>
+  <p class="sub">Las herramientas que necesitás, sin complicaciones</p>
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-icon">📅</div>
+      <h3>Agenda inteligente</h3>
+      <p>Configurá tus horarios, duraciones de turno y excepciones. Tus pacientes reservan online y vos recibís la notificación al instante.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📋</div>
+      <h3>Historia clínica digital</h3>
+      <p>Cumple con la Ley 26.529. Firma electrónica, trazabilidad completa, retención 10 años. Todo auditable y seguro.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">💊</div>
+      <h3>Recetas digitales</h3>
+      <p>Generá recetas en PDF con tu firma y matrícula. Envialas por WhatsApp o que el paciente las descargue desde la app.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🏥</div>
+      <h3>Obras sociales</h3>
+      <p>Conectá las obras sociales con las que trabajás. Los pacientes filtran por cobertura al reservar turno.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">💰</div>
+      <h3>Facturación y cobros</h3>
+      <p>Registrá prácticas, cobrá seña por Mercado Pago, generá reportes de facturación. Todo integrado.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🔔</div>
+      <h3>Notificaciones push</h3>
+      <p>Recordatorios automáticos a tus pacientes. Reducí las ausencias y mantené tu agenda organizada.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">👥</div>
+      <h3>Multi-consultorio</h3>
+      <p>Gestioná múltiples consultorios desde una sola cuenta. Invitá colegas, asigná roles y permisos.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📱</div>
+      <h3>App iOS nativa</h3>
+      <p>App dedicada para iPhone con sincronización offline. Consultá tu agenda incluso sin conexión a internet.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🔒</div>
+      <h3>Seguridad y compliance</h3>
+      <p>Ley 25.326 de datos personales. Encriptación, backups diarios, audit logs. Tus datos y los de tus pacientes, protegidos.</p>
+    </div>
+  </div>
+</section>
+
+<section class="how-section">
+<div class="how-inner">
+  <h2>Activá tu consultorio en 3 pasos</h2>
+  <div class="how-steps">
+    <div class="how-step">
+      <div class="step-num">1</div>
+      <h3>Creá tu cuenta</h3>
+      <p>Registrate con tu email y matrícula. Tu organización y agenda se crean automáticamente.</p>
+    </div>
+    <div class="how-step">
+      <div class="step-num">2</div>
+      <h3>Configurá tu agenda</h3>
+      <p>Elegí tus días y horarios de atención, duración de turnos y obras sociales que aceptás.</p>
+    </div>
+    <div class="how-step">
+      <div class="step-num">3</div>
+      <h3>Compartí tu link</h3>
+      <p>Recibí un link único de reservas. Compartilo por WhatsApp, redes sociales o tu web.</p>
+    </div>
+  </div>
+</div>
+</section>
+
+<section class="pricing-section" id="pricing">
+  <h2>Planes simples, sin sorpresas</h2>
+  <p class="sub">Empezá gratis y escalá cuando lo necesites</p>
+  <div class="pricing-grid">
+    <div class="plan">
+      <h3>Gratis</h3>
+      <div class="price">$0 <span>/mes</span></div>
+      <div class="desc">Para arrancar tu consultorio digital</div>
+      <ul>
+        <li>Agenda online con turnos</li>
+        <li>Hasta 50 pacientes</li>
+        <li>Historia clínica básica</li>
+        <li>Página de reservas pública</li>
+        <li>Notificaciones push</li>
+      </ul>
+      <a href="/registro.html" class="plan-btn outline">Empezar gratis</a>
+    </div>
+    <div class="plan popular">
+      <h3>Profesional</h3>
+      <div class="price">$9.990 <span>/mes</span></div>
+      <div class="desc">Para el médico que quiere todo</div>
+      <ul>
+        <li>Pacientes ilimitados</li>
+        <li>Recetas digitales con firma</li>
+        <li>HC completa (Ley 26.529)</li>
+        <li>Facturación y cobros</li>
+        <li>Multi-consultorio</li>
+        <li>Recordatorios por WhatsApp</li>
+        <li>Soporte prioritario</li>
+      </ul>
+      <a href="/registro.html" class="plan-btn primary">Probar 30 días gratis</a>
+    </div>
+    <div class="plan">
+      <h3>Centro Médico</h3>
+      <div class="price">Consultar</div>
+      <div class="desc">Para clínicas con múltiples profesionales</div>
+      <ul>
+        <li>Todo lo de Profesional</li>
+        <li>Médicos ilimitados</li>
+        <li>Roles y permisos avanzados</li>
+        <li>Reportes consolidados</li>
+        <li>Integraciones personalizadas</li>
+        <li>Onboarding dedicado</li>
+      </ul>
+      <a href="mailto:hola@mediclick.app" class="plan-btn outline">Contactar ventas</a>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <h2>¿Listo para digitalizar tu consultorio?</h2>
+  <p>Creá tu cuenta en 30 segundos. Sin tarjeta de crédito, sin compromiso.</p>
+  <a href="/registro.html">Empezar ahora →</a>
+</section>
+
+<footer>
+  <p>© 2026 MediClick — Gestión de consultorios médicos · Entre Ríos, Argentina</p>
+  <p style="margin-top:8px"><a href="/terminos.html">Términos y Condiciones</a> · <a href="/privacidad.html">Política de Privacidad</a> · <a href="mailto:hola@mediclick.app">hola@mediclick.app</a></p>
+</footer>
+
+</body>
+</html>
