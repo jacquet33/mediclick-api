@@ -211,7 +211,27 @@ function snakeToCamel(obj: any): any {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: true });
+  // CORS: allow the app's own domain + localhost for dev
+  const allowedOrigins = (process.env.CORS_ORIGINS || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    cors: {
+      origin: allowedOrigins.length
+        ? (origin, callback) => {
+            // Allow requests with no origin (mobile apps, server-to-server)
+            if (!origin) return callback(null, true);
+            if (allowedOrigins.some(o => origin === o || origin.endsWith(o))) {
+              return callback(null, true);
+            }
+            callback(new Error('CORS not allowed'));
+          }
+        : true, // fallback: allow all in dev if CORS_ORIGINS not set
+      credentials: true,
+    },
+  });
   app.use(helmet());
   app.useStaticAssets(join(__dirname, '..', 'public'));
   

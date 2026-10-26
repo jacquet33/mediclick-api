@@ -3,19 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0097A7">
+<meta name="theme-color" content="#161925">
 <title>Registro de paciente — MediClick</title>
+<meta property="og:type" content="website">
+<meta property="og:title" content="Registro de paciente — MediClick">
+<meta property="og:description" content="Registrate como paciente para reservar turnos online.">
+<meta property="og:site_name" content="MediClick">
+<meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --teal:#0097A7; --teal-light:#4DB6AC; --teal-bg:rgba(0,151,167,.06);
-  --primary:#2980D4; --cyan:#40C7ED;
-  --bg:#FAFBFC; --surface:#fff;
+  --teal:#879DFF; --teal-light:#F0F2FF; --teal-bg:rgba(135,157,255,.06);
+  --primary:#879DFF; --cyan:#879DFF;
+  --bg:#FFF7F3; --surface:#fff;
   --success:#21BF8C; --danger:#F25C66; --warning:#FFB333;
-  --text:#1C2D3F; --text-soft:#627D98; --text-muted:#9FB3C8;
-  --border:#E4E7EB; --border-focus:#0097A7;
-  --radius:14px; --shadow:0 2px 12px rgba(0,0,0,.06);
+  --text:#161925; --text-soft:#5A5D6D; --text-muted:#999;
+  --border:#DCC7BB; --border-focus:#879DFF;
+  --radius:14px; --shadow:0 2px 12px rgba(22,25,37,.06);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);min-height:100dvh;color:var(--text);-webkit-font-smoothing:antialiased}
@@ -65,7 +70,7 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
   -webkit-appearance:none;appearance:none;
 }
 .field input:focus,.field select:focus{
-  border-color:var(--border-focus);box-shadow:0 0 0 3px rgba(0,151,167,.1);
+  border-color:var(--border-focus);box-shadow:0 0 0 3px rgba(135,157,255,.1);
 }
 .field input::placeholder{color:var(--text-muted)}
 .field .hint{font-size:11px;color:var(--text-muted);margin-top:5px}
@@ -73,7 +78,7 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 
 /* Phone with flag */
 .phone-wrap{display:flex;align-items:center;gap:0;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface);transition:border .2s,box-shadow .2s}
-.phone-wrap:focus-within{border-color:var(--border-focus);box-shadow:0 0 0 3px rgba(0,151,167,.1)}
+.phone-wrap:focus-within{border-color:var(--border-focus);box-shadow:0 0 0 3px rgba(135,157,255,.1)}
 .phone-flag{display:flex;align-items:center;gap:6px;padding:14px 12px;background:#F7F8FA;border-right:1px solid var(--border);font-size:14px;flex-shrink:0;cursor:default}
 .phone-flag .flag{font-size:20px}
 .phone-wrap input{border:none!important;border-radius:0!important;box-shadow:none!important;padding-left:12px;flex:1}
@@ -96,13 +101,13 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
   background:var(--surface);cursor:pointer;transition:.2s;
 }
 .gender-opt:hover{border-color:var(--teal-light);background:var(--teal-bg)}
-.gender-opt.active{border-color:var(--teal);background:var(--teal-bg);box-shadow:0 0 0 3px rgba(0,151,167,.1)}
+.gender-opt.active{border-color:var(--teal);background:var(--teal-bg);box-shadow:0 0 0 3px rgba(135,157,255,.1)}
 .gender-opt .icon{
   width:56px;height:56px;border-radius:50%;background:#F0F2F4;
   display:flex;align-items:center;justify-content:center;font-size:28px;
   transition:.2s;
 }
-.gender-opt.active .icon{background:rgba(0,151,167,.12)}
+.gender-opt.active .icon{background:rgba(135,157,255,.12)}
 .gender-opt span{font-size:13px;font-weight:500;color:var(--text-soft)}
 .gender-opt.active span{color:var(--teal);font-weight:600}
 
@@ -132,8 +137,8 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
   width:100%;padding:16px;font-size:15px;font-weight:700;font-family:inherit;border:none;
   border-radius:14px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px;
 }
-.btn-primary{background:var(--teal);color:#fff;box-shadow:0 4px 16px rgba(0,151,167,.25)}
-.btn-primary:hover{background:#00838F;box-shadow:0 6px 20px rgba(0,151,167,.3)}
+.btn-primary{background:var(--teal);color:#fff;box-shadow:0 4px 16px rgba(135,157,255,.25)}
+.btn-primary:hover{background:#6B7FE0;box-shadow:0 6px 20px rgba(135,157,255,.3)}
 .btn-primary:active{transform:scale(.98)}
 .btn-primary:disabled{opacity:.4;cursor:default;transform:none}
 .btn-outline{background:transparent;color:var(--text-soft);border:1.5px solid var(--border)}
