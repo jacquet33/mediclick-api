@@ -1,0 +1,30 @@
+#!/bin/bash
+# Setup reminder cron jobs on VPS
+# Usage: bash scripts/setup-reminders-cron.sh
+
+CRON_SECRET="${CRON_SECRET:-$(openssl rand -hex 16)}"
+
+echo "========================================"
+echo "  MediClick Reminder Cron Setup"
+echo "========================================"
+echo ""
+echo "CRON_SECRET: $CRON_SECRET"
+echo ""
+echo "1. Add CRON_SECRET to your .env file:"
+echo "   echo 'CRON_SECRET=$CRON_SECRET' >> /opt/mediclick/.env"
+echo ""
+echo "2. Add these cron jobs (crontab -e):"
+echo ""
+echo "# MediClick: Recordatorios del dia siguiente (20:00)"
+echo "0 20 * * * curl -s -X POST -H 'X-Cron-Secret: $CRON_SECRET' http://localhost:3000/api/v1/internal/reminders/tomorrow >> /opt/mediclick/logs/reminders.log 2>&1"
+echo ""
+echo "# MediClick: Recordatorios 1h antes del turno (cada 15 min)"
+echo "*/15 * * * * curl -s -X POST -H 'X-Cron-Secret: $CRON_SECRET' http://localhost:3000/api/v1/internal/reminders/upcoming >> /opt/mediclick/logs/reminders.log 2>&1"
+echo ""
+echo "# MediClick: Backup diario (3:00 AM)"
+echo "0 3 * * * /opt/mediclick/scripts/backup-db.sh >> /opt/mediclick/logs/backup.log 2>&1"
+echo ""
+echo "3. Create log directory:"
+echo "   mkdir -p /opt/mediclick/logs"
+echo ""
+echo "========================================"

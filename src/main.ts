@@ -60,6 +60,10 @@ import { ConsentController } from './modules/consent/consent.controller';
 import { ConsentService } from './modules/consent/consent.service';
 import { OnboardingController } from './modules/onboarding/onboarding.controller';
 import { OnboardingService } from './modules/onboarding/onboarding.service';
+import { ReminderCronController } from './modules/reminders/reminder-cron.controller';
+import { ReminderCronService } from './modules/reminders/reminder-cron.service';
+import { DashboardController } from './modules/dashboard/dashboard.controller';
+import { DashboardService } from './modules/dashboard/dashboard.service';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
@@ -140,6 +144,8 @@ class HealthController {
     AuditController,
     ConsentController,
     OnboardingController,
+    ReminderCronController,
+    DashboardController,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
@@ -177,6 +183,8 @@ class HealthController {
     AuditService,
     ConsentService,
     OnboardingService,
+    ReminderCronService,
+    DashboardService,
     { provide: APP_GUARD, useClass: ProGuard },
   ],
 })
