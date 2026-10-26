@@ -134,14 +134,16 @@ export class PrescriptionPdfService {
       // ═══════════════════════════════════════════════════════
 
       // Línea superior decorativa
-      doc.rect(LEFT, y, W, 4).fill('#0097A7');
-      y += 12;
+      doc.rect(LEFT, y, W, 4).fill('#161925');
+      y += 4;
+      doc.rect(LEFT, y, W * 0.4, 2).fill('#879DFF');
+      y += 10;
 
       // MEDICLICK branding
-      doc.fontSize(18).font('Helvetica-Bold').fillColor('#0097A7')
-        .text('MEDICLICK', LEFT, y, { width: W / 2 });
+      doc.fontSize(18).font('Helvetica-Bold').fillColor('#161925')
+        .text('MediClick', LEFT, y, { width: W / 2 });
 
-      doc.fontSize(8).font('Helvetica').fillColor('#666666')
+      doc.fontSize(8).font('Helvetica').fillColor('#879DFF')
         .text('RECETARIO DIGITAL', LEFT, y + 20, { width: W / 2 });
 
       // Organización (derecha)
@@ -178,15 +180,15 @@ export class PrescriptionPdfService {
       y += 18;
 
       // Línea separadora
-      doc.moveTo(LEFT, y).lineTo(RIGHT, y).lineWidth(1.5).strokeColor('#0097A7').stroke();
+      doc.moveTo(LEFT, y).lineTo(RIGHT, y).lineWidth(1.5).strokeColor('#DCC7BB').stroke();
       y += 10;
 
       // ═══════════════════════════════════════════════════════
       // DATOS DEL PACIENTE
       // ═══════════════════════════════════════════════════════
 
-      // Fondo celeste claro
-      doc.rect(LEFT, y, W, 52).fill('#E0F7FA');
+      // Fondo crema
+      doc.rect(LEFT, y, W, 52).fill('#FFF7F3');
       y += 8;
 
       // Nombre
@@ -228,7 +230,7 @@ export class PrescriptionPdfService {
       // CUERPO DE LA RECETA - Rp./
       // ═══════════════════════════════════════════════════════
 
-      doc.fontSize(14).font('Helvetica-Bold').fillColor('#0097A7')
+      doc.fontSize(14).font('Helvetica-Bold').fillColor('#879DFF')
         .text('Rp./', LEFT, y);
       y += 22;
 
@@ -336,7 +338,7 @@ export class PrescriptionPdfService {
       const footerY = doc.page.height - 90;
 
       // Línea decorativa
-      doc.rect(LEFT, footerY, W, 1).fill('#0097A7');
+      doc.rect(LEFT, footerY, W, 1).fill('#161925');
 
       // Info de firma digital
       doc.fontSize(7).font('Helvetica-Oblique').fillColor('#888888')
@@ -378,7 +380,7 @@ export class PrescriptionPdfService {
         );
 
       // Línea inferior decorativa
-      doc.rect(LEFT, footerY + 72, W, 3).fill('#0097A7');
+      doc.rect(LEFT, footerY + 72, W, 3).fill('#879DFF');
 
       doc.end();
     });

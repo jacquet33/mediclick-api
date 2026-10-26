@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, Req } from '@nestjs/common';
-import { Request } from 'express';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Req, Res, Header } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { MedicalRecordService, CreateMedicalRecordDto } from './medical-record.service';
+import { MedicalRecordPdfService } from './medical-record-pdf.service';
 import { AuditService } from '../audit/audit.service';
 import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
 
@@ -8,6 +9,7 @@ import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator'
 export class MedicalRecordController {
   constructor(
     private recordService: MedicalRecordService,
+    private pdfService: MedicalRecordPdfService,
     private auditService: AuditService,
   ) {}
 
@@ -44,6 +46,36 @@ export class MedicalRecordController {
       req.ip, req.headers['user-agent'] as string,
     );
     return record;
+  }
+
+  /**
+   * GET /api/v1/medical-records/patient/:patientId/pdf
+   * Descarga la Historia Clínica completa del paciente en PDF.
+   * Ley 26.529 — el paciente tiene derecho a recibir copia de su HC.
+   */
+  @Get('patient/:patientId/pdf')
+  async downloadPatientHistory(
+    @OrgId() orgId: string,
+    @DoctorId() doctorId: string,
+    @Param('patientId') patientId: string,
+    @Res() res: Response,
+    @Req() req: Request,
+  ) {
+    const { buffer, filename } = await this.pdfService.generatePatientHistoryPdf(orgId, doctorId, patientId);
+
+    // Log PDF generation (Ley 26.529 trazabilidad)
+    this.auditService.logAccess(
+      doctorId, 'doctor', 'EXPORT_PATIENT_HC_PDF',
+      'medical_records', patientId,
+      req.ip, req.headers['user-agent'] as string,
+    );
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length,
+    });
+    res.end(buffer);
   }
 
   @Post()
