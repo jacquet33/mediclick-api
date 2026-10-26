@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
-import { AppointmentService, CreateAppointmentDto } from './appointment.service';
+import { AppointmentService } from './appointment.service';
+import { CreateAppointmentDto, UpdateAppointmentStatusDto } from '../../common/dto/appointment.dto';
 import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
 
 @Controller('api/v1/appointments')
@@ -98,8 +99,8 @@ export class AppointmentController {
   async updateStatus(
     @Param('id') id: string,
     @OrgId() orgId: string,
-    @Body() body: { status: string; cancelReason?: string },
+    @Body() dto: UpdateAppointmentStatusDto,
   ) {
-    return this.apptService.updateStatus(id, orgId, body.status, body.cancelReason);
+    return this.apptService.updateStatus(id, orgId, dto.status, dto.cancelReason);
   }
 }

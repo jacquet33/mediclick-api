@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, Req } from '@nestjs/common';
 import { Request } from 'express';
-import { PatientService, CreatePatientDto } from './patient.service';
+import { PatientService } from './patient.service';
+import { CreatePatientDto } from '../../common/dto/patient.dto';
 import { PatientHistoryService } from './patient-history.service';
 import { AuditService } from '../audit/audit.service';
 import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';

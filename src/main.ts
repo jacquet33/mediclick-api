@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { ValidationPipe } from '@nestjs/common';
 import { join } from 'path';
 import { Module, Controller, Get } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -233,6 +234,13 @@ async function bootstrap() {
     },
   });
   app.use(helmet());
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,           // strip unknown properties
+    forbidNonWhitelisted: true, // throw on unknown properties
+    transform: true,           // auto-transform payloads to DTO instances
+    transformOptions: { enableImplicitConversion: true },
+    stopAtFirstError: false,
+  }));
   app.useStaticAssets(join(__dirname, '..', 'public'));
   
   // Auto-convert snake_case → camelCase on all incoming JSON bodies

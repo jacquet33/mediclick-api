@@ -1,7 +1,11 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { Public } from '../../common/guards/auth.guard';
 import { StrictThrottle } from '../../common/decorators/throttle.decorator';
-import { AuthService, RegisterDto, RegisterPatientDto, LoginDto } from './auth.service';
+import { AuthService } from './auth.service';
+import {
+  LoginDto, RegisterDto, RegisterPatientDto, RegisterStaffDto,
+  RefreshTokenDto, ChangePasswordDto,
+} from '../../common/dto/auth.dto';
 
 @Public()
 @StrictThrottle()
@@ -30,19 +34,15 @@ export class AuthController {
 
   /** Registro de staff (admin, secretaria, enfermero, etc.) */
   @Post('register/staff')
-  async registerStaff(@Body() dto: {
-    email: string; password: string; firstName: string; lastName: string;
-    phone?: string; organizationId: string; roleCode: string;
-  }) {
+  async registerStaff(@Body() dto: RegisterStaffDto) {
     return this.authService.registerStaff(dto);
   }
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refresh(@Body() body: { userId: string; refreshToken: string }) {
-    // backward compat: accept doctorId too
-    const userId = body.userId || (body as any).doctorId;
-    return this.authService.refreshTokens(userId, body.refreshToken);
+  async refresh(@Body() dto: RefreshTokenDto) {
+    const userId = dto.userId || dto.doctorId;
+    return this.authService.refreshTokens(userId, dto.refreshToken);
   }
 
   @Post('logout')
@@ -55,11 +55,9 @@ export class AuthController {
 
   @Post('change-password')
   @HttpCode(HttpStatus.OK)
-  async changePassword(
-    @Body() body: { userId: string; currentPassword: string; newPassword: string },
-  ) {
-    const userId = body.userId || (body as any).doctorId;
-    await this.authService.changePassword(userId, body.currentPassword, body.newPassword);
+  async changePassword(@Body() dto: ChangePasswordDto) {
+    const userId = dto.userId || dto.doctorId;
+    await this.authService.changePassword(userId, dto.currentPassword, dto.newPassword);
     return { message: 'Contraseña actualizada' };
   }
 }

@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Put, Patch, Body, Param, Query } from '@nestjs/common';
-import { BookingService, BookingSettingsDto, CreateBookingDto } from './booking.service';
+import { BookingService } from './booking.service';
+import { CreateBookingDto, BookingSettingsDto } from '../../common/dto/booking.dto';
 import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/guards/auth.guard';
 import { PublicThrottle } from '../../common/decorators/throttle.decorator';

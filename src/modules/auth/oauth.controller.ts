@@ -1,7 +1,8 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { Public } from '../../common/guards/auth.guard';
 import { StrictThrottle } from '../../common/decorators/throttle.decorator';
-import { OAuthService, GoogleLoginDto, AppleLoginDto } from './oauth.service';
+import { OAuthService } from './oauth.service';
+import { GoogleLoginDto, AppleLoginDto } from '../../common/dto/auth.dto';
 
 @Public()
 @StrictThrottle()
