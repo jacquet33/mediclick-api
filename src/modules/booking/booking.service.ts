@@ -84,8 +84,8 @@ export class BookingService {
       const slug = await this.uniqueSlug(baseSlug);
 
       settings = await this.db.queryOne(
-        `INSERT INTO booking_settings (org_doctor_id, public_slug)
-         VALUES ($1, $2) RETURNING *`,
+        `INSERT INTO booking_settings (org_doctor_id, public_slug, is_enabled)
+         VALUES ($1, $2, true) RETURNING *`,
         [orgDoctorId, slug],
       );
     }
