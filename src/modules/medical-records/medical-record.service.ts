@@ -58,6 +58,109 @@ export class MedicalRecordService {
     );
   }
 
+  /**
+   * Consulta filtrada de HC con rango de fechas, tipo de registro y búsqueda de texto.
+   */
+  async findByPatientFiltered(
+    orgId: string,
+    patientId: string,
+    filters: {
+      dateFrom?: string;
+      dateTo?: string;
+      recordType?: string;
+      search?: string;
+      limit?: number;
+      offset?: number;
+    },
+  ) {
+    const conditions = [
+      'mr.patient_id = $1',
+      'mr.organization_id = $2',
+      'mr.deleted_at IS NULL',
+    ];
+    const params: any[] = [patientId, orgId];
+    let idx = 3;
+
+    if (filters.dateFrom) {
+      conditions.push(`mr.date >= $${idx}`);
+      params.push(filters.dateFrom);
+      idx++;
+    }
+    if (filters.dateTo) {
+      conditions.push(`mr.date <= $${idx}::date + interval '1 day'`);
+      params.push(filters.dateTo);
+      idx++;
+    }
+    if (filters.recordType) {
+      conditions.push(`mr.record_type = $${idx}`);
+      params.push(filters.recordType);
+      idx++;
+    }
+    if (filters.search) {
+      conditions.push(`(
+        mr.chief_complaint ILIKE $${idx} OR
+        mr.diagnosis ILIKE $${idx} OR
+        mr.present_illness ILIKE $${idx} OR
+        mr.treatment_plan ILIKE $${idx} OR
+        mr.findings ILIKE $${idx}
+      )`);
+      params.push(`%${filters.search}%`);
+      idx++;
+    }
+
+    const limit = Math.min(filters.limit || 50, 200);
+    const offset = filters.offset || 0;
+
+    const where = conditions.join(' AND ');
+
+    const [records, countResult] = await Promise.all([
+      this.db.queryMany(
+        `SELECT mr.*, d.first_name || ' ' || d.last_name AS doctor_name,
+                d.medical_license AS doctor_license, d.specialty AS doctor_specialty
+         FROM medical_records mr
+         JOIN doctors d ON d.id = mr.doctor_id
+         WHERE ${where}
+         ORDER BY mr.date DESC
+         LIMIT ${limit} OFFSET ${offset}`,
+        params,
+      ),
+      this.db.queryOne(
+        `SELECT COUNT(*) AS total FROM medical_records mr WHERE ${where}`,
+        params,
+      ),
+    ]);
+
+    return {
+      records,
+      total: parseInt(countResult?.total || '0', 10),
+      limit,
+      offset,
+    };
+  }
+
+  /**
+   * Resumen cronológico de la HC: timeline con tipos de consulta y diagnósticos principales.
+   */
+  async getPatientTimeline(orgId: string, patientId: string) {
+    return this.db.queryMany(
+      `SELECT mr.id, mr.date, mr.created_at, mr.updated_at,
+              mr.record_type, mr.chief_complaint, mr.diagnosis, mr.diagnosis_code,
+              mr.doctor_full_name, mr.doctor_license, mr.doctor_specialty
+       FROM medical_records mr
+       WHERE mr.patient_id = $1 AND mr.organization_id = $2 AND mr.deleted_at IS NULL
+       ORDER BY mr.date ASC`,
+      [patientId, orgId],
+    );
+  }
+
+  async findPatientBasic(orgId: string, patientId: string) {
+    return this.db.queryOne(
+      `SELECT first_name, last_name, dni, insurance_provider, insurance_number, insurance_plan
+       FROM patients WHERE id = $1 AND organization_id = $2`,
+      [patientId, orgId],
+    );
+  }
+
   async findById(orgId: string, id: string) {
     const record = await this.db.queryOne(
       `SELECT mr.*, d.first_name || ' ' || d.last_name AS doctor_name,

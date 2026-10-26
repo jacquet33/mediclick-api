@@ -7,6 +7,7 @@ const PDFDocument = require('pdfkit');
 // ═══════════════════════════════════════════════════════════
 // Historia Clínica — PDF completo de un paciente
 // Ley 26.529: inalterabilidad, trazabilidad, confidencialidad
+// Trazabilidad completa: fecha, hora, profesional, matrícula
 // ═══════════════════════════════════════════════════════════
 
 // Brand palette
@@ -37,7 +38,8 @@ export class MedicalRecordPdfService {
 
   /**
    * Genera un PDF con la Historia Clínica completa del paciente:
-   * datos demográficos, antecedentes, y todos los registros médicos.
+   * datos demográficos, antecedentes, y todos los registros médicos
+   * con trazabilidad completa (fecha, hora, profesional, matrícula).
    */
   async generatePatientHistoryPdf(
     orgId: string,
@@ -64,24 +66,29 @@ export class MedicalRecordPdfService {
       [doctorId],
     );
 
-    // 3) Cargar todos los registros médicos
+    // 3) Cargar todos los registros médicos (orden cronológico para trazabilidad)
     const records = await this.db.queryMany(
       `SELECT mr.*, d.first_name || ' ' || d.last_name AS doctor_name,
-              d.medical_license AS doctor_license, d.specialty AS doctor_specialty
+              d.medical_license AS doctor_license, d.specialty AS doctor_specialty,
+              mr.doctor_full_name AS record_doctor_name,
+              mr.doctor_license AS record_doctor_license,
+              mr.doctor_license_province AS record_license_province,
+              mr.doctor_specialty AS record_specialty
        FROM medical_records mr
        JOIN doctors d ON d.id = mr.doctor_id
        WHERE mr.patient_id = $1 AND mr.organization_id = $2 AND mr.deleted_at IS NULL
-       ORDER BY mr.date DESC`,
+       ORDER BY mr.date ASC`,
       [patientId, orgId],
     );
 
     // 4) Cargar recetas
     const prescriptions = await this.db.queryMany(
-      `SELECT rx.*, d.first_name || ' ' || d.last_name AS doctor_name
+      `SELECT rx.*, d.first_name || ' ' || d.last_name AS doctor_name,
+              d.medical_license AS doctor_license
        FROM prescriptions rx
        JOIN doctors d ON d.id = rx.doctor_id
        WHERE rx.patient_id = $1 AND rx.organization_id = $2
-       ORDER BY rx.issued_at DESC`,
+       ORDER BY rx.issued_at ASC`,
       [patientId, orgId],
     );
 
@@ -91,15 +98,28 @@ export class MedicalRecordPdfService {
        FROM appointments a
        JOIN doctors d ON d.id = a.doctor_id
        WHERE a.patient_id = $1 AND a.organization_id = $2
-       ORDER BY a.date DESC, a.start_time DESC
-       LIMIT 50`,
+       ORDER BY a.date ASC, a.start_time ASC`,
       [patientId, orgId],
+    );
+
+    // 6) Cargar historial de auditoría de accesos a esta HC
+    const auditAccess = await this.db.queryMany(
+      `SELECT al.action, al.created_at, al.user_type,
+              COALESCE(d.first_name || ' ' || d.last_name, 'Sistema') AS user_name
+       FROM access_logs al
+       LEFT JOIN doctors d ON d.id = al.user_id
+       WHERE al.resource_id = $1
+         AND al.resource_type = 'medical_records'
+         AND al.action IN ('VIEW_PATIENT_RECORDS', 'EXPORT_PATIENT_HC_PDF', 'EMAIL_PATIENT_HC_PDF', 'VIEW_RECORD')
+       ORDER BY al.created_at DESC
+       LIMIT 30`,
+      [patientId],
     );
 
     const patientName = `${patient.first_name} ${patient.last_name}`;
     const filename = `HC_${patientName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
 
-    const buffer = await this.buildPdf(patient, doctor, records, prescriptions, appointments);
+    const buffer = await this.buildPdf(patient, doctor, records, prescriptions, appointments, auditAccess);
 
     return { buffer, filename };
   }
@@ -112,6 +132,7 @@ export class MedicalRecordPdfService {
     records: any[],
     prescriptions: any[],
     appointments: any[],
+    auditAccess: any[],
   ): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({
@@ -121,8 +142,9 @@ export class MedicalRecordPdfService {
         info: {
           Title: `Historia Clínica - ${patient.first_name} ${patient.last_name}`,
           Author: doctor ? `Dr. ${doctor.first_name} ${doctor.last_name}` : 'MediClick',
-          Subject: 'Historia Clínica Digital',
+          Subject: 'Historia Clínica Digital — Trazabilidad completa',
           Creator: 'MediClick',
+          Keywords: 'historia clínica, Ley 26.529, trazabilidad',
         },
       });
 
@@ -135,7 +157,6 @@ export class MedicalRecordPdfService {
       const LEFT = doc.page.margins.left;
 
       const patientName = `${patient.first_name} ${patient.last_name}`;
-      const doctorName = doctor ? `${doctor.first_name} ${doctor.last_name}` : '';
 
       // ═══ PAGE 1: Cover + Patient Data ═══════════════════════
 
@@ -143,15 +164,24 @@ export class MedicalRecordPdfService {
       this.renderPatientData(doc, LEFT, W, patient);
       this.renderPatientBackground(doc, LEFT, W, records);
 
-      // ═══ REGISTROS MÉDICOS ══════════════════════════════════
+      // ═══ RESUMEN CRONOLÓGICO (TIMELINE) ═════════════════════
 
       if (records.length > 0) {
         this.checkPage(doc, 100);
-        this.sectionTitle(doc, LEFT, W, 'REGISTROS MÉDICOS', `${records.length} registro(s)`);
+        this.sectionTitle(doc, LEFT, W, 'RESUMEN CRONOLÓGICO', `${records.length} consulta(s)`);
+        this.renderTimeline(doc, LEFT, W, records);
+      }
 
-        for (const record of records) {
+      // ═══ REGISTROS MÉDICOS COMPLETOS ════════════════════════
+
+      if (records.length > 0) {
+        this.checkPage(doc, 100);
+        const dateRange = this.getDateRange(records);
+        this.sectionTitle(doc, LEFT, W, 'REGISTROS MÉDICOS — DETALLE COMPLETO', dateRange);
+
+        for (let i = 0; i < records.length; i++) {
           this.checkPage(doc, 120);
-          this.renderRecord(doc, LEFT, W, record);
+          this.renderRecord(doc, LEFT, W, records[i], i + 1, records.length);
         }
       }
 
@@ -159,7 +189,7 @@ export class MedicalRecordPdfService {
 
       if (prescriptions.length > 0) {
         this.checkPage(doc, 80);
-        this.sectionTitle(doc, LEFT, W, 'RECETAS', `${prescriptions.length} receta(s)`);
+        this.sectionTitle(doc, LEFT, W, 'RECETAS EMITIDAS', `${prescriptions.length} receta(s)`);
 
         for (const rx of prescriptions) {
           this.checkPage(doc, 60);
@@ -171,9 +201,17 @@ export class MedicalRecordPdfService {
 
       if (appointments.length > 0) {
         this.checkPage(doc, 80);
-        this.sectionTitle(doc, LEFT, W, 'HISTORIAL DE TURNOS', `Últimos ${appointments.length}`);
+        this.sectionTitle(doc, LEFT, W, 'HISTORIAL DE TURNOS', `${appointments.length} turno(s)`);
 
         this.renderAppointmentsTable(doc, LEFT, W, appointments);
+      }
+
+      // ═══ REGISTRO DE ACCESOS (TRAZABILIDAD) ════════════════
+
+      if (auditAccess.length > 0) {
+        this.checkPage(doc, 80);
+        this.sectionTitle(doc, LEFT, W, 'REGISTRO DE ACCESOS', 'Trazabilidad Ley 26.529');
+        this.renderAuditLog(doc, LEFT, W, auditAccess);
       }
 
       // ═══ FIRMA Y CIERRE ════════════════════════════════════
@@ -272,7 +310,7 @@ export class MedicalRecordPdfService {
     y += 20;
 
     // Row 3
-    this.labelValue(doc, col1, y, colW, 'Teléfono', patient.phone || '—');
+    this.labelValue(doc, col1, y, colW, 'Telefono', patient.phone || '—');
     this.labelValue(doc, col2, y, colW, 'Email', patient.email || '—');
     y += 20;
 
@@ -283,7 +321,7 @@ export class MedicalRecordPdfService {
       y += 8;
       this.labelValue(doc, col1, y, colW * 0.6, 'Obra Social', patient.insurance_provider);
       this.labelValue(doc, col1 + colW * 0.6 + 10, y, colW * 0.4, 'Plan', patient.insurance_plan || '—');
-      this.labelValue(doc, col2, y, colW, 'N° Afiliado', patient.insurance_number || '—');
+      this.labelValue(doc, col2, y, colW, 'N Afiliado', patient.insurance_number || '—');
       y += 30;
     } else {
       y += 5;
@@ -296,7 +334,7 @@ export class MedicalRecordPdfService {
 
   private renderPatientBackground(doc: any, LEFT: number, W: number, records: any[]) {
     // Extract latest background data from most recent record
-    const latest = records.find((r) => r.personal_history || r.family_history || r.allergies || r.habits);
+    const latest = [...records].reverse().find((r) => r.personal_history || r.family_history || r.allergies || r.habits);
     if (!latest) return;
 
     this.checkPage(doc, 100);
@@ -310,9 +348,9 @@ export class MedicalRecordPdfService {
       { label: 'Antecedentes personales', value: latest.personal_history },
       { label: 'Antecedentes familiares', value: latest.family_history },
       { label: 'Alergias', value: latest.allergies },
-      { label: 'Hábitos', value: latest.habits },
-      { label: 'Medicación habitual', value: latest.current_medications },
-      { label: 'Ocupación', value: latest.occupation },
+      { label: 'Habitos', value: latest.habits },
+      { label: 'Medicacion habitual', value: latest.current_medications },
+      { label: 'Ocupacion', value: latest.occupation },
     ];
 
     for (const sec of sections) {
@@ -331,6 +369,60 @@ export class MedicalRecordPdfService {
     doc.y += 5;
   }
 
+  // ─── Timeline (Resumen Cronologico) ──────────────────────
+
+  private renderTimeline(doc: any, LEFT: number, W: number, records: any[]) {
+    let y = doc.y;
+
+    // Info box
+    doc.roundedRect(LEFT, y, W, 22, 4).fill('#EEF0FF');
+    doc.fontSize(7.5).font('Helvetica').fillColor(LAVANDA)
+      .text(`Periodo: ${this.fmtDate(records[0].date)} - ${this.fmtDate(records[records.length - 1].date)}   |   Total: ${records.length} registro(s)`,
+        LEFT + 10, y + 6, { width: W - 20 });
+    y += 30;
+
+    // Timeline entries
+    for (let i = 0; i < records.length; i++) {
+      this.checkPage(doc, 24);
+      y = doc.y;
+      const r = records[i];
+
+      // Timeline dot
+      doc.circle(LEFT + 10, y + 6, 3).fill(LAVANDA);
+      if (i < records.length - 1) {
+        doc.moveTo(LEFT + 10, y + 9).lineTo(LEFT + 10, y + 22)
+          .lineWidth(0.5).strokeColor(ARENA).stroke();
+      }
+
+      // Nro + date+time
+      const numLabel = `#${String(i + 1).padStart(3, '0')}`;
+      doc.fontSize(7).font('Helvetica-Bold').fillColor(LAVANDA)
+        .text(numLabel, LEFT + 20, y + 1);
+      doc.fontSize(8).font('Helvetica').fillColor(TINTA)
+        .text(this.fmtDateTime(r.date), LEFT + 48, y + 1);
+
+      // Type badge
+      const typeLabel = this.recordTypeLabel(r.record_type);
+      doc.fontSize(7).font('Helvetica-Bold').fillColor(TEXT_SOFT)
+        .text(typeLabel, LEFT + 170, y + 1);
+
+      // Diagnosis (truncated)
+      const diagText = r.diagnosis ? (r.diagnosis.length > 60 ? r.diagnosis.slice(0, 57) + '...' : r.diagnosis) : '—';
+      doc.fontSize(8).font('Helvetica').fillColor(TINTA)
+        .text(diagText, LEFT + 240, y + 1, { width: W - 260 });
+
+      // Doctor
+      const drName = r.record_doctor_name || r.doctor_name || '—';
+      const drLicense = r.record_doctor_license || r.doctor_license || '';
+      doc.fontSize(7).font('Helvetica').fillColor(TEXT_MUTED)
+        .text(`Dr/a. ${drName} - MP ${drLicense}`, LEFT + 48, y + 12, { width: W - 60 });
+
+      doc.y = y + 24;
+    }
+
+    doc.y += 10;
+  }
+
   // ─── Section Title ───────────────────────────────────────
 
   private sectionTitle(doc: any, LEFT: number, W: number, title: string, subtitle?: string) {
@@ -343,35 +435,62 @@ export class MedicalRecordPdfService {
 
     if (subtitle) {
       doc.fontSize(8).font('Helvetica').fillColor(TEXT_MUTED)
-        .text(subtitle, LEFT + W - 100, y + 3, { width: 100, align: 'right' });
+        .text(subtitle, LEFT + W - 200, y + 3, { width: 200, align: 'right' });
     }
 
     y += 22;
     doc.y = y;
   }
 
-  // ─── Individual Record ───────────────────────────────────
+  // ─── Individual Record (con trazabilidad) ────────────────
 
-  private renderRecord(doc: any, LEFT: number, W: number, record: any) {
+  private renderRecord(doc: any, LEFT: number, W: number, record: any, num: number, total: number) {
     let y = doc.y;
 
-    // Card border
+    // Card top border with number
     doc.roundedRect(LEFT, y, W, 2, 1).fill(LAVANDA);
-    y += 4;
+    y += 6;
 
-    // Date + doctor
-    doc.fontSize(8).font('Helvetica').fillColor(TEXT_MUTED)
-      .text(this.fmtDate(record.date), LEFT + 5, y);
-    doc.fontSize(8).font('Helvetica').fillColor(TEXT_MUTED)
-      .text(`Dr/a. ${record.doctor_name} — MP ${record.doctor_license || 'S/N'}`,
-        LEFT + W / 3, y, { width: W * 2 / 3 - 5, align: 'right' });
+    // Record number + date+time (TRAZABILIDAD: fecha y hora exacta)
+    const numLabel = `Registro #${String(num).padStart(3, '0')} de ${total}`;
+    doc.fontSize(8).font('Helvetica-Bold').fillColor(LAVANDA)
+      .text(numLabel, LEFT + 5, y);
     y += 14;
+
+    // Full traceability line: fecha de consulta, creacion, modificacion
+    doc.fontSize(8).font('Helvetica').fillColor(TEXT_MUTED)
+      .text(`Consulta: ${this.fmtDateTime(record.date)}`, LEFT + 5, y);
+    const createdAt = record.created_at ? `Registrado: ${this.fmtDateTime(record.created_at)}` : '';
+    if (createdAt) {
+      doc.fontSize(7).font('Helvetica').fillColor(TEXT_MUTED)
+        .text(createdAt, LEFT + W / 2, y, { width: W / 2 - 5, align: 'right' });
+    }
+    y += 12;
+
+    // Updated timestamp (if different from created)
+    if (record.updated_at && record.created_at &&
+        new Date(record.updated_at).getTime() - new Date(record.created_at).getTime() > 60000) {
+      doc.fontSize(7).font('Helvetica-Oblique').fillColor(TEXT_MUTED)
+        .text(`Ultima modificacion: ${this.fmtDateTime(record.updated_at)}`, LEFT + 5, y);
+      y += 10;
+    }
+
+    // Doctor info with license (firma electronica - Ley 26.529)
+    const drName = record.record_doctor_name || record.doctor_name || '—';
+    const drLicense = record.record_doctor_license || record.doctor_license || 'S/N';
+    const drProvince = record.record_license_province || '';
+    const drSpecialty = record.record_specialty || record.doctor_specialty || '';
+    doc.fontSize(8.5).font('Helvetica-Bold').fillColor(TINTA)
+      .text(`Dr/a. ${drName}`, LEFT + 5, y, { continued: true })
+      .font('Helvetica').fillColor(TEXT_SOFT)
+      .text(` - MP ${drProvince ? drProvince + ' ' : ''}${drLicense}${drSpecialty ? ' | ' + drSpecialty : ''}`);
+    y = doc.y + 8;
 
     // Record type badge
     const typeLabel = this.recordTypeLabel(record.record_type);
-    doc.roundedRect(LEFT + 5, y, 75, 15, 3).fill('#EEF0FF');
+    doc.roundedRect(LEFT + 5, y, 85, 15, 3).fill('#EEF0FF');
     doc.fontSize(7.5).font('Helvetica-Bold').fillColor(LAVANDA)
-      .text(typeLabel, LEFT + 8, y + 3, { width: 70, align: 'center' });
+      .text(typeLabel, LEFT + 8, y + 3, { width: 80, align: 'center' });
     y += 20;
 
     // Chief complaint
@@ -412,7 +531,7 @@ export class MedicalRecordPdfService {
         const vitals: string[] = [];
         if (vs.bloodPressure) vitals.push(`TA: ${vs.bloodPressure} mmHg`);
         if (vs.heartRate) vitals.push(`FC: ${vs.heartRate} lpm`);
-        if (vs.temperature) vitals.push(`T°: ${vs.temperature}°C`);
+        if (vs.temperature) vitals.push(`T: ${vs.temperature} C`);
         if (vs.respiratoryRate) vitals.push(`FR: ${vs.respiratoryRate} rpm`);
         if (vs.spO2) vitals.push(`SpO2: ${vs.spO2}%`);
         if (vs.weight) vitals.push(`Peso: ${vs.weight} kg`);
@@ -429,7 +548,7 @@ export class MedicalRecordPdfService {
       this.checkPage(doc, 30);
       y = doc.y;
       doc.fontSize(9).font('Helvetica-Bold').fillColor(TEXT_SOFT)
-        .text('Examen físico:', LEFT + 5, y);
+        .text('Examen fisico:', LEFT + 5, y);
       y += 13;
       doc.fontSize(9).font('Helvetica').fillColor(TINTA)
         .text(record.physical_exam, LEFT + 15, y, { width: W - 30 });
@@ -455,9 +574,9 @@ export class MedicalRecordPdfService {
       doc.roundedRect(LEFT + 5, y, W - 10, 2, 1).fill(ARENA);
       y += 6;
       doc.fontSize(9).font('Helvetica-Bold').fillColor(TINTA)
-        .text('Diagnóstico:', LEFT + 5, y, { continued: true })
+        .text('Diagnostico:', LEFT + 5, y, { continued: true })
         .font('Helvetica')
-        .text(` ${record.diagnosis_code ? `${record.diagnosis_code} — ` : ''}${record.diagnosis}`);
+        .text(` ${record.diagnosis_code ? `${record.diagnosis_code} - ` : ''}${record.diagnosis}`);
       y = doc.y + 6;
     }
 
@@ -470,8 +589,8 @@ export class MedicalRecordPdfService {
       if (Array.isArray(secondary) && secondary.length > 0) {
         y = doc.y;
         doc.fontSize(8).font('Helvetica').fillColor(TEXT_SOFT)
-          .text('Diagnósticos secundarios: ' + secondary.map((d: any) =>
-            d.code ? `${d.code} — ${d.diagnosis}` : d.diagnosis).join('; '),
+          .text('Diagnosticos secundarios: ' + secondary.map((d: any) =>
+            d.code ? `${d.code} - ${d.diagnosis}` : d.diagnosis).join('; '),
             LEFT + 15, y, { width: W - 30 });
         y = doc.y + 6;
       }
@@ -504,7 +623,7 @@ export class MedicalRecordPdfService {
     // Lab / imaging / referrals
     const orders = [
       { label: 'Laboratorio', value: record.lab_orders },
-      { label: 'Imágenes', value: record.imaging_orders },
+      { label: 'Imagenes', value: record.imaging_orders },
       { label: 'Derivaciones', value: record.referrals },
     ];
     for (const order of orders) {
@@ -535,10 +654,10 @@ export class MedicalRecordPdfService {
   private renderPrescription(doc: any, LEFT: number, W: number, rx: any) {
     let y = doc.y;
 
-    // Date + status
+    // Date+time + status
     const statusLabel = rx.status === 'active' ? 'Vigente' : rx.status === 'cancelled' ? 'Cancelada' : rx.status === 'expired' ? 'Vencida' : rx.status;
     doc.fontSize(8).font('Helvetica').fillColor(TEXT_MUTED)
-      .text(`${this.fmtDate(rx.issued_at)} — Dr/a. ${rx.doctor_name}`, LEFT + 5, y);
+      .text(`${this.fmtDateTime(rx.issued_at)} - Dr/a. ${rx.doctor_name}${rx.doctor_license ? ` (MP ${rx.doctor_license})` : ''}`, LEFT + 5, y);
 
     doc.fontSize(8).font('Helvetica-Bold')
       .fillColor(rx.status === 'active' ? '#10B981' : TEXT_MUTED)
@@ -605,6 +724,45 @@ export class MedicalRecordPdfService {
     doc.y += 10;
   }
 
+  // ─── Audit Log (Registro de accesos) ────────────────────
+
+  private renderAuditLog(doc: any, LEFT: number, W: number, auditAccess: any[]) {
+    let y = doc.y;
+
+    doc.fontSize(7.5).font('Helvetica-Oblique').fillColor(TEXT_MUTED)
+      .text('Registro de accesos a esta historia clinica (Ley 26.529 - trazabilidad)', LEFT + 5, y);
+    y += 14;
+
+    // Table header
+    doc.roundedRect(LEFT, y, W, 14, 2).fill(ARENA);
+    doc.fontSize(7).font('Helvetica-Bold').fillColor(TINTA)
+      .text('Fecha y hora', LEFT + 8, y + 3, { width: 130 })
+      .text('Accion', LEFT + 140, y + 3, { width: 160 })
+      .text('Usuario', LEFT + 300, y + 3, { width: W - 310 });
+    y += 18;
+
+    const actionLabels: Record<string, string> = {
+      'VIEW_PATIENT_RECORDS': 'Consulta de registros',
+      'VIEW_RECORD': 'Visualizacion de registro',
+      'EXPORT_PATIENT_HC_PDF': 'Exportacion PDF',
+      'EMAIL_PATIENT_HC_PDF': 'Envio por email',
+    };
+
+    for (const entry of auditAccess) {
+      this.checkPage(doc, 12);
+      y = doc.y;
+
+      doc.fontSize(7).font('Helvetica').fillColor(TINTA)
+        .text(this.fmtDateTime(entry.created_at), LEFT + 8, y, { width: 130 })
+        .text(actionLabels[entry.action] || entry.action, LEFT + 140, y, { width: 160 })
+        .text(entry.user_name || '—', LEFT + 300, y, { width: W - 310 });
+
+      doc.y = y + 12;
+    }
+
+    doc.y += 10;
+  }
+
   // ─── Signature Block ────────────────────────────────────
 
   private renderSignature(doc: any, LEFT: number, W: number, doctor: any) {
@@ -614,7 +772,7 @@ export class MedicalRecordPdfService {
     y += 15;
 
     doc.fontSize(8).font('Helvetica').fillColor(TEXT_MUTED)
-      .text('CONSTANCIA DE GENERACIÓN', LEFT, y, { width: W, align: 'center' });
+      .text('CONSTANCIA DE GENERACION', LEFT, y, { width: W, align: 'center' });
     y += 16;
 
     // Signature image
@@ -643,7 +801,7 @@ export class MedicalRecordPdfService {
         .text(`Dr/a. ${doctor.first_name} ${doctor.last_name}`, LEFT, y, { width: W, align: 'center' });
       y += 14;
       doc.fontSize(9).font('Helvetica').fillColor(TEXT_SOFT)
-        .text(doctor.specialty || 'Médico/a', LEFT, y, { width: W, align: 'center' });
+        .text(doctor.specialty || 'Medico/a', LEFT, y, { width: W, align: 'center' });
       y += 13;
       doc.fontSize(9)
         .text(`MP ${doctor.medical_license_province || ''} ${doctor.medical_license || 'S/N'}`, LEFT, y, { width: W, align: 'center' });
@@ -657,9 +815,10 @@ export class MedicalRecordPdfService {
     // Legal notice
     doc.fontSize(7).font('Helvetica-Oblique').fillColor(TEXT_MUTED)
       .text(
-        'Historia Clínica generada digitalmente por MediClick. ' +
-        'Conforme Ley 26.529 de Derechos del Paciente en su Relación con los Profesionales e Instituciones de la Salud. ' +
-        'Ley 25.326 de Protección de los Datos Personales.',
+        'Historia Clinica generada digitalmente por MediClick. ' +
+        'Conforme Ley 26.529 de Derechos del Paciente en su Relacion con los Profesionales e Instituciones de la Salud. ' +
+        'Ley 25.326 de Proteccion de los Datos Personales. ' +
+        'Este documento incluye trazabilidad completa de cada registro: fecha, hora, profesional interviniente y matricula.',
         LEFT, y, { width: W, align: 'center' },
       );
 
@@ -674,11 +833,11 @@ export class MedicalRecordPdfService {
     doc.rect(LEFT, footerY, W, 0.5).fill(ARENA);
 
     doc.fontSize(7).font('Helvetica').fillColor(TEXT_MUTED)
-      .text(`HC — ${patientName}`, LEFT, footerY + 6)
-      .text(`Página ${page} de ${total}`, LEFT + W - 80, footerY + 6, { width: 80, align: 'right' });
+      .text(`HC - ${patientName}`, LEFT, footerY + 6)
+      .text(`Pagina ${page} de ${total}`, LEFT + W - 80, footerY + 6, { width: 80, align: 'right' });
 
     doc.fontSize(6).fillColor(TEXT_MUTED)
-      .text('MediClick · Documento confidencial', LEFT, footerY + 18, { width: W, align: 'center' });
+      .text('MediClick - Historia Clinica Digital - Documento confidencial', LEFT, footerY + 18, { width: W, align: 'center' });
   }
 
   // ─── Helpers ─────────────────────────────────────────────
@@ -702,11 +861,19 @@ export class MedicalRecordPdfService {
     return dt.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
-  private fmtDateTime(d: Date): string {
-    return d.toLocaleDateString('es-AR', {
+  private fmtDateTime(d: Date | string): string {
+    const dt = new Date(d);
+    return dt.toLocaleDateString('es-AR', {
       day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit',
     });
+  }
+
+  private getDateRange(records: any[]): string {
+    if (records.length === 0) return '';
+    const first = this.fmtDate(records[0].date);
+    const last = this.fmtDate(records[records.length - 1].date);
+    return first === last ? first : `${first} - ${last}`;
   }
 
   private recordTypeLabel(type: string): string {
@@ -715,7 +882,9 @@ export class MedicalRecordPdfService {
       case 'control': return 'CONTROL';
       case 'urgencia': return 'URGENCIA';
       case 'interconsulta': return 'INTERCONSULTA';
-      case 'cirugía': return 'CIRUGÍA';
+      case 'cirugia': return 'CIRUGIA';
+      case 'primera_consulta': return 'PRIMERA CONSULTA';
+      case 'seguimiento': return 'SEGUIMIENTO';
       default: return (type || 'CONSULTA').toUpperCase();
     }
   }

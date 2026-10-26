@@ -17,6 +17,14 @@ interface EmailOptions {
   text?: string;
 }
 
+interface EmailWithAttachmentOptions extends EmailOptions {
+  attachments: Array<{
+    filename: string;
+    content: Buffer;
+    contentType: string;
+  }>;
+}
+
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
@@ -74,6 +82,37 @@ export class EmailService {
       return true;
     } catch (err) {
       this.logger.error(`Email failed to ${options.to}`, err);
+      return false;
+    }
+  }
+
+  // ─── ENVIAR CON ADJUNTOS ─────────────────────────────────
+
+  async sendWithAttachment(options: EmailWithAttachmentOptions): Promise<boolean> {
+    const from = this.config.get('SMTP_FROM') || 'MediClick <no-reply@mediclick.app>';
+
+    if (!this.transporter) {
+      this.logger.log(`[EMAIL+ATTACHMENT] To: ${options.to} | Subject: ${options.subject} | Files: ${options.attachments.map(a => a.filename).join(', ')}`);
+      return true; // En dev, simula éxito
+    }
+
+    try {
+      await this.transporter.sendMail({
+        from,
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        text: options.text,
+        attachments: options.attachments.map(a => ({
+          filename: a.filename,
+          content: a.content,
+          contentType: a.contentType,
+        })),
+      });
+      this.logger.log(`Email+attachment sent to ${options.to}: ${options.subject}`);
+      return true;
+    } catch (err) {
+      this.logger.error(`Email+attachment failed to ${options.to}`, err);
       return false;
     }
   }
@@ -188,7 +227,7 @@ export class EmailService {
 
   // ─── TEMPLATE WRAPPER ────────────────────────────────────
 
-  private wrapTemplate(content: string): string {
+  wrapTemplate(content: string): string {
     return `
 <!DOCTYPE html>
 <html>
