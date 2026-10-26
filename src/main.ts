@@ -3,6 +3,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { join } from 'path';
 import { SanitizeInterceptor } from './common/interceptors/sanitize.interceptor';
+import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 import { Module, Controller, Get } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseService } from './database/database.service';
@@ -235,6 +236,7 @@ async function bootstrap() {
     },
   });
   app.use(helmet());
+  app.useGlobalFilters(new GlobalExceptionFilter());
   app.useGlobalInterceptors(new SanitizeInterceptor());
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,           // strip unknown properties
