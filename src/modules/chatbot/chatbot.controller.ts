@@ -3,6 +3,7 @@ import { ChatbotService } from './chatbot.service';
 import { Public } from '../../common/guards/auth.guard';
 import { PublicThrottle } from '../../common/decorators/throttle.decorator';
 import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
+import { ChatbotAskDto, UpsertChatbotConfigDto, AddFaqDto } from '../../common/dto/chatbot.dto';
 
 // ═══ Público (widget en la web) ═══
 
@@ -18,8 +19,8 @@ export class PublicChatbotController {
   }
 
   @Post(':slug/ask')
-  ask(@Param('slug') slug: string, @Body() body: { message: string }) {
-    return this.service.ask(slug, body.message);
+  ask(@Param('slug') slug: string, @Body() dto: ChatbotAskDto) {
+    return this.service.ask(slug, dto.message);
   }
 }
 
@@ -33,7 +34,7 @@ export class ChatbotConfigController {
   async upsertConfig(
     @OrgId() orgId: string,
     @DoctorId() doctorId: string,
-    @Body() dto: any,
+    @Body() dto: UpsertChatbotConfigDto,
   ) {
     const { DatabaseService } = require('../../database/database.service');
     // Get org_doctor_id
@@ -47,8 +48,8 @@ export class ChatbotConfigController {
   }
 
   @Post('faqs')
-  async addFaq(@Body() body: { configId: string; question: string; keywords: string[]; answer: string; category?: string }) {
-    return this.service.addFaq(body.configId, body);
+  async addFaq(@Body() dto: AddFaqDto) {
+    return this.service.addFaq(dto.configId, dto);
   }
 
   @Delete('faqs/:id')

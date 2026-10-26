@@ -3,3 +3,8 @@ export * from './patient.dto';
 export * from './booking.dto';
 export * from './appointment.dto';
 export * from './public-patient.dto';
+export * from './chatbot.dto';
+export * from './push.dto';
+export * from './profile.dto';
+export * from './waitlist.dto';
+export * from './misc.dto';

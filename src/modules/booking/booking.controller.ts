@@ -2,6 +2,7 @@ import { Controller, Get, Post, Put, Patch, Body, Param, Query } from '@nestjs/c
 import { BookingService } from './booking.service';
 import { CreateBookingDto, BookingSettingsDto } from '../../common/dto/booking.dto';
 import { PublicRegisterPatientDto } from '../../common/dto/public-patient.dto';
+import { UploadPaymentProofDto, CancelBookingDto } from '../../common/dto/misc.dto';
 import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/guards/auth.guard';
 import { PublicThrottle } from '../../common/decorators/throttle.decorator';
@@ -50,15 +51,15 @@ export class PublicBookingController {
   @Post('status/:token/payment')
   uploadProof(
     @Param('token') token: string,
-    @Body() body: { proofUrl: string; reference?: string },
+    @Body() dto: UploadPaymentProofDto,
   ) {
-    return this.bookingService.uploadPaymentProof(token, body.proofUrl, body.reference);
+    return this.bookingService.uploadPaymentProof(token, dto.proofUrl, dto.reference);
   }
 
   /** POST /public/booking/status/:token/cancel */
   @Post('status/:token/cancel')
-  cancel(@Param('token') token: string, @Body() body: { reason?: string }) {
-    return this.bookingService.cancelBooking(token, body?.reason);
+  cancel(@Param('token') token: string, @Body() dto: CancelBookingDto) {
+    return this.bookingService.cancelBooking(token, dto?.reason);
   }
 
   /** POST /public/booking/:slug/register-patient — auto-registro en cartilla */

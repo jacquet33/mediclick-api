@@ -2,6 +2,7 @@ import { Controller, Get, Post, Delete, Body, Param, Query } from '@nestjs/commo
 import { WaitlistService, AddToWaitlistDto } from './waitlist.service';
 import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/guards/auth.guard';
+import { PublicWaitlistDto, BookWaitlistDto } from '../../common/dto/waitlist.dto';
 
 // ═══════════════════════════════════════════════════════════
 // PRIVADO — médico autenticado
@@ -50,9 +51,9 @@ export class WaitlistController {
     @OrgId() orgId: string,
     @DoctorId() doctorId: string,
     @Param('id') id: string,
-    @Body() body: { startTime: string; endTime: string },
+    @Body() dto: BookWaitlistDto,
   ) {
-    return this.service.bookFromWaitlist(orgId, doctorId, id, body.startTime, body.endTime);
+    return this.service.bookFromWaitlist(orgId, doctorId, id, dto.startTime, dto.endTime);
   }
 }
 
@@ -69,11 +70,7 @@ export class PublicWaitlistController {
   @Post(':slug')
   addPublic(
     @Param('slug') slug: string,
-    @Body() dto: {
-      firstName: string; lastName: string; phone: string; email?: string;
-      desiredDate: string; preferredStartTime?: string; preferredEndTime?: string;
-      reason?: string;
-    },
+    @Body() dto: PublicWaitlistDto,
   ) {
     return this.service.addPublic(slug, dto);
   }

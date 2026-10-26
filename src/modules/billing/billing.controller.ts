@@ -3,6 +3,7 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { BillingService, BuildBatchDto, AddItemDto } from './billing.service';
+import { SubmitBatchDto } from '../../common/dto/misc.dto';
 import { OrgId } from '../../common/decorators/current-user.decorator';
 
 @Controller('api/v1/billing')
@@ -62,9 +63,9 @@ export class BillingController {
   submit(
     @OrgId() orgId: string,
     @Param('id') id: string,
-    @Body() body: { batchNumber?: string },
+    @Body() dto: SubmitBatchDto,
   ) {
-    return this.billing.markSubmitted(orgId, id, body?.batchNumber);
+    return this.billing.markSubmitted(orgId, id, dto?.batchNumber);
   }
 
   /** Descarga el lote en CSV */

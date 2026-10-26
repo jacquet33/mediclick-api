@@ -5,6 +5,7 @@ import {
 import { Request } from 'express';
 import { Public, AdminOnly } from '../../common/guards/auth.guard';
 import { SubscriptionService, VerifyReceiptDto } from './subscription.service';
+import { AdminGrantDto } from '../../common/dto/misc.dto';
 
 @Controller('api/v1/subscriptions')
 export class SubscriptionController {
@@ -106,11 +107,11 @@ export class SubscriptionController {
   @AdminOnly()
   @Post('admin/grant')
   async grantPro(
-    @Body() body: { doctorId: string; months: number; reason: string },
+    @Body() dto: AdminGrantDto,
   ) {
     await this.subscriptionService.grantProManual(
-      body.doctorId, body.months, body.reason,
+      dto.doctorId, dto.months, dto.reason,
     );
-    return { success: true, message: `Pro granted for ${body.months} months` };
+    return { success: true, message: `Pro granted for ${dto.months} months` };
   }
 }

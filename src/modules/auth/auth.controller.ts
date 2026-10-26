@@ -6,6 +6,7 @@ import {
   LoginDto, RegisterDto, RegisterPatientDto, RegisterStaffDto,
   RefreshTokenDto, ChangePasswordDto,
 } from '../../common/dto/auth.dto';
+import { LogoutDto } from '../../common/dto/misc.dto';
 
 @Public()
 @StrictThrottle()
@@ -47,8 +48,8 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  async logout(@Body() body: { userId: string }) {
-    const userId = body.userId || (body as any).doctorId;
+  async logout(@Body() dto: LogoutDto) {
+    const userId = dto.userId || (dto as any).doctorId;
     await this.authService.logout(userId);
     return { message: 'Sesión cerrada' };
   }

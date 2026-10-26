@@ -1,6 +1,7 @@
 import { Controller, Get, Put, Delete, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { DoctorId } from '../../common/decorators/current-user.decorator';
 import { ProfileService } from './profile.service';
+import { UpdateProfileDto, UpdateSignatureDto } from '../../common/dto/profile.dto';
 
 @Controller('api/v1/profile')
 export class ProfileController {
@@ -16,15 +17,7 @@ export class ProfileController {
   @Put()
   updateProfile(
     @DoctorId() doctorId: string,
-    @Body() dto: {
-      firstName?: string;
-      lastName?: string;
-      phone?: string;
-      specialty?: string;
-      medicalLicense?: string;
-      medicalLicenseProvince?: string;
-      bio?: string;
-    },
+    @Body() dto: UpdateProfileDto,
   ) {
     return this.profileService.updateProfile(doctorId, dto);
   }
@@ -34,9 +27,9 @@ export class ProfileController {
   @HttpCode(HttpStatus.OK)
   uploadSignature(
     @DoctorId() doctorId: string,
-    @Body() body: { image: string },
+    @Body() dto: UpdateSignatureDto,
   ) {
-    return this.profileService.uploadSignature(doctorId, body.image);
+    return this.profileService.uploadSignature(doctorId, dto.image);
   }
 
   /** DELETE /api/v1/profile/signature — remove signature */

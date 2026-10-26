@@ -5,6 +5,7 @@ import {
 import { Request } from 'express';
 import { Public } from '../../common/guards/auth.guard';
 import { MercadoPagoService } from './mercadopago.service';
+import { SubscribePlanDto } from '../../common/dto/misc.dto';
 
 @Controller('api/v1/payments')
 export class PaymentController {
@@ -21,14 +22,9 @@ export class PaymentController {
   @Post('subscribe')
   async subscribe(
     @Req() req: Request,
-    @Body() body: { plan: 'pro' | 'centro' },
+    @Body() dto: SubscribePlanDto,
   ) {
-    const plan = body.plan || 'pro';
-    if (!['pro', 'centro'].includes(plan)) {
-      return { error: 'Plan inválido. Opciones: pro, centro' };
-    }
-
-    return this.mpService.createSubscription(req.user!.doctorId, plan);
+    return this.mpService.createSubscription(req.user!.doctorId, dto.plan as 'pro' | 'centro');
   }
 
   // ─── Cancelar ─────────────────────────────────────────────

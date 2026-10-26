@@ -1,6 +1,7 @@
 import { Controller, Post, Delete, Get, Body, Param, Query } from '@nestjs/common';
 import { PushNotificationService } from './push.service';
 import { Public } from '../../common/guards/auth.guard';
+import { RegisterPushDto, UnregisterPushDto, TestPushDto } from '../../common/dto/push.dto';
 
 @Controller('api/v1/push')
 export class PushController {
@@ -8,44 +9,31 @@ export class PushController {
 
   /** Registrar device token (llamado desde la app al obtener permiso de push) */
   @Post('register')
-  register(@Body() body: {
-    userType: 'doctor' | 'patient' | 'staff';
-    userId: string;
-    token: string;
-    platform: 'ios' | 'android' | 'web';
-    deviceName?: string;
-    appVersion?: string;
-    osVersion?: string;
-  }) {
+  register(@Body() dto: RegisterPushDto) {
     return this.pushService.registerToken(
-      body.userType, body.userId, body.token, body.platform,
-      { deviceName: body.deviceName, appVersion: body.appVersion, osVersion: body.osVersion },
+      dto.userType as 'doctor' | 'patient' | 'staff', dto.userId, dto.token, dto.platform as 'ios' | 'android' | 'web',
+      { deviceName: dto.deviceName, appVersion: dto.appVersion, osVersion: dto.osVersion },
     );
   }
 
   /** Desregistrar token (logout o desinstalación) */
   @Delete('unregister')
-  unregister(@Body() body: { token: string }) {
-    return this.pushService.unregisterToken(body.token);
+  unregister(@Body() dto: UnregisterPushDto) {
+    return this.pushService.unregisterToken(dto.token);
   }
 
   /** Enviar push de prueba */
   @Post('test')
-  async testPush(@Body() body: {
-    userType: 'doctor' | 'patient' | 'staff';
-    userId: string;
-    title?: string;
-    body?: string;
-  }) {
+  async testPush(@Body() dto: TestPushDto) {
     const payload = {
-      title: body.title || '🔔 Notificación de prueba',
-      body: body.body || 'Si ves esto, las push notifications funcionan.',
+      title: dto.title || '🔔 Notificación de prueba',
+      body: dto.body || 'Si ves esto, las push notifications funcionan.',
       category: 'test',
     };
 
-    if (body.userType === 'doctor') return this.pushService.sendToDoctor(body.userId, payload);
-    if (body.userType === 'patient') return this.pushService.sendToPatient(body.userId, payload);
-    return this.pushService.sendToStaff(body.userId, payload);
+    if (dto.userType === 'doctor') return this.pushService.sendToDoctor(dto.userId, payload);
+    if (dto.userType === 'patient') return this.pushService.sendToPatient(dto.userId, payload);
+    return this.pushService.sendToStaff(dto.userId, payload);
   }
 
   /** Stats de notificaciones */
