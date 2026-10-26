@@ -11,7 +11,7 @@ export class ProfileService {
   async getProfile(doctorId: string) {
     const doc = await this.db.queryOne(
       `SELECT id, email, first_name, last_name, phone, dni,
-              medical_license, medical_license_province,
+              medical_license, medical_license_province, refeps_code,
               specialty, secondary_specialties, avatar_url, bio,
               signature_image IS NOT NULL AS has_signature,
               created_at
@@ -31,6 +31,7 @@ export class ProfileService {
       specialty?: string;
       medicalLicense?: string;
       medicalLicenseProvince?: string;
+      refepsCode?: string;
       bio?: string;
     },
   ) {
@@ -44,6 +45,7 @@ export class ProfileService {
     if (dto.specialty) { sets.push(`specialty = $${idx++}`); vals.push(dto.specialty); }
     if (dto.medicalLicense) { sets.push(`medical_license = $${idx++}`); vals.push(dto.medicalLicense); }
     if (dto.medicalLicenseProvince !== undefined) { sets.push(`medical_license_province = $${idx++}`); vals.push(dto.medicalLicenseProvince); }
+    if (dto.refepsCode !== undefined) { sets.push(`refeps_code = $${idx++}`); vals.push(dto.refepsCode); }
     if (dto.bio !== undefined) { sets.push(`bio = $${idx++}`); vals.push(dto.bio); }
 
     if (sets.length === 0) return this.getProfile(doctorId);

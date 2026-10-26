@@ -18,6 +18,7 @@ export interface CreatePatientDto {
   insuranceProvider?: string;
   insuranceNumber?: string;
   insurancePlan?: string;
+  cuil?: string;
   primaryDoctorId?: string;
   allergies?: string[];
   chronicConditions?: string[];
@@ -90,15 +91,16 @@ export class PatientService {
     
     const patient = await this.db.queryOne(
       `INSERT INTO patients (
-        organization_id, first_name, last_name, dni, email, phone,
+        organization_id, first_name, last_name, dni, cuil, email, phone,
         date_of_birth, address, city, province,
         insurance_provider, insurance_number, insurance_plan,
         primary_doctor_id, notes
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7::date,$8,$9,$10,$11,$12,$13,$14,$15)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8::date,$9,$10,$11,$12,$13,$14,$15,$16)
       RETURNING *`,
       [
         orgId, firstName, lastName,
-        dto.dni || null, dto.email || null, dto.phone || null,
+        dto.dni || null, dto.cuil || (dto as any).cuil || null,
+        dto.email || null, dto.phone || null,
         dto.dateOfBirth || dto.date_of_birth || null,
         dto.address || null, dto.city || null, dto.province || null,
         dto.insuranceProvider || dto.insurance_provider || null,
@@ -120,7 +122,7 @@ export class PatientService {
     let idx = 1;
 
     const mapping: Record<string, string> = {
-      firstName: 'first_name', lastName: 'last_name', dni: 'dni',
+      firstName: 'first_name', lastName: 'last_name', dni: 'dni', cuil: 'cuil',
       email: 'email', phone: 'phone', dateOfBirth: 'date_of_birth',
       gender: 'gender', bloodType: 'blood_type', address: 'address',
       city: 'city', province: 'province',

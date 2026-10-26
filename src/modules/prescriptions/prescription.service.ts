@@ -3,11 +3,18 @@ import { DatabaseService } from '../../database/database.service';
 
 export interface PrescriptionItemDto {
   medicationName: string;
+  genericName?: string;
   dosage: string;
   frequency: string;
   duration?: string;
   quantity?: number;
   instructions?: string;
+  pharmaceuticalForm?: string;
+  presentation?: string;
+  // snake_case aliases from iOS
+  medication_name?: string;
+  generic_name?: string;
+  pharmaceutical_form?: string;
 }
 
 export interface CreatePrescriptionDto {
@@ -108,16 +115,20 @@ export class PrescriptionService {
         const item = items[i];
         await client.query(
           `INSERT INTO prescription_items (
-            prescription_id, medication_name, dosage, frequency,
-            duration, quantity, instructions, sort_order
-          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+            prescription_id, medication_name, generic_name, dosage, frequency,
+            duration, quantity, instructions, pharmaceutical_form, presentation, sort_order
+          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
           [rxId,
            item.medicationName || item.medication_name,
+           item.genericName || item.generic_name || null,
            item.dosage || null,
            item.frequency || null,
            item.duration || null,
            item.quantity || null,
-           item.instructions || null, i],
+           item.instructions || null,
+           item.pharmaceuticalForm || item.pharmaceutical_form || null,
+           item.presentation || null,
+           i],
         );
       }
 
@@ -136,9 +147,12 @@ export class PrescriptionService {
 
   async verify(code: string) {
     const rx = await this.db.queryOne(
-      `SELECT rx.*, p.first_name || ' ' || p.last_name AS patient_name,
+      `SELECT rx.verification_code, rx.diagnosis, rx.diagnosis_code,
+              rx.issued_at, rx.expires_at, rx.status, rx.notes,
+              p.first_name || ' ' || p.last_name AS patient_name,
               d.first_name || ' ' || d.last_name AS doctor_name,
-              d.medical_license, o.name AS org_name
+              d.medical_license, d.specialty,
+              o.name AS org_name
        FROM prescriptions rx
        JOIN patients p ON p.id = rx.patient_id
        JOIN doctors d ON d.id = rx.doctor_id
@@ -149,8 +163,12 @@ export class PrescriptionService {
     if (!rx) throw new NotFoundException('Código de verificación inválido');
 
     const items = await this.db.queryMany(
-      `SELECT * FROM prescription_items WHERE prescription_id = $1 ORDER BY sort_order`,
-      [rx.id],
+      `SELECT medication_name, generic_name, dosage, frequency, duration, quantity,
+              pharmaceutical_form, presentation
+       FROM prescription_items WHERE prescription_id = (
+         SELECT id FROM prescriptions WHERE verification_code = $1
+       ) ORDER BY sort_order`,
+      [code],
     );
 
     return { ...rx, items };

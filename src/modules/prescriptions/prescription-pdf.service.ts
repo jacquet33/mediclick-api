@@ -1,8 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { DatabaseService } from '../../database/database.service';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const PDFDocument = require('pdfkit');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const QRCode = require('qrcode');
 
 interface PrescriptionData {
   // Receta
@@ -55,7 +58,7 @@ interface PrescriptionData {
 export class PrescriptionPdfService {
   private readonly logger = new Logger(PrescriptionPdfService.name);
 
-  constructor(private db: DatabaseService) {}
+  constructor(private db: DatabaseService, private config: ConfigService) {}
 
   async generatePdf(orgId: string, prescriptionId: string): Promise<Buffer> {
     // 1) Cargar datos completos (sin filtrar por org, el ID es único)
@@ -92,11 +95,21 @@ export class PrescriptionPdfService {
 
     rx.items = items;
 
-    // 2) Generar PDF
-    return this.buildPdf(rx as PrescriptionData);
+    // 2) Generar QR de verificación
+    const baseUrl = this.config.get('BASE_URL') || 'https://mediclick.art3d-studio.com.ar';
+    const verifyUrl = `${baseUrl}/verificar-receta.html?code=${rx.verification_code}`;
+    let qrDataUrl: string | null = null;
+    try {
+      qrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 120, margin: 1, color: { dark: '#161925', light: '#FFFFFF' } });
+    } catch (e) {
+      this.logger.warn(`Could not generate QR code: ${e.message}`);
+    }
+
+    // 3) Generar PDF
+    return this.buildPdf(rx as PrescriptionData, qrDataUrl);
   }
 
-  private buildPdf(rx: PrescriptionData): Promise<Buffer> {
+  private buildPdf(rx: PrescriptionData, qrDataUrl: string | null): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({
         size: 'A4',
@@ -236,11 +249,28 @@ export class PrescriptionPdfService {
 
       // Medicamentos
       for (const item of rx.items) {
-        // Bullet
+        // Bullet + nombre comercial
         doc.fontSize(10).font('Helvetica-Bold').fillColor('#333333')
           .text('•', LEFT + 5, y, { continued: true })
           .text(` ${item.medication_name}`, { continued: false });
         y += 14;
+
+        // Nombre genérico / DCI (Ley 25.649)
+        if ((item as any).generic_name) {
+          doc.fontSize(8).font('Helvetica-Oblique').fillColor('#879DFF')
+            .text(`  DCI: ${(item as any).generic_name}`, LEFT + 15, y, { width: W - 30 });
+          y += 12;
+        }
+
+        // Forma farmacéutica y presentación
+        const pharmaInfo: string[] = [];
+        if ((item as any).pharmaceutical_form) pharmaInfo.push((item as any).pharmaceutical_form);
+        if ((item as any).presentation) pharmaInfo.push((item as any).presentation);
+        if (pharmaInfo.length > 0) {
+          doc.fontSize(8).font('Helvetica').fillColor('#666666')
+            .text(`  ${pharmaInfo.join(' — ')}`, LEFT + 15, y, { width: W - 30 });
+          y += 12;
+        }
 
         // Detalles
         const details: string[] = [];
@@ -332,55 +362,59 @@ export class PrescriptionPdfService {
         .text('FIRMA Y SELLO', LEFT, signatureY + 50, { width: W, align: 'center' });
 
       // ═══════════════════════════════════════════════════════
-      // PIE DE PÁGINA
+      // PIE DE PÁGINA con QR de verificación (Ley 27.553)
       // ═══════════════════════════════════════════════════════
 
-      const footerY = doc.page.height - 90;
+      const footerY = doc.page.height - 120;
 
       // Línea decorativa
       doc.rect(LEFT, footerY, W, 1).fill('#161925');
 
-      // Info de firma digital
-      doc.fontSize(7).font('Helvetica-Oblique').fillColor('#888888')
-        .text(
-          'Este documento ha sido generado digitalmente por MediClick.',
-          LEFT, footerY + 8, { width: W * 0.55 },
-        );
-
-      doc.fontSize(7).text(fmtDate(rx.issued_at), LEFT, footerY + 20);
-
-      // Bloque derecho: datos del médico + verificación
-      const rightColX = LEFT + W * 0.55;
-
-      doc.fontSize(8).font('Helvetica-Bold').fillColor('#555555')
-        .text(rx.doctor_specialty?.toUpperCase() || 'MÉDICO', rightColX, footerY + 8, { width: W * 0.45, align: 'center' });
-
-      doc.fontSize(8).font('Helvetica').fillColor('#555555')
-        .text(doctorName, rightColX, footerY + 20, { width: W * 0.45, align: 'center' });
-
-      if (rx.doctor_email) {
-        doc.fontSize(7).font('Helvetica-Bold')
-          .text(rx.doctor_email, rightColX, footerY + 32, { width: W * 0.45, align: 'center' });
+      // QR Code (izquierda)
+      const qrSize = 80;
+      if (qrDataUrl) {
+        try {
+          const qrMatch = qrDataUrl.match(/^data:image\/png;base64,(.+)$/);
+          if (qrMatch) {
+            const qrBuffer = Buffer.from(qrMatch[1], 'base64');
+            doc.image(qrBuffer, LEFT, footerY + 6, { width: qrSize, height: qrSize });
+          }
+        } catch (e) {
+          this.logger.warn(`Could not render QR in PDF: ${e.message}`);
+        }
       }
 
-      // Código de verificación
+      // Texto de verificación (al lado del QR)
+      const textStartX = LEFT + qrSize + 12;
+      const textW = W - qrSize - 12;
+
+      doc.fontSize(7).font('Helvetica-Bold').fillColor('#161925')
+        .text('RECETA ELECTRÓNICA — Ley 27.553', textStartX, footerY + 8, { width: textW });
+
+      doc.fontSize(7).font('Helvetica').fillColor('#555555')
+        .text(`Emitida: ${fmtDate(rx.issued_at)}  |  Vence: ${fmtDate(rx.expires_at)}`, textStartX, footerY + 20, { width: textW });
+
+      doc.fontSize(7).font('Helvetica').fillColor('#555555')
+        .text(`${rx.doctor_specialty?.toUpperCase() || 'MÉDICO'} — ${doctorName}`, textStartX, footerY + 32, { width: textW });
+
+      doc.fontSize(7)
+        .text(`MP. ${rx.doctor_medical_license || 'S/N'}`, textStartX, footerY + 44, { width: textW });
+
+      // Código de verificación (CUIR)
       if (rx.verification_code) {
-        doc.fontSize(7).font('Helvetica').fillColor('#888888')
-          .text(
-            `Código de verificación: ${rx.verification_code}`,
-            rightColX, footerY + 44, { width: W * 0.45, align: 'center' },
-          );
+        doc.fontSize(8).font('Helvetica-Bold').fillColor('#879DFF')
+          .text(`CUIR: ${rx.verification_code}`, textStartX, footerY + 58, { width: textW });
       }
 
       // Leyenda legal
-      doc.fontSize(6).font('Helvetica').fillColor('#AAAAAA')
+      doc.fontSize(6).font('Helvetica-Oblique').fillColor('#AAAAAA')
         .text(
-          'Receta generada electrónicamente. Verificable en mediclick.art3d-studio.com.ar',
-          LEFT, footerY + 60, { width: W, align: 'center' },
+          'Receta generada electrónicamente conforme Ley 27.553. Escanee el código QR para verificar autenticidad.',
+          LEFT, footerY + 92, { width: W, align: 'center' },
         );
 
       // Línea inferior decorativa
-      doc.rect(LEFT, footerY + 72, W, 3).fill('#879DFF');
+      doc.rect(LEFT, footerY + 105, W, 3).fill('#879DFF');
 
       doc.end();
     });

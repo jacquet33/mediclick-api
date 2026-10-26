@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#161925">
+<title>Verificar receta — MediClick</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --crema:#FFF7F3; --arena:#DCC7BB; --tinta:#161925; --lavanda:#879DFF;
+  --bg:#FFF7F3; --surface:#fff; --text:#161925; --text-soft:#5A5D6D;
+  --success:#21BF8C; --danger:#F25C66; --warning:#FFB333;
+  --radius:16px; --shadow:0 4px 20px rgba(22,25,37,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--crema);min-height:100dvh;color:var(--tinta);-webkit-font-smoothing:antialiased}
+.wrap{max-width:480px;margin:0 auto;padding:16px;min-height:100dvh;display:flex;flex-direction:column}
+
+.header{background:var(--tinta);border-radius:0 0 28px 28px;padding:24px 20px;color:var(--crema);margin:-16px -16px 24px;position:relative;overflow:hidden;text-align:center}
+.header::before{content:'';position:absolute;top:-40%;right:-20%;width:60%;height:120%;background:radial-gradient(circle,rgba(135,157,255,.15),transparent 70%);pointer-events:none}
+.header *{position:relative;z-index:1}
+.brand{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;opacity:.85;font-size:12px;font-weight:600;letter-spacing:1px}
+.header h1{font-size:18px;font-weight:700}
+
+.card{background:var(--surface);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);margin-bottom:16px}
+
+.status-badge{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:24px;font-size:14px;font-weight:600;margin-bottom:20px}
+.status-valid{background:#E6F9F1;color:#0D8F5F}
+.status-expired{background:#FDE8E8;color:#C53030}
+.status-cancelled{background:#FFF3CD;color:#856404}
+
+.field{margin-bottom:14px}
+.field-label{font-size:11px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.field-value{font-size:14px;color:var(--tinta);font-weight:500}
+
+.divider{border:none;border-top:1px solid var(--arena);margin:16px 0}
+
+.med-item{background:var(--crema);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.med-name{font-size:14px;font-weight:600;color:var(--tinta)}
+.med-detail{font-size:12px;color:var(--text-soft);margin-top:4px}
+
+.legal{font-size:11px;color:var(--text-soft);line-height:1.5;text-align:center;padding:16px 0}
+
+.loading{text-align:center;padding:60px 0}
+.loading .spinner{width:40px;height:40px;border:3px solid var(--arena);border-top-color:var(--lavanda);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.error{text-align:center;padding:40px 0}
+.error .icon{font-size:48px;margin-bottom:12px}
+.error h2{font-size:18px;margin-bottom:8px}
+.error p{color:var(--text-soft);font-size:14px}
+
+.shield{display:flex;align-items:center;gap:8px;background:var(--crema);border-radius:12px;padding:10px 14px;margin-bottom:16px}
+.shield svg{flex-shrink:0}
+.shield span{font-size:12px;color:var(--text-soft);font-weight:500}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="brand">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      MEDICLICK
+    </div>
+    <h1>Verificación de receta electrónica</h1>
+  </div>
+
+  <div id="content">
+    <div class="loading">
+      <div class="spinner"></div>
+      <p style="color:var(--text-soft);font-size:14px">Verificando receta...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin;
+const params = new URLSearchParams(window.location.search);
+const code = params.get('code');
+
+function maskName(name) {
+  if (!name) return '***';
+  const parts = name.split(' ');
+  return parts.map(p => p[0] + '*'.repeat(Math.max(p.length - 1, 2))).join(' ');
+}
+
+function maskDni(dni) {
+  if (!dni) return '***';
+  return dni.slice(0, 2) + '*'.repeat(Math.max(dni.length - 4, 2)) + dni.slice(-2);
+}
+
+function fmtDate(d) {
+  return new Date(d).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+async function verify() {
+  const el = document.getElementById('content');
+
+  if (!code) {
+    el.innerHTML = `<div class="error"><div class="icon">🔍</div><h2>Código no proporcionado</h2><p>Escanee el código QR de una receta de MediClick para verificarla.</p></div>`;
+    return;
+  }
+
+  try {
+    const r = await fetch(`${API}/api/v1/prescriptions/verify/${encodeURIComponent(code)}`);
+    if (!r.ok) throw new Error('not found');
+    const rx = await r.json();
+
+    const now = new Date();
+    const expires = new Date(rx.expires_at);
+    const isValid = rx.status === 'active' && expires > now;
+    const isExpired = expires <= now;
+    const isCancelled = rx.status === 'cancelled';
+
+    let statusClass, statusText, statusIcon;
+    if (isCancelled) {
+      statusClass = 'status-cancelled'; statusText = 'ANULADA'; statusIcon = '⚠️';
+    } else if (isExpired) {
+      statusClass = 'status-expired'; statusText = 'VENCIDA'; statusIcon = '⏰';
+    } else if (isValid) {
+      statusClass = 'status-valid'; statusText = 'VÁLIDA'; statusIcon = '✅';
+    } else {
+      statusClass = 'status-expired'; statusText = rx.status?.toUpperCase() || 'DESCONOCIDO'; statusIcon = '❓';
+    }
+
+    const patientName = maskName(rx.patient_name);
+
+    el.innerHTML = `
+      <div class="shield">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#21BF8C" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+        <span>Documento verificado electrónicamente — Ley 27.553</span>
+      </div>
+
+      <div class="card" style="text-align:center">
+        <div class="status-badge ${statusClass}">${statusIcon} Receta ${statusText}</div>
+
+        <div class="field">
+          <div class="field-label">Código de verificación (CUIR)</div>
+          <div class="field-value" style="font-family:monospace;font-size:16px;color:var(--lavanda)">${rx.verification_code}</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+          <span style="font-size:18px">👨‍⚕️</span>
+          <span style="font-size:15px;font-weight:600">Profesional</span>
+        </div>
+
+        <div class="field">
+          <div class="field-label">Médico/a</div>
+          <div class="field-value">Dr/a. ${rx.doctor_name}</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Matrícula Provincial</div>
+          <div class="field-value">MP. ${rx.medical_license || 'S/N'}</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Institución</div>
+          <div class="field-value">${rx.org_name || 'Consultorio particular'}</div>
+        </div>
+
+        <hr class="divider">
+
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+          <span style="font-size:18px">👤</span>
+          <span style="font-size:15px;font-weight:600">Paciente</span>
+        </div>
+
+        <div class="field">
+          <div class="field-label">Nombre (parcialmente oculto)</div>
+          <div class="field-value">${patientName}</div>
+        </div>
+
+        <hr class="divider">
+
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+          <span style="font-size:18px">📋</span>
+          <span style="font-size:15px;font-weight:600">Datos de la receta</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div class="field">
+            <div class="field-label">Fecha emisión</div>
+            <div class="field-value">${fmtDate(rx.issued_at)}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Válida hasta</div>
+            <div class="field-value">${fmtDate(rx.expires_at)}</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-label">Diagnóstico</div>
+          <div class="field-value">${rx.diagnosis_code ? rx.diagnosis_code + ' — ' : ''}${rx.diagnosis || 'No especificado'}</div>
+        </div>
+
+        ${rx.items && rx.items.length ? `
+          <hr class="divider">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <span style="font-size:18px">💊</span>
+            <span style="font-size:15px;font-weight:600">Medicamentos (${rx.items.length})</span>
+          </div>
+          ${rx.items.map(it => `
+            <div class="med-item">
+              <div class="med-name">${it.medication_name}</div>
+              ${it.generic_name ? `<div class="med-detail" style="font-style:italic">DCI: ${it.generic_name}</div>` : ''}
+              <div class="med-detail">${[it.dosage, it.frequency, it.duration, it.quantity ? 'Cant: '+it.quantity : ''].filter(Boolean).join(' — ')}</div>
+            </div>
+          `).join('')}
+        ` : ''}
+      </div>
+
+      <div class="legal">
+        Receta electrónica emitida conforme la Ley 27.553 (Recetas Electrónicas o Digitales)
+        y su reglamentación. La verificación confirma que este documento fue emitido a través
+        de la plataforma MediClick y corresponde a una prescripción legítima.<br><br>
+        Para cualquier consulta, comuníquese con el profesional emisor.
+      </div>
+    `;
+  } catch (e) {
+    el.innerHTML = `
+      <div class="card">
+        <div class="error">
+          <div class="icon">❌</div>
+          <h2>Receta no encontrada</h2>
+          <p>El código de verificación no corresponde a ninguna receta registrada en MediClick.
+          Verifique que el código QR escaneado sea correcto.</p>
+        </div>
+      </div>
+    `;
+  }
+}
+
+verify();
+</script>
+</body>
+</html>
