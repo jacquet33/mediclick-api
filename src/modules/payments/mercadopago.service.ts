@@ -15,7 +15,7 @@ import { DatabaseService } from '../../database/database.service';
  *   MP_ACCESS_TOKEN      — Access token de producción
  *   MP_PUBLIC_KEY        — Public key (para frontend checkout)
  *   MP_WEBHOOK_SECRET    — Secret para validar webhooks (opcional)
- *   MP_NOTIFICATION_URL  — URL pública para webhooks (ej: https://mediclick.art3d-studio.com.ar/api/v1/payments/webhooks/mercadopago)
+ *   MP_NOTIFICATION_URL  — URL pública para webhooks (ej: https://tuconsultorio.rispy.io/api/v1/payments/webhooks/mercadopago)
  */
 
 interface MpPreapproval {
@@ -86,7 +86,7 @@ export class MercadoPagoService {
     }
 
     const notificationUrl = this.config.get('MP_NOTIFICATION_URL')
-      || `${this.config.get('API_BASE_URL') || 'https://mediclick.art3d-studio.com.ar'}/api/v1/payments/webhooks/mercadopago`;
+      || `${this.config.get('API_BASE_URL') || 'https://tuconsultorio.rispy.io'}/api/v1/payments/webhooks/mercadopago`;
 
     // Crear preapproval (suscripción) en Mercado Pago
     const body = {
@@ -99,7 +99,7 @@ export class MercadoPagoService {
         transaction_amount: plan.amount,
         currency_id: plan.currency,
       },
-      back_url: `${this.config.get('API_BASE_URL') || 'https://mediclick.art3d-studio.com.ar'}/payment-result`,
+      back_url: `${this.config.get('API_BASE_URL') || 'https://tuconsultorio.rispy.io'}/payment-result`,
       notification_url: notificationUrl,
     };
 
