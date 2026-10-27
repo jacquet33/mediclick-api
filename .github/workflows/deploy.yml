@@ -54,6 +54,9 @@ jobs:
                   timeout: 10s
                   retries: 3
                   start_period: 40s
+                environment:
+                  # ID de cliente OAuth web de Google (es público, no es secreto). Variable del repo GOOGLE_CLIENT_ID_WEB
+                  GOOGLE_CLIENT_ID_WEB: "${{ vars.GOOGLE_CLIENT_ID_WEB }}"
                 networks:
                   - mediclick-net
                   - traefik-public
