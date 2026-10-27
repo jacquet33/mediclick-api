@@ -1,0 +1,19 @@
+# Verifica desde internet que un dominio responda con HTTPS válido (se ejecuta a mano).
+name: Verificar dominio
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: URL a probar
+        default: https://tuconsultorio.rispy.io/api/v1/health
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probar
+        run: |
+          H=$(echo "${{ inputs.url }}" | sed -E 's#https?://([^/]+).*#\1#')
+          echo "::notice::DNS $(dig +short $H | tr '\n' ' ')"
+          OUT=$(curl -sS -m 20 -o body.txt -w '%{http_code} %{ssl_verify_result}' "${{ inputs.url }}" 2>&1) || true
+          echo "::notice::HTTP $OUT · $(head -c 200 body.txt 2>/dev/null | tr '\n' ' ')"
+          echo | openssl s_client -servername $H -connect $H:443 2>/dev/null | openssl x509 -noout -issuer -enddate 2>&1 | while read l; do echo "::notice::CERT $l"; done
