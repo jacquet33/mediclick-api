@@ -383,11 +383,40 @@ export class BookingService {
       paymentDeadline = new Date(Date.now() + profile.payment_deadline_minutes * 60000);
     }
 
-    // Buscar paciente existente
-    const existingPatient = await this.db.queryOne(
-      `SELECT id FROM patients WHERE organization_id = $1 AND (phone = $2 OR (dni IS NOT NULL AND dni = $3))`,
-      [profile.organization_id, dto.phone, dto.dni],
-    );
+    // Buscar paciente existente. El DNI identifica a la persona; el teléfono solo si además coincide
+    // el nombre (una familia suele compartir celular: antes el turno quedaba a nombre de otro paciente).
+    const dni = (dto.dni || '').replace(/\D/g, '');
+    let existingPatient: { id: string } | null = null;
+    if (dni) {
+      existingPatient = await this.db.queryOne(
+        `SELECT id FROM patients WHERE organization_id = $1 AND regexp_replace(COALESCE(dni, ''), '\\D', '', 'g') = $2
+         ORDER BY created_at LIMIT 1`,
+        [profile.organization_id, dni],
+      );
+    }
+    if (!existingPatient && dto.phone) {
+      existingPatient = await this.db.queryOne(
+        `SELECT id FROM patients
+         WHERE organization_id = $1 AND phone = $2
+           AND (dni IS NULL OR $5 = '' OR regexp_replace(dni, '\\D', '', 'g') = $5)
+           AND lower(unaccent_simple(first_name)) = lower(unaccent_simple($3))
+           AND lower(unaccent_simple(last_name)) = lower(unaccent_simple($4))
+         ORDER BY created_at LIMIT 1`,
+        [profile.organization_id, dto.phone, (dto.firstName || '').trim(), (dto.lastName || '').trim(), dni],
+      );
+    }
+    if (existingPatient) {
+      // Completa lo que el paciente no tenía cargado, sin pisar datos
+      await this.db.query(
+        `UPDATE patients SET
+           email = COALESCE(NULLIF(email, ''), $2), dni = COALESCE(NULLIF(dni, ''), $3),
+           date_of_birth = COALESCE(date_of_birth, $4::date),
+           insurance_provider = COALESCE(NULLIF(insurance_provider, ''), $5),
+           insurance_number = COALESCE(NULLIF(insurance_number, ''), $6)
+         WHERE id = $1`,
+        [existingPatient.id, dto.email || null, dto.dni || null, dto.dateOfBirth || null, dto.insuranceProvider || null, dto.insuranceNumber || null],
+      ).catch((e) => this.logger.warn(`No se pudo completar el paciente: ${e.message}`));
+    }
 
     return this.db.transaction(async (client) => {
       // Crear solicitud

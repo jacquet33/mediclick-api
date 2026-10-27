@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 
 export interface CreatePatientDto {
@@ -215,5 +215,82 @@ export class PatientService {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return timeline;
+  }
+
+  /**
+   * Ficha completa del paciente: datos personales, foto, cobertura, turnos y resumen.
+   * Con clinico=false (secretaría) no incluye historias clínicas ni recetas.
+   */
+  async getFicha(orgId: string, patientId: string, clinico: boolean) {
+    const patient = await this.findById(orgId, patientId);
+    const q = (sql: string, p: any[] = [patientId, orgId]) => this.db.queryMany(sql, p).catch(() => []);
+    const [photo, appointments, stats, cuenta, records, prescriptions, consents] = await Promise.all([
+      this.db.queryOne(`SELECT data_url FROM patient_photos WHERE patient_id = $1`, [patientId]).catch(() => null),
+      q(`SELECT a.id, to_char(a.date, 'YYYY-MM-DD') AS date, a.start_time, a.end_time, a.status, a.reason,
+                a.cancelled_reason, a.created_by_type, d.first_name || ' ' || d.last_name AS doctor_name
+         FROM appointments a
+         JOIN organization_doctors od ON od.id = a.org_doctor_id
+         JOIN doctors d ON d.id = od.doctor_id
+         WHERE a.patient_id = $1 AND a.organization_id = $2
+         ORDER BY a.date DESC, a.start_time DESC LIMIT 100`),
+      this.db.queryOne(
+        `SELECT COUNT(*)::int AS total,
+                COUNT(*) FILTER (WHERE status = 'completed')::int AS atendidos,
+                COUNT(*) FILTER (WHERE status = 'no_show')::int AS ausentes,
+                COUNT(*) FILTER (WHERE status = 'cancelled')::int AS cancelados,
+                to_char(MIN(date) FILTER (WHERE status = 'completed'), 'YYYY-MM-DD') AS primera,
+                to_char(MAX(date) FILTER (WHERE status = 'completed'), 'YYYY-MM-DD') AS ultima
+         FROM appointments WHERE patient_id = $1 AND organization_id = $2`,
+        [patientId, orgId],
+      ).catch(() => null),
+      this.db.queryOne(`SELECT email, created_at, last_login_at FROM patient_auth WHERE patient_id = $1`, [patientId]).catch(() => null),
+      clinico ? q(`SELECT id, to_char(date, 'YYYY-MM-DD') AS date, record_type, chief_complaint, diagnosis, diagnosis_code,
+                          allergies, current_medications, personal_history, family_history, habits, occupation, vital_signs,
+                          doctor_full_name, present_illness, physical_exam, findings, treatment_plan, instructions, follow_up, systems_review
+                   FROM medical_records WHERE patient_id = $1 AND organization_id = $2 AND deleted_at IS NULL
+                   ORDER BY date DESC, created_at DESC LIMIT 50`) : Promise.resolve([]),
+      clinico ? q(`SELECT p.id, to_char(p.issued_at, 'YYYY-MM-DD') AS date, p.diagnosis, p.status, p.verification_code,
+                          COALESCE(json_agg(json_build_object('name', i.medication_name, 'dosage', i.dosage, 'frequency', i.frequency)
+                                   ORDER BY i.sort_order) FILTER (WHERE i.id IS NOT NULL), '[]') AS items
+                   FROM prescriptions p LEFT JOIN prescription_items i ON i.prescription_id = p.id
+                   WHERE p.patient_id = $1 AND p.organization_id = $2
+                   GROUP BY p.id ORDER BY p.issued_at DESC LIMIT 30`) : Promise.resolve([]),
+      clinico ? q(`SELECT id, consent_type, accepted, to_char(accepted_at, 'YYYY-MM-DD') AS date, revoked_at
+                   FROM informed_consents WHERE patient_id = $1 AND organization_id = $2 ORDER BY created_at DESC LIMIT 20`) : Promise.resolve([]),
+    ]);
+    const hoy = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
+    const proximos = appointments.filter((a: any) => a.date >= hoy && !['cancelled', 'no_show', 'completed'].includes(a.status)).reverse();
+    // Último dato clínico cargado (lo más reciente de la historia)
+    const ultima = records[0] || null;
+    return {
+      patient: { ...patient, photo_url: photo?.data_url || null },
+      stats: stats || {},
+      proximos,
+      appointments,
+      cuenta: cuenta ? { email: cuenta.email, desde: cuenta.created_at, ultimoIngreso: cuenta.last_login_at } : null,
+      clinico: clinico ? {
+        ultimaConsulta: ultima,
+        records,
+        prescriptions,
+        consents,
+      } : null,
+    };
+  }
+
+  /** Foto del paciente como data URL (jpeg/png/webp, hasta ~400 KB) */
+  async setPhoto(orgId: string, patientId: string, dataUrl: string, userId: string) {
+    await this.findById(orgId, patientId);
+    if (!dataUrl) {
+      await this.db.query(`DELETE FROM patient_photos WHERE patient_id = $1`, [patientId]);
+      return { photo_url: null };
+    }
+    if (!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(dataUrl)) throw new BadRequestException('Formato de imagen inválido');
+    if (dataUrl.length > 550_000) throw new BadRequestException('La imagen es muy grande');
+    await this.db.query(
+      `INSERT INTO patient_photos (patient_id, data_url, uploaded_by, updated_at) VALUES ($1, $2, $3, NOW())
+       ON CONFLICT (patient_id) DO UPDATE SET data_url = EXCLUDED.data_url, uploaded_by = EXCLUDED.uploaded_by, updated_at = NOW()`,
+      [patientId, dataUrl, userId],
+    );
+    return { photo_url: dataUrl };
   }
 }

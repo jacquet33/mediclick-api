@@ -4,7 +4,8 @@ import { PatientService } from './patient.service';
 import { CreatePatientDto } from '../../common/dto/patient.dto';
 import { PatientHistoryService } from './patient-history.service';
 import { AuditService } from '../audit/audit.service';
-import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
+import { OrgId, DoctorId, CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AuthUser } from '../../common/guards/auth.guard';
 
 @Controller('api/v1/patients')
 export class PatientController {
@@ -49,6 +50,24 @@ export class PatientController {
       req.ip, req.headers['user-agent'] as string,
     );
     return history;
+  }
+
+  /** GET /patients/:id/ficha — todo lo cargado del paciente (la secretaría no ve lo clínico) */
+  @Get(':id/ficha')
+  async ficha(@OrgId() orgId: string, @CurrentUser() user: AuthUser, @Param('id') id: string, @Req() req: Request) {
+    const clinico = user.userType === 'doctor';
+    const data = await this.patientService.getFicha(orgId, id, clinico);
+    this.auditService.logAccess(
+      user.doctorId, clinico ? 'doctor' : 'secretary', clinico ? 'VIEW_PATIENT_HISTORY' : 'VIEW_PATIENT',
+      'patients', id, req.ip, req.headers['user-agent'] as string,
+    );
+    return data;
+  }
+
+  /** PUT /patients/:id/photo { photo: 'data:image/jpeg;base64,...' } — vacío para quitarla */
+  @Put(':id/photo')
+  setPhoto(@OrgId() orgId: string, @CurrentUser() user: AuthUser, @Param('id') id: string, @Body('photo') photo: string) {
+    return this.patientService.setPhoto(orgId, id, photo, user.doctorId);
   }
 
   @Get(':id')
