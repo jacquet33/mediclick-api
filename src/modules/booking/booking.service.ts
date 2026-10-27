@@ -366,9 +366,12 @@ export class BookingService {
     let depositRequired: number | null = null;
     let paymentDeadline: Date | null = null;
 
-    if (mode === 'open') {
+    // Si el paciente eligió pagar en el consultorio no hay seña que esperar
+    const pagaEnConsultorio = dto.paymentMethod === 'cash';
+
+    if (mode === 'open' || (mode === 'deposit' && pagaEnConsultorio)) {
       status = 'confirmed';
-    } else if (mode === 'approval') {
+    } else if (mode === 'approval' || (mode === 'deposit_approval' && pagaEnConsultorio)) {
       status = 'pending_approval';
     } else {
       // deposit o deposit_approval

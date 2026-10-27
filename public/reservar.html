@@ -943,10 +943,16 @@ function showConfirmation(data){
   const msg=document.getElementById('statusMsg');
   const badge=document.getElementById('statusBadge');
 
+  const insVal=document.getElementById('insurance')?.value||'';
+  const isParticular=!insVal||/particular|sin obra/i.test(insVal);
+  const pagaAca=document.getElementById('payMethod')?.value==='cash'||!profile.requires_deposit;
+
   if(status==='confirmed'){
     icon.className='confirm-icon ok';icon.textContent='✓';
-    title.textContent='¡Turno confirmado!';
-    msg.textContent='Tu turno quedó reservado. Te esperamos.';
+    title.textContent='¡Tu horario está confirmado!';
+    msg.textContent=isParticular&&pagaAca
+      ?'Recordá abonar la consulta en el consultorio el día de la atención.'
+      :'Te esperamos el día del turno. Si tenés obra social, llevá tu credencial.';
     badge.className='badge ok';badge.textContent='Confirmado';
   } else if(status==='pending_payment'){
     icon.className='confirm-icon wait';icon.textContent='💳';
@@ -956,52 +962,62 @@ function showConfirmation(data){
   } else {
     icon.className='confirm-icon wait';icon.textContent='⏳';
     title.textContent='Solicitud enviada';
-    msg.textContent='El médico va a revisar tu solicitud y te confirmamos a la brevedad.';
+    msg.textContent='El consultorio va a revisar tu pedido y te confirma a la brevedad.'+(isParticular&&pagaAca?' La consulta se abona en el consultorio el día de la atención.':'');
     badge.className='badge wait';badge.textContent='Pendiente';
   }
 
   const d=new Date(selectedDate+'T12:00:00');
   const fmt=d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+  const hora=selectedSlot.start.substring(0,5);
+  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   document.getElementById('summaryContent').innerHTML=`
-    <div class="summary-row"><span>Médico</span><span>Dr/a. ${profile.doctor_name}</span></div>
+    <div class="summary-row"><span>Médico</span><span>Dr/a. ${esc(profile.doctor_name)}</span></div>
     <div class="summary-row"><span>Fecha</span><span>${fmt}</span></div>
-    <div class="summary-row"><span>Hora</span><span>${selectedSlot.start.substring(0,5)} hs</span></div>
-    <div class="summary-row"><span>Lugar</span><span>${profile.org_name||'—'}</span></div>
-    ${profile.address?`<div class="summary-row"><span>Dirección</span><span>${profile.address}</span></div>`:''}`;
+    <div class="summary-row"><span>Hora</span><span>${hora} hs</span></div>
+    <div class="summary-row"><span>Lugar</span><span>${esc(profile.org_name||'—')}</span></div>
+    ${profile.address?`<div class="summary-row"><span>Dirección</span><span>${esc(profile.address)}</span></div>`:''}`;
 
-  // Recordatorio de pago para pacientes particulares
-  const insVal=document.getElementById('insurance')?.value||'';
-  const isParticular=insVal.toLowerCase().includes('particular')||insVal.toLowerCase().includes('sin obra');
-  if(isParticular && !profile.requires_deposit){
-    const fee=profile.consultation_fee?`<br>Valor: <strong>$${Number(profile.consultation_fee).toLocaleString('es-AR')}</strong>`:'';
+  if(isParticular&&pagaAca&&profile.consultation_fee){
     document.getElementById('summaryContent').innerHTML+=`
-      <div style="background:linear-gradient(135deg,#FFF8E1,#FFF3CD);border:1.5px solid #FFB333;border-radius:12px;padding:14px 16px;margin-top:12px">
-        <div style="font-size:13px;font-weight:600;color:#7A5D00;display:flex;align-items:center;gap:6px">
-          💰 Recordá: aboná la consulta por transferencia o efectivo al momento de la visita.${fee}
-        </div>
+      <div style="background:#FFF6E5;border:1.5px solid #E9C27A;border-radius:12px;padding:12px 14px;margin-top:12px;font-size:13px;color:#7A5300">
+        💰 Valor de la consulta particular: <strong>$${Number(profile.consultation_fee).toLocaleString('es-AR')}</strong> · se abona en el consultorio.
       </div>`;
   }
 
-  // WhatsApp share button
-  const waMsg=`¡Turno confirmado! 📅\n\nDr/a. ${profile.doctor_name}\n📅 ${fmt}\n⏰ ${selectedSlot.start.substring(0,5)} hs\n🏥 ${profile.org_name||''}\n${profile.address||''}\n\n— TuConsultorioOnline`;
-  const waPhone='';
-  const shareWaUrl=`https://wa.me/?text=${encodeURIComponent(waMsg)}`;
+  // Acciones: el paciente avisa al consultorio por WhatsApp (eso abre la conversación para respuestas
+  // automáticas) y agenda el recordatorio. "Compartir" queda solo para el médico o la secretaría logueados.
+  let staffSesion=false;
+  try{staffSesion=['doctor','staff'].includes(localStorage.getItem('mediclick_userType'))&&!!localStorage.getItem('mediclick_token')}catch{}
+  const nombre=`${document.getElementById('firstName')?.value||''} ${document.getElementById('lastName')?.value||''}`.trim();
+  const telConsultorio=(profile.whatsapp||profile.org_phone||'').replace(/\D/g,'');
+  const waNum=telConsultorio?(telConsultorio.startsWith('54')?telConsultorio:'549'+telConsultorio.replace(/^0/,'')):'';
+  const estadoTxt=status==='confirmed'?'confirmado':'solicitado';
+  const msgConsultorio=`Hola! Soy ${nombre}. Reservé turno con Dr/a. ${profile.doctor_name} para el ${fmt} a las ${hora} hs (${estadoTxt}). Confirmo mi asistencia.`;
+  const msgCompartir=`Turno ${estadoTxt} 📅\n\nPaciente: ${nombre}\nDr/a. ${profile.doctor_name}\n📅 ${fmt}\n⏰ ${hora} hs\n🏥 ${profile.org_name||''}${profile.address?'\n📍 '+profile.address:''}\n\n— TuConsultorioOnline`;
+
+  // Recordatorio: evento en el calendario del celular (1 día antes lo avisa el propio calendario)
+  const ini=selectedDate.replace(/-/g,'')+'T'+hora.replace(':','')+'00';
+  const finH=(selectedSlot.end||selectedSlot.start).substring(0,5);
+  const fin=selectedDate.replace(/-/g,'')+'T'+finH.replace(':','')+'00';
+  const gcal=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Turno Dr/a. '+profile.doctor_name)}&dates=${ini}/${fin}&ctz=America/Argentina/Buenos_Aires&location=${encodeURIComponent([profile.org_name,profile.address].filter(Boolean).join(', '))}&details=${encodeURIComponent('Reservado en TuConsultorioOnline'+(isParticular&&pagaAca?'. Abonar la consulta en el consultorio.':''))}`;
+
   document.getElementById('summaryContent').innerHTML+=`
     <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">
-      <a href="${shareWaUrl}" target="_blank" class="btn btn-primary" style="background:#25D366;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px">
-        📱 Compartir por WhatsApp
-      </a>
-      <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg-soft);border-radius:12px;cursor:pointer;font-size:13px;color:var(--lavanda);font-weight:500">
-        <input type="checkbox" id="reminderCheck" checked style="width:18px;height:18px;accent-color:#9A6B3F" onchange="toggleReminder(this.checked,'${data.booking?.id||''}')">
-        🔔 Recordarme el día anterior
-      </label>
-      <button onclick="window.location.href='/reservar/${slug}'" class="btn" style="background:var(--bg-soft,#F2EBE1);color:var(--text,#2B241F);border:1.5px solid var(--arena);font-size:14px">
+      ${waNum&&!staffSesion?`<a href="https://wa.me/${waNum}?text=${encodeURIComponent(msgConsultorio)}" target="_blank" rel="noopener" class="btn btn-primary" style="background:#25D366;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px">
+        💬 Avisar al consultorio por WhatsApp
+      </a>`:''}
+      ${staffSesion?`<a href="https://wa.me/?text=${encodeURIComponent(msgCompartir)}" target="_blank" rel="noopener" class="btn btn-primary" style="background:#25D366;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px">
+        📱 Enviar por WhatsApp
+      </a>`:''}
+      <div style="display:flex;gap:8px">
+        <a href="${gcal}" target="_blank" rel="noopener" class="btn" style="flex:1;background:var(--bg-soft,#F2EBE1);color:var(--text,#2B241F);border:1.5px solid var(--arena);font-size:13px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px">🔔 Recordármelo (Google Calendar)</a>
+        <button onclick="descargarIcs()" class="btn" style="flex:1;background:var(--bg-soft,#F2EBE1);color:var(--text,#2B241F);border:1.5px solid var(--arena);font-size:13px">📅 iPhone / otro calendario</button>
+      </div>
+      <button onclick="window.location.href='/reservar/${slug}'" class="btn" style="background:none;color:var(--text-soft,#5B5047);border:1.5px solid var(--arena);font-size:14px">
         ← Reservar otro turno
       </button>
-      <button onclick="window.close();window.location.href='/'" class="btn" style="background:none;color:var(--text-soft,#5B5047);font-size:13px;border:none;min-height:auto;padding:8px">
-        Cerrar
-      </button>
     </div>`;
+  window._ics={ini,fin,titulo:'Turno Dr/a. '+profile.doctor_name,lugar:[profile.org_name,profile.address].filter(Boolean).join(', '),nota:isParticular&&pagaAca?'Abonar la consulta en el consultorio.':''};
   if(data.paymentInfo){
     const p=data.paymentInfo;
     let h=`<div class="card"><div class="card-title"><span class="ico">💳</span> Datos para el pago</div>
@@ -1128,6 +1144,19 @@ async function registerAccount(){
     showToast(e.message||'No se pudo crear la cuenta', 4000);
     btn.disabled=false;btn.textContent='Crear cuenta';
   }
+}
+
+function descargarIcs(){
+  const e=window._ics;if(!e)return;
+  const t=x=>x.replace(/[,;\\]/g,m=>'\\'+m);
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//TuConsultorioOnline//ES','BEGIN:VEVENT',
+    'UID:'+Date.now()+'@tuconsultorio.rispy.io','DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z',
+    'DTSTART;TZID=America/Argentina/Buenos_Aires:'+e.ini,'DTEND;TZID=America/Argentina/Buenos_Aires:'+e.fin,
+    'SUMMARY:'+t(e.titulo),'LOCATION:'+t(e.lugar),'DESCRIPTION:'+t(e.nota||'Reservado en TuConsultorioOnline'),
+    'BEGIN:VALARM','TRIGGER:-P1D','ACTION:DISPLAY','DESCRIPTION:'+t(e.titulo)+' mañana','END:VALARM',
+    'BEGIN:VALARM','TRIGGER:-PT2H','ACTION:DISPLAY','DESCRIPTION:'+t(e.titulo),'END:VALARM',
+    'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar'}));a.download='turno.ics';document.body.appendChild(a);a.click();a.remove();
 }
 
 async function toggleReminder(enabled, appointmentId){
