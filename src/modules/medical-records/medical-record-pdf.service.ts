@@ -11,12 +11,12 @@ const PDFDocument = require('pdfkit');
 // ═══════════════════════════════════════════════════════════
 
 // Brand palette
-const TINTA = '#161925';
-const LAVANDA = '#879DFF';
-const CREMA = '#FFF7F3';
-const ARENA = '#DCC7BB';
-const TEXT_SOFT = '#5A5D6D';
-const TEXT_MUTED = '#9A9DAD';
+const TINTA = '#2B241F';
+const LAVANDA = '#9A6B3F';
+const CREMA = '#F7F2EA';
+const ARENA = '#E3DACC';
+const TEXT_SOFT = '#5B5047';
+const TEXT_MUTED = '#8A7E72';
 
 interface VitalSigns {
   bloodPressure?: string;
@@ -318,7 +318,7 @@ export class MedicalRecordPdfService {
     // Row 4 — Insurance
     y += 10;
     if (patient.insurance_provider) {
-      doc.roundedRect(LEFT, y, W, 30, 6).fill('#EEF0FF');
+      doc.roundedRect(LEFT, y, W, 30, 6).fill('#F5ECE1');
       y += 8;
       this.labelValue(doc, col1, y, colW * 0.6, 'Obra Social', patient.insurance_provider);
       this.labelValue(doc, col1 + colW * 0.6 + 10, y, colW * 0.4, 'Plan', patient.insurance_plan || '—');
@@ -376,7 +376,7 @@ export class MedicalRecordPdfService {
     let y = doc.y;
 
     // Info box
-    doc.roundedRect(LEFT, y, W, 22, 4).fill('#EEF0FF');
+    doc.roundedRect(LEFT, y, W, 22, 4).fill('#F5ECE1');
     doc.fontSize(7.5).font('Helvetica').fillColor(LAVANDA)
       .text(`Periodo: ${this.fmtDate(records[0].date)} - ${this.fmtDate(records[records.length - 1].date)}   |   Total: ${records.length} registro(s)`,
         LEFT + 10, y + 6, { width: W - 20 });
@@ -489,7 +489,7 @@ export class MedicalRecordPdfService {
 
     // Record type badge
     const typeLabel = this.recordTypeLabel(record.record_type);
-    doc.roundedRect(LEFT + 5, y, 85, 15, 3).fill('#EEF0FF');
+    doc.roundedRect(LEFT + 5, y, 85, 15, 3).fill('#F5ECE1');
     doc.fontSize(7.5).font('Helvetica-Bold').fillColor(LAVANDA)
       .text(typeLabel, LEFT + 8, y + 3, { width: 80, align: 'center' });
     y += 20;

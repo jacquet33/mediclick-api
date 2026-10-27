@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cobertura del hub — TuConsultorioOnline by Rispy</title>
-<meta name="theme-color" content="#161925">
+<meta name="theme-color" content="#2B241F">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Cobertura del hub — TuConsultorioOnline">
 <meta property="og:description" content="Estado de cobertura y conexión de obras sociales en TuConsultorioOnline.">
@@ -12,10 +12,10 @@
 <meta name="twitter:card" content="summary">
 <style>
 :root{
-  --cyan:#40C7ED; --sky:#4FA6F0; --primary:#2980D4; --deep:#1A599E;
+  --cyan:#C08A55; --sky:#D2A877; --primary:#9A6B3F; --deep:#6F4A2A;
   --bg:#F0FAFF; --bg-soft:#E0F2FD; --surface:#fff;
-  --success:#21BF8C; --danger:#F25C66; --warning:#FFB333; --muted-c:#99B3C9;
-  --text:#1C334F; --text-soft:#61809E; --text-muted:#99B3C9;
+  --success:#21BF8C; --danger:#F25C66; --warning:#FFB333; --muted-c:#B8AC9F;
+  --text:#3B2A1C; --text-soft:#7A6E62; --text-muted:#B8AC9F;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{
@@ -28,7 +28,7 @@ body{
 .head{
   background:linear-gradient(135deg,var(--cyan),var(--sky),var(--primary));
   border-radius:20px;padding:26px;color:#fff;margin-bottom:20px;
-  box-shadow:0 18px 36px rgba(41,128,212,.28);position:relative;overflow:hidden;
+  box-shadow:0 18px 36px rgba(154,107,63,.28);position:relative;overflow:hidden;
 }
 .head::after{content:'';position:absolute;inset:0;
   background:linear-gradient(135deg,rgba(255,255,255,.3),transparent 55%)}
@@ -39,7 +39,7 @@ body{
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
 .stat{
   background:var(--surface);border-radius:14px;padding:16px;
-  border:1px solid rgba(64,199,237,.16);box-shadow:0 8px 20px rgba(41,128,212,.06);
+  border:1px solid rgba(192,138,85,.16);box-shadow:0 8px 20px rgba(154,107,63,.06);
 }
 .stat .n{font-size:30px;font-weight:600;line-height:1.1}
 .stat .l{font-size:12px;color:var(--text-soft);margin-top:4px}
@@ -65,26 +65,26 @@ body{
 .filters{
   display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;
   background:var(--surface);padding:14px;border-radius:14px;
-  border:1px solid rgba(64,199,237,.16);
+  border:1px solid rgba(192,138,85,.16);
 }
 .filters input,.filters select{
-  padding:10px 13px;border:1px solid rgba(64,199,237,.22);border-radius:10px;
+  padding:10px 13px;border:1px solid rgba(192,138,85,.22);border-radius:10px;
   font-size:14px;font-family:inherit;color:var(--text);background:#fff;
 }
 .filters input{flex:1;min-width:180px}
 .filters input:focus,.filters select:focus{outline:none;border-color:var(--cyan)}
 
 table{width:100%;border-collapse:collapse;background:var(--surface);
-  border-radius:14px;overflow:hidden;border:1px solid rgba(64,199,237,.16);
-  box-shadow:0 10px 26px rgba(41,128,212,.06)}
+  border-radius:14px;overflow:hidden;border:1px solid rgba(192,138,85,.16);
+  box-shadow:0 10px 26px rgba(154,107,63,.06)}
 thead th{
   text-align:left;font-size:11px;font-weight:600;letter-spacing:.4px;
   text-transform:uppercase;color:var(--text-soft);padding:13px 14px;
-  background:var(--bg-soft);border-bottom:1px solid rgba(64,199,237,.16);
+  background:var(--bg-soft);border-bottom:1px solid rgba(192,138,85,.16);
 }
-tbody td{padding:13px 14px;font-size:14px;border-bottom:1px solid rgba(64,199,237,.08)}
+tbody td{padding:13px 14px;font-size:14px;border-bottom:1px solid rgba(192,138,85,.08)}
 tbody tr:last-child td{border-bottom:none}
-tbody tr:hover{background:rgba(64,199,237,.04)}
+tbody tr:hover{background:rgba(192,138,85,.04)}
 .name{font-weight:500}
 .sub{font-size:12px;color:var(--text-muted);margin-top:2px}
 
@@ -93,9 +93,9 @@ tbody tr:hover{background:rgba(64,199,237,.04)}
   font-size:11px;font-weight:600;white-space:nowrap;
 }
 .p-api{background:rgba(33,191,140,.13);color:#10805e}
-.p-portal{background:rgba(64,199,237,.15);color:#1a7a96}
+.p-portal{background:rgba(192,138,85,.15);color:#1a7a96}
 .p-manual{background:rgba(255,179,51,.16);color:#8a5a00}
-.p-none{background:rgba(153,179,201,.16);color:#5c7185}
+.p-none{background:rgba(184,172,159,.16);color:#5c7185}
 
 .caps{display:flex;gap:5px}
 .cap{
@@ -103,7 +103,7 @@ tbody tr:hover{background:rgba(64,199,237,.04)}
   justify-content:center;font-size:11px;font-weight:700;
 }
 .cap.on{background:rgba(33,191,140,.14);color:#10805e}
-.cap.off{background:rgba(153,179,201,.12);color:#a8bbcc}
+.cap.off{background:rgba(184,172,159,.12);color:#a8bbcc}
 
 .health{display:inline-flex;align-items:center;gap:5px;font-size:12px}
 .h-healthy{color:var(--success)}
@@ -120,7 +120,7 @@ tbody tr:hover{background:rgba(64,199,237,.04)}
 .hidden{display:none}
 .pager{display:flex;justify-content:center;gap:8px;margin-top:18px}
 .pager button{
-  padding:8px 14px;border:1px solid rgba(64,199,237,.25);background:#fff;
+  padding:8px 14px;border:1px solid rgba(192,138,85,.25);background:#fff;
   border-radius:9px;font-size:13px;color:var(--primary);cursor:pointer;font-family:inherit;
 }
 .pager button:disabled{opacity:.4;cursor:not-allowed}
@@ -134,7 +134,7 @@ tbody tr:hover{background:rgba(64,199,237,.04)}
 <body>
 <div id="gate" style="max-width:380px;margin:80px auto;padding:0 20px">
   <div style="background:var(--surface);border-radius:18px;padding:28px;
-       border:1px solid rgba(64,199,237,.18);box-shadow:0 14px 34px rgba(41,128,212,.1)">
+       border:1px solid rgba(192,138,85,.18);box-shadow:0 14px 34px rgba(154,107,63,.1)">
     <div style="text-align:center;margin-bottom:22px">
       <div style="width:60px;height:60px;border-radius:50%;margin:0 auto 12px;
            background:linear-gradient(135deg,var(--cyan),var(--primary));
@@ -145,12 +145,12 @@ tbody tr:hover{background:rgba(64,199,237,.04)}
     <div style="margin-bottom:12px">
       <label style="display:block;font-size:12px;font-weight:600;color:var(--text-soft);margin-bottom:5px">Email</label>
       <input id="gEmail" type="email" autocomplete="username"
-        style="width:100%;padding:12px;border:1px solid rgba(64,199,237,.22);border-radius:10px;font-size:14px;font-family:inherit">
+        style="width:100%;padding:12px;border:1px solid rgba(192,138,85,.22);border-radius:10px;font-size:14px;font-family:inherit">
     </div>
     <div style="margin-bottom:16px">
       <label style="display:block;font-size:12px;font-weight:600;color:var(--text-soft);margin-bottom:5px">Contraseña</label>
       <input id="gPass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"
-        style="width:100%;padding:12px;border:1px solid rgba(64,199,237,.22);border-radius:10px;font-size:14px;font-family:inherit">
+        style="width:100%;padding:12px;border:1px solid rgba(192,138,85,.22);border-radius:10px;font-size:14px;font-family:inherit">
     </div>
     <p id="gErr" style="font-size:13px;color:var(--danger);margin-bottom:12px;display:none"></p>
     <button onclick="doLogin()" id="gBtn"

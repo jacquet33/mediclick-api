@@ -155,9 +155,9 @@ export class MedicalRecordController {
       to: body.email,
       subject,
       html: this.emailService.wrapTemplate(`
-        <h2 style="color:#161925;margin-bottom:16px;">Historia Clínica</h2>
+        <h2 style="color:#2B241F;margin-bottom:16px;">Historia Clínica</h2>
         <p>${message}</p>
-        <div style="background:#FFF7F3;border-radius:12px;padding:20px;margin:16px 0;">
+        <div style="background:#F7F2EA;border-radius:12px;padding:20px;margin:16px 0;">
           <p style="margin:4px 0;"><strong>Paciente:</strong> ${patientName}</p>
           <p style="margin:4px 0;"><strong>DNI:</strong> ${patient?.dni || '—'}</p>
           <p style="margin:4px 0;"><strong>Obra Social:</strong> ${patient?.insurance_provider || '—'}</p>

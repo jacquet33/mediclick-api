@@ -100,7 +100,7 @@ export class PrescriptionPdfService {
     const verifyUrl = `${baseUrl}/verificar-receta.html?code=${rx.verification_code}`;
     let qrDataUrl: string | null = null;
     try {
-      qrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 120, margin: 1, color: { dark: '#161925', light: '#FFFFFF' } });
+      qrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 120, margin: 1, color: { dark: '#2B241F', light: '#FFFFFF' } });
     } catch (e) {
       this.logger.warn(`Could not generate QR code: ${e.message}`);
     }
@@ -147,16 +147,16 @@ export class PrescriptionPdfService {
       // ═══════════════════════════════════════════════════════
 
       // Línea superior decorativa
-      doc.rect(LEFT, y, W, 4).fill('#161925');
+      doc.rect(LEFT, y, W, 4).fill('#2B241F');
       y += 4;
-      doc.rect(LEFT, y, W * 0.4, 2).fill('#879DFF');
+      doc.rect(LEFT, y, W * 0.4, 2).fill('#9A6B3F');
       y += 10;
 
       // MEDICLICK branding
-      doc.fontSize(18).font('Helvetica-Bold').fillColor('#161925')
+      doc.fontSize(18).font('Helvetica-Bold').fillColor('#2B241F')
         .text('TuConsultorioOnline', LEFT, y, { width: W / 2 });
 
-      doc.fontSize(8).font('Helvetica').fillColor('#879DFF')
+      doc.fontSize(8).font('Helvetica').fillColor('#9A6B3F')
         .text('RECETARIO DIGITAL', LEFT, y + 20, { width: W / 2 });
 
       // Organización (derecha)
@@ -193,7 +193,7 @@ export class PrescriptionPdfService {
       y += 18;
 
       // Línea separadora
-      doc.moveTo(LEFT, y).lineTo(RIGHT, y).lineWidth(1.5).strokeColor('#DCC7BB').stroke();
+      doc.moveTo(LEFT, y).lineTo(RIGHT, y).lineWidth(1.5).strokeColor('#E3DACC').stroke();
       y += 10;
 
       // ═══════════════════════════════════════════════════════
@@ -201,7 +201,7 @@ export class PrescriptionPdfService {
       // ═══════════════════════════════════════════════════════
 
       // Fondo crema
-      doc.rect(LEFT, y, W, 52).fill('#FFF7F3');
+      doc.rect(LEFT, y, W, 52).fill('#F7F2EA');
       y += 8;
 
       // Nombre
@@ -243,7 +243,7 @@ export class PrescriptionPdfService {
       // CUERPO DE LA RECETA - Rp./
       // ═══════════════════════════════════════════════════════
 
-      doc.fontSize(14).font('Helvetica-Bold').fillColor('#879DFF')
+      doc.fontSize(14).font('Helvetica-Bold').fillColor('#9A6B3F')
         .text('Rp./', LEFT, y);
       y += 22;
 
@@ -257,7 +257,7 @@ export class PrescriptionPdfService {
 
         // Nombre genérico / DCI (Ley 25.649)
         if ((item as any).generic_name) {
-          doc.fontSize(8).font('Helvetica-Oblique').fillColor('#879DFF')
+          doc.fontSize(8).font('Helvetica-Oblique').fillColor('#9A6B3F')
             .text(`  DCI: ${(item as any).generic_name}`, LEFT + 15, y, { width: W - 30 });
           y += 12;
         }
@@ -368,7 +368,7 @@ export class PrescriptionPdfService {
       const footerY = doc.page.height - 120;
 
       // Línea decorativa
-      doc.rect(LEFT, footerY, W, 1).fill('#161925');
+      doc.rect(LEFT, footerY, W, 1).fill('#2B241F');
 
       // QR Code (izquierda)
       const qrSize = 80;
@@ -388,7 +388,7 @@ export class PrescriptionPdfService {
       const textStartX = LEFT + qrSize + 12;
       const textW = W - qrSize - 12;
 
-      doc.fontSize(7).font('Helvetica-Bold').fillColor('#161925')
+      doc.fontSize(7).font('Helvetica-Bold').fillColor('#2B241F')
         .text('RECETA ELECTRÓNICA — Ley 27.553', textStartX, footerY + 8, { width: textW });
 
       doc.fontSize(7).font('Helvetica').fillColor('#555555')
@@ -402,7 +402,7 @@ export class PrescriptionPdfService {
 
       // Código de verificación (CUIR)
       if (rx.verification_code) {
-        doc.fontSize(8).font('Helvetica-Bold').fillColor('#879DFF')
+        doc.fontSize(8).font('Helvetica-Bold').fillColor('#9A6B3F')
           .text(`CUIR: ${rx.verification_code}`, textStartX, footerY + 58, { width: textW });
       }
 
@@ -414,7 +414,7 @@ export class PrescriptionPdfService {
         );
 
       // Línea inferior decorativa
-      doc.rect(LEFT, footerY + 105, W, 3).fill('#879DFF');
+      doc.rect(LEFT, footerY + 105, W, 3).fill('#9A6B3F');
 
       doc.end();
     });

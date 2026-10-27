@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#161925">
+<meta name="theme-color" content="#2B241F">
 <title>TuConsultorioOnline by Rispy — Portal</title>
 <meta property="og:type" content="website">
 <meta property="og:title" content="TuConsultorioOnline — Portal profesional">
@@ -13,18 +13,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --cyan:#40C7ED;--sky:#4FA6F0;--primary:#2980D4;--deep:#1A599E;
+  --cyan:#C08A55;--sky:#D2A877;--primary:#9A6B3F;--deep:#6F4A2A;
   --bg:#F4FAFE;--bg-soft:#E4F2FD;--surface:#fff;
   --success:#21BF8C;--danger:#F25C66;--warning:#FFB333;
-  --text:#1C334F;--text-soft:#61809E;--text-muted:#99B3C9;
-  --radius:14px;--shadow:0 4px 20px rgba(41,128,212,.1);
+  --text:#3B2A1C;--text-soft:#7A6E62;--text-muted:#B8AC9F;
+  --radius:14px;--shadow:0 4px 20px rgba(154,107,63,.1);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;overflow-x:hidden}
 
 /* Layout */
 .app{display:flex;min-height:100vh}
-.sidebar{width:240px;background:linear-gradient(180deg,#0a3d68,#1a599e);color:#fff;padding:20px 0;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50;transition:transform .3s}
+.sidebar{width:240px;background:linear-gradient(180deg,#0a3d68,#6F4A2A);color:#fff;padding:20px 0;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50;transition:transform .3s}
 .sidebar .brand{padding:0 20px 24px;font-size:13px;font-weight:700;letter-spacing:1.5px;opacity:.7;display:flex;align-items:center;gap:8px}
 .sidebar .brand svg{width:20px;height:20px;opacity:.8}
 .sidebar .user-info{padding:0 20px 20px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:12px}
@@ -42,13 +42,13 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .topbar .badge{background:var(--bg-soft);color:var(--primary);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600}
 
 /* Cards */
-.card{background:var(--surface);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);border:1px solid rgba(79,166,240,.06);margin-bottom:16px}
+.card{background:var(--surface);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);border:1px solid rgba(210,168,119,.06);margin-bottom:16px}
 .card-title{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .card-title .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 
 /* Stats grid */
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px}
-.stat-card{background:var(--surface);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);border:1px solid rgba(79,166,240,.06)}
+.stat-card{background:var(--surface);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);border:1px solid rgba(210,168,119,.06)}
 .stat-value{font-size:28px;font-weight:700;margin-bottom:2px}
 .stat-label{font-size:12px;color:var(--text-soft)}
 .stat-card.cyan .stat-value{color:var(--cyan)}
@@ -60,18 +60,18 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 /* Table */
 .table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th{text-align:left;font-weight:600;color:var(--text-soft);font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;border-bottom:2px solid #EEF3F9}
-td{padding:12px;border-bottom:1px solid #F2F6FA;vertical-align:middle}
+th{text-align:left;font-weight:600;color:var(--text-soft);font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;border-bottom:2px solid #F4EEE6}
+td{padding:12px;border-bottom:1px solid #FAF6F0;vertical-align:middle}
 tr:hover td{background:var(--bg-soft)}
 .badge-sm{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
 .badge-sm.confirmed{background:#e0f7ed;color:#0f6e56}
 .badge-sm.pending{background:#fff3d9;color:#85500b}
-.badge-sm.completed{background:#eef3f9;color:#5f5e5a}
+.badge-sm.completed{background:#F4EEE6;color:#5f5e5a}
 .badge-sm.cancelled{background:#fce8e8;color:#993535}
-.badge-sm.in_progress{background:#e1f5fb;color:#0097a7}
+.badge-sm.in_progress{background:#F5ECE1;color:#0097a7}
 .badge-sm.checked_in{background:#ecfdf5;color:#10b981}
 .badge-sm.no_show{background:#fce8e8;color:#71243e}
-.badge-sm.waiting{background:#e1f5fb;color:#0097a7}
+.badge-sm.waiting{background:#F5ECE1;color:#0097a7}
 
 /* Login */
 .login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
@@ -81,10 +81,10 @@ tr:hover td{background:var(--bg-soft)}
 .login-header p{color:var(--text-soft);font-size:14px;margin-top:6px}
 .field{margin-bottom:14px}
 .field label{display:block;font-size:12px;font-weight:600;color:var(--text-soft);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
-.field input,.field select{width:100%;padding:13px;font-size:14px;font-family:inherit;border:1.5px solid #E0ECF5;border-radius:12px;background:#FAFCFE;color:var(--text);outline:none;transition:.2s}
-.field input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(64,199,237,.15)}
+.field input,.field select{width:100%;padding:13px;font-size:14px;font-family:inherit;border:1.5px solid #ECE5D9;border-radius:12px;background:#FAFCFE;color:var(--text);outline:none;transition:.2s}
+.field input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(192,138,85,.15)}
 .btn{width:100%;padding:14px;font-size:14px;font-weight:700;font-family:inherit;border:none;border-radius:12px;cursor:pointer;transition:.2s}
-.btn-primary{background:linear-gradient(135deg,var(--cyan),var(--primary));color:#fff;box-shadow:0 6px 20px rgba(41,128,212,.25)}
+.btn-primary{background:linear-gradient(135deg,var(--cyan),var(--primary));color:#fff;box-shadow:0 6px 20px rgba(154,107,63,.25)}
 .btn-primary:hover{transform:translateY(-1px)}
 .btn-outline{background:none;border:1.5px solid var(--primary);color:var(--primary)}
 .btn-sm{padding:8px 16px;font-size:12px;width:auto;border-radius:8px}
@@ -104,14 +104,14 @@ tr:hover td{background:var(--bg-soft)}
 .queue-pos{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
 .btn-action{border:none;background:none;cursor:pointer;padding:6px;border-radius:6px;transition:.15s}
 .btn-action:hover{background:var(--bg-soft)}
-.tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid #EEF3F9;padding-bottom:0}
+.tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid #F4EEE6;padding-bottom:0}
 .tab{padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--text-muted);transition:.15s}
 .tab.active{color:var(--primary);border-bottom-color:var(--primary)}
 .tab:hover:not(.active){color:var(--text)}
 
 /* Patient portal specific */
-.appt-card{display:flex;align-items:center;gap:14px;padding:14px;border-radius:12px;border:1px solid #EEF3F9;margin-bottom:10px;transition:.15s}
-.appt-card:hover{border-color:var(--cyan);background:rgba(64,199,237,.03)}
+.appt-card{display:flex;align-items:center;gap:14px;padding:14px;border-radius:12px;border:1px solid #F4EEE6;margin-bottom:10px;transition:.15s}
+.appt-card:hover{border-color:var(--cyan);background:rgba(192,138,85,.03)}
 .appt-date{text-align:center;min-width:50px}
 .appt-date .day{font-size:22px;font-weight:700;color:var(--primary)}
 .appt-date .month{font-size:11px;color:var(--text-soft);text-transform:uppercase}
@@ -233,9 +233,9 @@ tr:hover td{background:var(--bg-soft)}
 .cal-event .ev-time{font-weight:600;font-size:10px}
 .cal-event .ev-name{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cal-event .ev-reason{font-size:10px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cal-event.st-confirmed{background:#F0FDFA;border-color:#0D9488;color:#0D9488}
+.cal-event.st-confirmed{background:#F0FDFA;border-color:#3E7468;color:#3E7468}
 .cal-event.st-checked_in{background:#ECFDF5;border-color:#10B981;color:#065F46}
-.cal-event.st-in_progress{background:#EFF6FF;border-color:#3B82F6;color:#1E40AF}
+.cal-event.st-in_progress{background:#EFF6FF;border-color:#9A6B3F;color:#1E40AF}
 .cal-event.st-completed{background:#F9FAFB;border-color:#9CA3AF;color:#6B7280}
 .cal-event.st-cancelled{background:#FEF2F2;border-color:#EF4444;color:#991B1B}
 .cal-event.st-pending{background:#FEF3C7;border-color:#F59E0B;color:#92400E}
@@ -582,7 +582,7 @@ async function loadDoctorDashboard(){
       </div>`:''}
       <div class="card"><div class="card-title"><div class="dot" style="background:var(--cyan)"></div>Cola de espera (${waiting.length})</div>
         ${waiting.length?waiting.map((a,i)=>`<div class="queue-item">
-          <div class="queue-pos" style="background:rgba(64,199,237,.1);color:var(--cyan)">${i+1}</div>
+          <div class="queue-pos" style="background:rgba(192,138,85,.1);color:var(--cyan)">${i+1}</div>
           <div class="avatar">${initials(a.patient_name)}</div>
           <div style="flex:1"><strong>${a.patient_name||'Paciente'}</strong><br><span class="muted">${a.start_time?.substring(0,5)} — ${a.reason||''}</span></div>
           <button class="btn btn-sm btn-primary" onclick="changeStatus('${a.id}','in_progress')">▶ Atender</button>
@@ -667,7 +667,7 @@ function calToday(){calDate=new Date();loadAgenda()}
 function calSetView(v){calView=v;loadAgenda()}
 
 // Colores por paciente (hash del nombre)
-const patientColors=['#0D9488','#3B82F6','#8B5CF6','#EC4899','#F59E0B','#10B981','#EF4444','#6366F1','#14B8A6','#F97316'];
+const patientColors=['#3E7468','#9A6B3F','#8B5CF6','#EC4899','#F59E0B','#10B981','#EF4444','#6366F1','#14B8A6','#F97316'];
 function patientColor(name){let h=0;for(let i=0;i<(name||'').length;i++)h=name.charCodeAt(i)+((h<<5)-h);return patientColors[Math.abs(h)%patientColors.length]}
 
 async function renderCalView(){
@@ -918,20 +918,20 @@ async function loadConfig(){
             <td>${s.slot_duration||schedule?.slot_duration_minutes||20} min</td>
           </tr>`).join('')}
         </table></div>`:'<p class="muted" style="padding:12px 0">No hay horarios configurados. Hacé clic en Editar para configurarlos.</p>'}
-        <div id="scheduleEditor" class="hidden" style="margin-top:16px;border-top:1px solid #EEF3F9;padding-top:16px">
+        <div id="scheduleEditor" class="hidden" style="margin-top:16px;border-top:1px solid #F4EEE6;padding-top:16px">
           <p style="font-size:13px;font-weight:600;margin-bottom:12px">Seleccioná los días y horarios de atención:</p>
           ${days.map((d,i)=>`
-            <label style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F2F6FA;font-size:14px">
+            <label style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #FAF6F0;font-size:14px">
               <input type="checkbox" class="sched-day" data-day="${i}" ${slots.find(s=>dayMap[s.day_of_week]===i)?'checked':''} style="width:18px;height:18px;accent-color:var(--primary)">
               <strong style="min-width:90px">${d}</strong>
-              <input type="time" class="sched-from" data-day="${i}" value="${slots.find(s=>dayMap[s.day_of_week]===i)?.start_time?.substring(0,5)||'08:00'}" style="padding:8px;border:1px solid #E0ECF5;border-radius:8px;font-size:14px;font-family:inherit">
+              <input type="time" class="sched-from" data-day="${i}" value="${slots.find(s=>dayMap[s.day_of_week]===i)?.start_time?.substring(0,5)||'08:00'}" style="padding:8px;border:1px solid #ECE5D9;border-radius:8px;font-size:14px;font-family:inherit">
               <span style="color:var(--text-muted)">a</span>
-              <input type="time" class="sched-to" data-day="${i}" value="${slots.find(s=>dayMap[s.day_of_week]===i)?.end_time?.substring(0,5)||'17:00'}" style="padding:8px;border:1px solid #E0ECF5;border-radius:8px;font-size:14px;font-family:inherit">
+              <input type="time" class="sched-to" data-day="${i}" value="${slots.find(s=>dayMap[s.day_of_week]===i)?.end_time?.substring(0,5)||'17:00'}" style="padding:8px;border:1px solid #ECE5D9;border-radius:8px;font-size:14px;font-family:inherit">
             </label>
           `).join('')}
           <div style="margin-top:12px">
             <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Duración de cada turno</label>
-            <select id="schedDuration" style="padding:10px;border:1px solid #E0ECF5;border-radius:8px;font-size:14px;font-family:inherit;width:140px">
+            <select id="schedDuration" style="padding:10px;border:1px solid #ECE5D9;border-radius:8px;font-size:14px;font-family:inherit;width:140px">
               <option value="15" ${(schedule?.slot_duration_minutes||30)==15?'selected':''}>15 min</option>
               <option value="20" ${(schedule?.slot_duration_minutes||30)==20?'selected':''}>20 min</option>
               <option value="30" ${(schedule?.slot_duration_minutes||30)==30?'selected':''}>30 min</option>
@@ -1158,7 +1158,7 @@ async function loadHistorial(){
     <div class="card">
       <p class="muted" style="margin-bottom:12px">Buscá un paciente para ver su historia clínica</p>
       <div style="display:flex;gap:10px">
-        <input id="histSearch" placeholder="Nombre, DNI o email del paciente..." style="flex:1;padding:12px;border:1.5px solid #E0ECF5;border-radius:10px;font-size:14px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')searchPatientHist()">
+        <input id="histSearch" placeholder="Nombre, DNI o email del paciente..." style="flex:1;padding:12px;border:1.5px solid #ECE5D9;border-radius:10px;font-size:14px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')searchPatientHist()">
         <button class="btn btn-primary" style="width:auto;padding:12px 20px" onclick="searchPatientHist()">Buscar</button>
       </div>
       <div id="histResults" style="margin-top:16px"></div>
@@ -1215,7 +1215,7 @@ async function viewPatientHistory(patientId,name){
       ${tl.length?`<div class="card">
         <div class="card-title">📅 Timeline</div>
         ${tl.slice(0,20).map(e=>`
-          <div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #F2F6FA">
+          <div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #FAF6F0">
             <span class="muted" style="min-width:80px;font-size:12px">${fmtDate(e.date||e.created_at)}</span>
             <div><strong style="font-size:13px">${e.type||e.event_type||''}</strong><br><span class="muted">${e.description||e.summary||''}</span></div>
           </div>`).join('')}
@@ -1230,7 +1230,7 @@ async function showNewRecord(patientId){
     <div class="card" style="margin-top:16px">
       <div class="card-title">Nueva nota clínica</div>
       <div class="field"><label>Tipo</label>
-        <select id="recType" style="width:100%;padding:12px;border:1.5px solid #E0ECF5;border-radius:10px;font-size:14px;font-family:inherit">
+        <select id="recType" style="width:100%;padding:12px;border:1.5px solid #ECE5D9;border-radius:10px;font-size:14px;font-family:inherit">
           <option value="consultation">Consulta</option>
           <option value="follow_up">Control</option>
           <option value="emergency">Urgencia</option>
@@ -1238,8 +1238,8 @@ async function showNewRecord(patientId){
         </select>
       </div>
       <div class="field"><label>Diagnóstico</label><input id="recDiag" placeholder="Diagnóstico principal"></div>
-      <div class="field"><label>Notas clínicas</label><textarea id="recNotes" rows="4" placeholder="Observaciones, síntomas, examen físico..." style="width:100%;padding:12px;border:1.5px solid #E0ECF5;border-radius:10px;font-size:14px;font-family:inherit;resize:vertical"></textarea></div>
-      <div class="field"><label>Tratamiento</label><textarea id="recTreat" rows="2" placeholder="Indicaciones y tratamiento" style="width:100%;padding:12px;border:1.5px solid #E0ECF5;border-radius:10px;font-size:14px;font-family:inherit;resize:vertical"></textarea></div>
+      <div class="field"><label>Notas clínicas</label><textarea id="recNotes" rows="4" placeholder="Observaciones, síntomas, examen físico..." style="width:100%;padding:12px;border:1.5px solid #ECE5D9;border-radius:10px;font-size:14px;font-family:inherit;resize:vertical"></textarea></div>
+      <div class="field"><label>Tratamiento</label><textarea id="recTreat" rows="2" placeholder="Indicaciones y tratamiento" style="width:100%;padding:12px;border:1.5px solid #ECE5D9;border-radius:10px;font-size:14px;font-family:inherit;resize:vertical"></textarea></div>
       <div style="display:flex;gap:10px">
         <button class="btn btn-primary" style="width:auto;padding:12px 24px" onclick="saveRecord('${patientId}')">Guardar</button>
         <button class="btn btn-outline" style="width:auto;padding:12px 24px" onclick="viewPatientHistory('${patientId}','')">Cancelar</button>
@@ -1373,7 +1373,7 @@ async function loadReservarTurno(){
     <div class="card">
       <p class="muted" style="margin-bottom:12px">Buscá un profesional por especialidad, nombre o ubicación</p>
       <div style="display:flex;gap:10px">
-        <input id="bookSearch" placeholder="Ej: cardiólogo, traumatología, Dr. García..." style="flex:1;padding:12px;border:1.5px solid #E0ECF5;border-radius:10px;font-size:14px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')searchDoctors()">
+        <input id="bookSearch" placeholder="Ej: cardiólogo, traumatología, Dr. García..." style="flex:1;padding:12px;border:1.5px solid #ECE5D9;border-radius:10px;font-size:14px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')searchDoctors()">
         <button class="btn btn-primary" style="width:auto;padding:12px 20px" onclick="searchDoctors()">Buscar</button>
       </div>
     </div>
@@ -1407,7 +1407,7 @@ async function searchDoctors(){
     const docs=results.data||results;
     if(!docs.length){box.innerHTML='<div class="card"><p class="muted center">No se encontraron profesionales</p></div>';return}
     box.innerHTML=docs.map(d=>`
-      <div class="card" style="cursor:pointer;transition:.15s" onmouseover="this.style.borderColor='var(--cyan)'" onmouseout="this.style.borderColor='rgba(79,166,240,.06)'" onclick="selectDoctor('${d.slug||d.id}','${(d.first_name+' '+d.last_name).replace(/'/g,"\\'")}','${(d.specialty||'').replace(/'/g,"\\'")}')">
+      <div class="card" style="cursor:pointer;transition:.15s" onmouseover="this.style.borderColor='var(--cyan)'" onmouseout="this.style.borderColor='rgba(210,168,119,.06)'" onclick="selectDoctor('${d.slug||d.id}','${(d.first_name+' '+d.last_name).replace(/'/g,"\\'")}','${(d.specialty||'').replace(/'/g,"\\'")}')">
         <div class="flex" style="gap:14px">
           <div class="avatar" style="width:48px;height:48px;font-size:16px">${initials(d.first_name+' '+d.last_name)}</div>
           <div style="flex:1">
@@ -1509,7 +1509,7 @@ async function loadMiHistorial(){
       ${tl.length?`<div class="card">
         <div class="card-title">📅 Timeline</div>
         ${tl.slice(0,15).map(e=>`
-          <div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #F2F6FA">
+          <div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #FAF6F0">
             <span class="muted" style="min-width:80px;font-size:12px">${fmtDate(e.date||e.created_at)}</span>
             <div><strong style="font-size:13px">${e.type||e.event_type||''}</strong><br><span class="muted">${e.description||e.summary||''}</span></div>
           </div>`).join('')}

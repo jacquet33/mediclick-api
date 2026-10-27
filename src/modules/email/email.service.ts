@@ -125,7 +125,7 @@ export class EmailService {
       to: email,
       subject: '¡Bienvenido a TuConsultorioOnline!',
       html: this.wrapTemplate(`
-        <h2 style="color:#161925;margin-bottom:16px;">¡Hola Dr/a. ${name}!</h2>
+        <h2 style="color:#2B241F;margin-bottom:16px;">¡Hola Dr/a. ${name}!</h2>
         <p>Tu cuenta de TuConsultorioOnline fue creada exitosamente.</p>
         <p>Ya tenés todo listo para empezar:</p>
         <ul style="padding-left:20px;">
@@ -135,7 +135,7 @@ export class EmailService {
         </ul>
         <p style="margin-top:24px;">
           <a href="https://tuconsultorio.rispy.io/para-medicos"
-             style="background:#879DFF;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:600;">
+             style="background:#9A6B3F;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:600;">
             Ver mi panel
           </a>
         </p>
@@ -159,10 +159,10 @@ export class EmailService {
       to: patientEmail,
       subject: `Turno confirmado — Dr/a. ${doctorName}`,
       html: this.wrapTemplate(`
-        <h2 style="color:#161925;margin-bottom:16px;">Turno confirmado</h2>
+        <h2 style="color:#2B241F;margin-bottom:16px;">Turno confirmado</h2>
         <p>Hola ${patientName},</p>
         <p>Tu turno fue confirmado:</p>
-        <div style="background:#FFF7F3;border-radius:12px;padding:20px;margin:16px 0;">
+        <div style="background:#F7F2EA;border-radius:12px;padding:20px;margin:16px 0;">
           <p style="margin:4px 0;"><strong>Doctor/a:</strong> ${doctorName}</p>
           <p style="margin:4px 0;"><strong>Fecha:</strong> ${date}</p>
           <p style="margin:4px 0;"><strong>Hora:</strong> ${time}</p>
@@ -187,10 +187,10 @@ export class EmailService {
       to: patientEmail,
       subject: `Recordatorio: turno mañana con Dr/a. ${doctorName}`,
       html: this.wrapTemplate(`
-        <h2 style="color:#161925;margin-bottom:16px;">Recordatorio de turno</h2>
+        <h2 style="color:#2B241F;margin-bottom:16px;">Recordatorio de turno</h2>
         <p>Hola ${patientName},</p>
         <p>Te recordamos que tenés turno mañana:</p>
-        <div style="background:#FFF7F3;border-radius:12px;padding:20px;margin:16px 0;">
+        <div style="background:#F7F2EA;border-radius:12px;padding:20px;margin:16px 0;">
           <p style="margin:4px 0;"><strong>Doctor/a:</strong> ${doctorName}</p>
           <p style="margin:4px 0;"><strong>Fecha:</strong> ${date}</p>
           <p style="margin:4px 0;"><strong>Hora:</strong> ${time}</p>
@@ -210,10 +210,10 @@ export class EmailService {
       to: email,
       subject: `Pago confirmado — TuConsultorioOnline ${plan}`,
       html: this.wrapTemplate(`
-        <h2 style="color:#161925;margin-bottom:16px;">¡Pago confirmado!</h2>
+        <h2 style="color:#2B241F;margin-bottom:16px;">¡Pago confirmado!</h2>
         <p>Hola Dr/a. ${name},</p>
         <p>Tu pago fue procesado exitosamente:</p>
-        <div style="background:#FFF7F3;border-radius:12px;padding:20px;margin:16px 0;">
+        <div style="background:#F7F2EA;border-radius:12px;padding:20px;margin:16px 0;">
           <p style="margin:4px 0;"><strong>Plan:</strong> TuConsultorioOnline ${plan}</p>
           <p style="margin:4px 0;"><strong>Monto:</strong> ${amount}</p>
           <p style="margin:4px 0;"><strong>Estado:</strong> ✅ Aprobado</p>
@@ -236,8 +236,8 @@ export class EmailService {
   <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:white;border-radius:12px;overflow:hidden;margin-top:20px;">
     <!-- Header -->
     <tr>
-      <td style="background:#161925;padding:24px 32px;">
-        <h1 style="color:#879DFF;margin:0;font-size:24px;font-weight:700;">TuConsultorioOnline</h1><p style="margin:4px 0 0;color:#9A9DAD;font-size:12px;">by Rispy</p>
+      <td style="background:#2B241F;padding:24px 32px;">
+        <h1 style="color:#9A6B3F;margin:0;font-size:24px;font-weight:700;">TuConsultorioOnline</h1><p style="margin:4px 0 0;color:#8A7E72;font-size:12px;">by Rispy</p>
       </td>
     </tr>
     <!-- Content -->
@@ -248,11 +248,11 @@ export class EmailService {
     </tr>
     <!-- Footer -->
     <tr>
-      <td style="background:#FFF7F3;padding:16px 32px;text-align:center;">
+      <td style="background:#F7F2EA;padding:16px 32px;text-align:center;">
         <p style="margin:0;color:#999;font-size:12px;">
           © ${new Date().getFullYear()} TuConsultorioOnline by Rispy ·
-          <a href="https://tuconsultorio.rispy.io/privacidad" style="color:#879DFF;">Privacidad</a> ·
-          <a href="https://tuconsultorio.rispy.io/terminos" style="color:#879DFF;">Términos</a>
+          <a href="https://tuconsultorio.rispy.io/privacidad" style="color:#9A6B3F;">Privacidad</a> ·
+          <a href="https://tuconsultorio.rispy.io/terminos" style="color:#9A6B3F;">Términos</a>
         </p>
       </td>
     </tr>
