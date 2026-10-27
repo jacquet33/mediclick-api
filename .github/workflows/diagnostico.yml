@@ -1,0 +1,24 @@
+# Diagnóstico de solo lectura del servidor (se ejecuta a mano). No modifica nada.
+name: Diagnóstico servidor
+on: workflow_dispatch
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        id: ssh
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            echo "HOST $(hostname) IP $(curl -s -4 ifconfig.me)"
+            docker ps --format '{{.Names}} | {{.Ports}} | {{.Networks}}' | sed 's/^/PS /'
+            docker network ls --format '{{.Name}}' | sed 's/^/NET /'
+            ls /opt | sed 's/^/OPT /'
+            docker inspect $(docker ps -q --filter name=traefik) --format '{{.Name}} {{join .Args " "}}' 2>/dev/null | sed 's/^/TRAEFIK /'
+          capture_stdout: true
+      - name: Resultado como anotaciones
+        env:
+          OUT: ${{ steps.ssh.outputs.stdout }}
+        run: echo "$OUT" | grep -E '^(HOST|PS|NET|OPT|TRAEFIK)' | head -45 | while IFS= read -r l; do echo "::notice::$l"; done
