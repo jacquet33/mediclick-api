@@ -65,6 +65,7 @@ jobs:
                   SISA_USUARIO: "${{ secrets.SISA_USUARIO }}"
                   SISA_CLAVE: "${{ secrets.SISA_CLAVE }}"
                   RENAPDIS_PLATFORM_ID: "${{ vars.RENAPDIS_PLATFORM_ID }}"
+                  IOS_APP_STORE_URL: "${{ vars.IOS_APP_STORE_URL }}"
                 networks:
                   - mediclick-net
                   - traefik-public
@@ -75,6 +76,12 @@ jobs:
                   - "traefik.http.routers.rispy-health.tls=true"
                   - "traefik.http.routers.rispy-health.tls.certresolver=letsencrypt"
                   - "traefik.http.services.rispy-health.loadbalancer.server.port=3000"
+                  # medicos.rispy.io (alta de médicos): router aparte para que su certificado no afecte al de tuconsultorio
+                  - "traefik.http.routers.rispy-medicos.rule=Host(`medicos.rispy.io`)"
+                  - "traefik.http.routers.rispy-medicos.entrypoints=websecure"
+                  - "traefik.http.routers.rispy-medicos.tls=true"
+                  - "traefik.http.routers.rispy-medicos.tls.certresolver=letsencrypt"
+                  - "traefik.http.routers.rispy-medicos.service=rispy-health"
                   - "traefik.docker.network=traefik-public"
             networks:
               traefik-public:

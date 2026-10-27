@@ -14,7 +14,7 @@ export class ProfileService {
               medical_license, medical_license_province, refeps_code,
               specialty, secondary_specialties, avatar_url, bio,
               signature_image IS NOT NULL AS has_signature,
-              COALESCE(license_status, 'unverified') AS license_status, license_type, is_platform_admin,
+              COALESCE(license_status, 'unverified') AS license_status, license_type, is_platform_admin, title_prefix,
               created_at
        FROM doctors WHERE id = $1`,
       [doctorId],
@@ -34,6 +34,8 @@ export class ProfileService {
       medicalLicenseProvince?: string;
       refepsCode?: string;
       bio?: string;
+      titlePrefix?: string;
+      avatarUrl?: string;
     },
   ) {
     const sets: string[] = [];
@@ -48,6 +50,16 @@ export class ProfileService {
     if (dto.medicalLicenseProvince !== undefined) { sets.push(`medical_license_province = $${idx++}`); vals.push(dto.medicalLicenseProvince); }
     if (dto.refepsCode !== undefined) { sets.push(`refeps_code = $${idx++}`); vals.push(dto.refepsCode); }
     if (dto.bio !== undefined) { sets.push(`bio = $${idx++}`); vals.push(dto.bio); }
+    if (dto.titlePrefix !== undefined) {
+      if (!['Dr.', 'Dra.', ''].includes(dto.titlePrefix)) throw new BadRequestException('Prefijo inválido');
+      sets.push(`title_prefix = $${idx++}`); vals.push(dto.titlePrefix || null);
+    }
+    if (dto.avatarUrl !== undefined) {
+      if (dto.avatarUrl && (!/^data:image\/(jpeg|png|webp);base64,/.test(dto.avatarUrl) || dto.avatarUrl.length > 400_000)) {
+        throw new BadRequestException('La foto de perfil no es válida o es muy grande');
+      }
+      sets.push(`avatar_url = $${idx++}`); vals.push(dto.avatarUrl || null);
+    }
 
     if (sets.length === 0) return this.getProfile(doctorId);
 

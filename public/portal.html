@@ -498,13 +498,28 @@ async function apiFetch(path,opts={}){
 function initApp(){
   document.getElementById('loginPage').classList.add('hidden');
   document.getElementById('appLayout').classList.remove('hidden');
-  document.getElementById('userName').textContent=userData?.full_name||userData?.first_name+' '+userData?.last_name||'Usuario';
+  document.getElementById('userName').textContent=userData?.full_name||[userData?.first_name,userData?.last_name].filter(Boolean).join(' ')||userData?.email||'Usuario';
 
   const roleLabels={doctor:'Médico',patient:'Paciente',staff:'Secretaría'};
   document.getElementById('userRole').textContent=roleLabels[userType]||userType;
 
   buildNav();
   navigateTo(getDefaultSection());
+  bannerApp();
+}
+
+// Médicos: invitación a bajar la app (se puede cerrar)
+async function bannerApp(){
+  if(userType!=='doctor') return;
+  try{if(localStorage.getItem('tco_banner_app')==='no')return}catch{}
+  const cfg=await fetch(`${API}/api/v1/public/config`).then(r=>r.json()).catch(()=>({}));
+  const d=document.createElement('div');
+  d.style.cssText='position:fixed;right:18px;bottom:18px;z-index:60;max-width:330px;background:#FFFDF9;border:1px solid #ECE5D9;border-radius:16px;box-shadow:0 14px 40px rgba(111,74,42,.22);padding:16px';
+  d.innerHTML=`<div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:14px">📱 Tu consultorio en el celular</b><button aria-label="Cerrar" style="border:none;background:none;font-size:18px;cursor:pointer;color:#A99D90">×</button></div>
+    <p style="font-size:13px;color:#7A6E62;margin:6px 0 12px">Para una mejor atención: agenda, sala de espera, historias clínicas y recetas desde la app, con aviso de cada turno nuevo.</p>
+    ${cfg.iosAppUrl?`<a href="${cfg.iosAppUrl}" target="_blank" rel="noopener" style="display:inline-block;background:#111;color:#fff;text-decoration:none;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600"> Bajar en el App Store</a>`:'<span style="font-size:12px;color:#A99D90"> Muy pronto en el App Store</span>'}`;
+  d.querySelector('button').onclick=()=>{d.remove();try{localStorage.setItem('tco_banner_app','no')}catch{}};
+  document.body.appendChild(d);
 }
 
 function getDefaultSection(){

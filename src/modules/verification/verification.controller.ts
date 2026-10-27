@@ -1,5 +1,7 @@
 import { Controller, Get, Post, Body, Param, Query, ForbiddenException } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Public } from '../../common/guards/auth.guard';
+import { StrictThrottle } from '../../common/decorators/throttle.decorator';
 import { AuthUser } from '../../common/guards/auth.guard';
 import { VerificationService, SolicitudVerificacion } from './verification.service';
 
@@ -10,6 +12,14 @@ export class VerificationController {
   private medico(u: AuthUser) {
     if (u.userType !== 'doctor') throw new ForbiddenException('Solo para médicos');
     return u.doctorId;
+  }
+
+  /** GET /verification/refeps?dni= — público y limitado: ¿el DNI figura como médico en REFEPS? */
+  @Public()
+  @StrictThrottle()
+  @Get('refeps')
+  refeps(@Query('dni') dni: string) {
+    return this.service.chequeoPublico(dni);
   }
 
   /** GET /verification — estado de la matrícula del médico logueado */

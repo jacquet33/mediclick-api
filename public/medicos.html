@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TuConsultorioOnline para médicos · by Rispy</title>
+<meta name="description" content="Agenda, turnos online, historia clínica y recetas electrónicas con firma digital. Todo tu consultorio en un solo lugar.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F5F1EA;--surface:#FFFDF9;--line:#ECE5D9;--text:#2B241F;--soft:#7A6E62;--muted:#A99D90;--primary:#9A6B3F;--cyan:#C08A55;--deep:#6F4A2A;--sage:#3E7468;--ok:#0f6e56;--okbg:#e0f7ed;--warn:#B07A12;--bad:#C0392B}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+a{color:var(--primary)}
+.top{display:flex;justify-content:space-between;align-items:center;max-width:1180px;margin:0 auto;padding:18px 20px}
+.logo{font-weight:800;font-size:18px}.logo b{color:var(--primary)}.logo small{font-weight:500;color:var(--soft);font-size:12px;margin-left:4px}
+.top a.ing{font-weight:600;text-decoration:none;border:1.5px solid var(--primary);border-radius:999px;padding:8px 16px;font-size:14px}
+.hero{max-width:1180px;margin:0 auto;padding:30px 20px 10px;display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+.hero h1{font-size:44px;line-height:1.08;letter-spacing:-1px;margin-bottom:14px}
+.hero h1 em{font-style:normal;color:var(--primary)}
+.hero p{font-size:17px;color:var(--soft);line-height:1.55;margin-bottom:22px}
+.feat{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-bottom:24px;font-size:14px}
+.feat div{display:flex;gap:8px;align-items:flex-start}.feat span{font-size:18px;line-height:1}
+.cta{display:inline-block;background:linear-gradient(135deg,var(--cyan),var(--primary));color:#fff;text-decoration:none;font-weight:700;border-radius:14px;padding:15px 26px;box-shadow:0 10px 26px rgba(154,107,63,.3)}
+.mock{background:var(--surface);border-radius:24px;padding:22px;box-shadow:0 24px 60px rgba(111,74,42,.18);border:1px solid rgba(210,168,119,.2)}
+.mock .r{display:flex;justify-content:space-between;align-items:center;padding:11px 12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;font-size:13px;background:#fff}
+.pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px}.pill.ok{background:var(--okbg);color:var(--ok)}.pill.w{background:#fff3d9;color:#85500b}
+.wiz{max-width:1180px;margin:40px auto 60px;padding:0 20px;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:40px}
+.steps{display:flex;align-items:center;margin-bottom:26px}
+.steps .dot{width:38px;height:38px;border-radius:50%;background:#E2D8CB;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.steps .dot.on{background:linear-gradient(135deg,var(--cyan),var(--primary))}
+.steps .bar{flex:1;height:3px;background:#E2D8CB;margin:0 8px}.steps .bar.on{background:var(--cyan)}
+.lbls{display:flex;justify-content:space-between;font-size:13px;color:var(--soft);margin:-18px 0 24px}
+h2{font-size:30px;letter-spacing:-.5px;margin-bottom:6px}
+.sub{color:var(--soft);margin-bottom:24px}
+.card{background:var(--surface);border-radius:20px;padding:24px;box-shadow:0 6px 24px rgba(154,107,63,.08);border:1px solid rgba(210,168,119,.14)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px}
+.f{margin-bottom:14px}.f.full{grid-column:1/-1}
+label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}label i{color:var(--bad);font-style:normal}
+input,select{width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:12px;font:inherit;font-size:15px;background:#fff;color:var(--text)}
+input:focus,select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(192,138,85,.15)}
+.seg{display:inline-flex;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:4px}
+.seg button{border:none;background:none;padding:9px 22px;border-radius:9px;font:inherit;font-weight:600;color:var(--soft);cursor:pointer}
+.seg button.on{background:var(--primary);color:#fff}
+.avatar{display:flex;gap:18px;align-items:center;margin-bottom:20px}
+.av{width:96px;height:96px;border-radius:24px;background:#EFE6DA;display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden;flex-shrink:0}
+.av img{width:100%;height:100%;object-fit:cover}
+.btn{border:none;border-radius:12px;padding:13px 22px;font:inherit;font-weight:700;font-size:15px;cursor:pointer;background:linear-gradient(135deg,var(--cyan),var(--primary));color:#fff}
+.btn.sec{background:#F2EADF;color:var(--deep)}.btn:disabled{opacity:.5;cursor:default}
+.drop{border:2px dashed #D9CBB8;border-radius:14px;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;color:var(--soft);font-size:14px;background:#fff;overflow:hidden}
+.drop img{max-width:100%;max-height:220px}
+.hint{font-size:13px;margin-top:6px}.hint.w{color:var(--warn)}.hint.ok{color:var(--ok)}.hint.e{color:var(--bad)}
+.muted{color:var(--muted);font-size:13px}
+.side{position:sticky;top:20px;align-self:start}
+.side h3{font-size:16px;margin-bottom:12px}
+.side li{list-style:none;display:flex;gap:10px;margin-bottom:12px;font-size:14px;color:var(--soft)}
+.nav{display:flex;justify-content:space-between;margin-top:22px;gap:10px}
+.hidden{display:none!important}
+.done{text-align:center;padding:30px 10px}
+.store{display:inline-flex;align-items:center;gap:10px;background:#111;color:#fff;text-decoration:none;border-radius:12px;padding:10px 18px;font-weight:600}
+.store small{display:block;font-size:10px;opacity:.75;font-weight:500}
+@media(max-width:900px){.hero,.wiz{grid-template-columns:1fr}.hero h1{font-size:34px}.side{position:static}.mock{display:none}}
+@media(max-width:560px){.grid,.feat{grid-template-columns:1fr}h2{font-size:24px}}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">TuConsultorio<b>Online</b><small>by Rispy</small></div>
+  <a class="ing" href="/portal">Ya tengo cuenta</a>
+</div>
+
+<section class="hero">
+  <div>
+    <h1>Todo tu consultorio, <em>en un solo lugar</em>.</h1>
+    <p>Agenda y turnos online, historia clínica completa, recetas electrónicas con firma digital y avisos por WhatsApp. Para vos y tu secretaría, en la web y en el celular.</p>
+    <div class="feat">
+      <div><span>📅</span>Reservas online 24 h con tu link propio</div>
+      <div><span>📋</span>Historia clínica con CIE-10 y signos vitales</div>
+      <div><span>💊</span>Recetas electrónicas (Ley 27.553) con QR y firma digital</div>
+      <div><span>✅</span>Validación de matrícula en REFEPS</div>
+      <div><span>👩‍💼</span>Acceso para tu secretaría</div>
+      <div><span>📱</span>App para iPhone</div>
+    </div>
+    <a class="cta" href="#alta">Crear mi consultorio gratis</a>
+  </div>
+  <div class="mock">
+    <p class="muted" style="margin-bottom:10px">Hoy · 6 turnos</p>
+    <div class="r"><span><b>09:00</b> · Juan Pérez</span><span class="pill ok">Confirmado</span></div>
+    <div class="r"><span><b>09:30</b> · María Gómez</span><span class="pill w">Por aprobar</span></div>
+    <div class="r"><span><b>10:00</b> · Lucía Díaz</span><span class="pill ok">En sala</span></div>
+    <div class="r"><span>💊 Receta · Amoxicilina 500 mg</span><span class="pill ok">🔐 Firmada</span></div>
+  </div>
+</section>
+
+<section class="wiz" id="alta">
+  <div>
+    <div class="steps"><div class="dot on" id="d1">1</div><div class="bar" id="b1"></div><div class="dot" id="d2">2</div><div class="bar" id="b2"></div><div class="dot" id="d3">3</div></div>
+    <div class="lbls"><span>Paso 1</span><span>Paso 2</span><span>Último paso</span></div>
+
+    <!-- PASO 1 -->
+    <div id="p1">
+      <h2>Información básica</h2>
+      <p class="sub">Completá estos datos para crear tu consultorio. Son los datos mínimos necesarios.</p>
+      <div class="card">
+        <div class="avatar">
+          <div class="av" id="avPrev">👤</div>
+          <div><label class="btn sec" style="display:inline-block;cursor:pointer">Subir imagen de perfil<input type="file" accept="image/*" id="avatar" hidden></label>
+            <p class="muted" style="margin-top:6px">Ayuda a que tus pacientes te reconozcan. No es obligatorio.</p></div>
+        </div>
+        <div class="f"><label>Prefijo <i>*</i></label><div class="seg" id="prefijo"><button type="button" data-v="Dr." class="on">Dr.</button><button type="button" data-v="Dra.">Dra.</button></div></div>
+        <div class="grid">
+          <div class="f"><label>Nombre(s) <i>*</i></label><input id="nombre" autocomplete="given-name" placeholder="Nombre(s)"></div>
+          <div class="f"><label>Apellido(s) <i>*</i></label><input id="apellido" autocomplete="family-name" placeholder="Apellido(s)"></div>
+          <div class="f"><label>Tipo de identificación <i>*</i></label><select id="tipoDoc"><option>DNI</option></select></div>
+          <div class="f"><label>N° de documento <i>*</i></label><input id="dni" inputmode="numeric" placeholder="Sin puntos"><p class="hint hidden" id="refepsHint"></p></div>
+          <div class="f full"><label>Foto del documento <i>*</i></label>
+            <label class="drop" id="dniDrop"><span style="font-size:26px">🪪</span><span>Subir imagen</span><input type="file" accept="image/*" id="dniFoto" hidden></label>
+            <p class="muted" style="margin-top:6px">Subí una imagen de tu documento de identidad. Nos permite reforzar la seguridad y evitar la posible suspensión de tu cuenta.</p>
+            <p class="hint e hidden" id="dniFotoErr">El campo es obligatorio</p></div>
+        </div>
+      </div>
+      <div class="nav"><span></span><button class="btn" id="n1">Continuar</button></div>
+    </div>
+
+    <!-- PASO 2 -->
+    <div id="p2" class="hidden">
+      <h2>Datos profesionales</h2>
+      <p class="sub">Con tu matrícula verificamos que seas médico/a para que tus recetas sean válidas.</p>
+      <div class="card">
+        <div class="f"><label>Tipo de matrícula <i>*</i></label><div class="seg" id="tipoMat"><button type="button" data-v="MP" class="on">Provincial</button><button type="button" data-v="MN">Nacional</button></div></div>
+        <div class="grid">
+          <div class="f" id="provBox"><label>Provincia de la matrícula <i>*</i></label><select id="provMat"></select></div>
+          <div class="f"><label>N° de matrícula <i>*</i></label><input id="matricula" placeholder="Ej: 12345"></div>
+          <div class="f"><label>Especialidad <i>*</i></label><input id="especialidad" list="esps" value="Clínica médica"><datalist id="esps"></datalist></div>
+          <div class="f"><label>Foto de la credencial o título</label><label class="drop" id="credDrop" style="min-height:90px"><span>Subir imagen (opcional)</span><input type="file" accept="image/*" id="credFoto" hidden></label></div>
+        </div>
+        <h3 style="font-size:16px;margin:10px 0 12px">Tu consultorio</h3>
+        <div class="grid">
+          <div class="f"><label>Nombre del consultorio <i>*</i></label><input id="consultorio" placeholder="Ej: Consultorio Dra. Gómez"></div>
+          <div class="f"><label>Teléfono / WhatsApp del consultorio</label><input id="telCons" inputmode="tel" placeholder="Ej: 343 4231100"></div>
+          <div class="f full"><label>Dirección</label><input id="direccion" placeholder="Calle y número"></div>
+          <div class="f"><label>Ciudad</label><input id="ciudad"></div>
+          <div class="f"><label>Provincia</label><select id="provCons"></select></div>
+        </div>
+      </div>
+      <div class="nav"><button class="btn sec" id="v2">Volver</button><button class="btn" id="n2">Continuar</button></div>
+    </div>
+
+    <!-- PASO 3 -->
+    <div id="p3" class="hidden">
+      <h2>Último paso</h2>
+      <p class="sub">Creá tu acceso. Con estos datos entrás en la web y en la app.</p>
+      <div class="card">
+        <div class="grid">
+          <div class="f full"><label>Email <i>*</i></label><input id="email" type="email" autocomplete="email"></div>
+          <div class="f"><label>Celular <i>*</i></label><input id="celular" inputmode="tel" placeholder="Código de área + número"></div>
+          <div class="f"><label>Contraseña <i>*</i></label><input id="password" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres"></div>
+        </div>
+        <label style="display:flex;gap:10px;align-items:flex-start;font-weight:500;font-size:13px;margin-top:6px"><input type="checkbox" id="acepto" style="width:18px;height:18px;margin-top:1px;accent-color:var(--primary)"> Declaro que los datos son verdaderos y acepto los términos del servicio y la política de privacidad (Ley 25.326).</label>
+        <p class="hint e hidden" id="err"></p>
+      </div>
+      <div class="nav"><button class="btn sec" id="v3">Volver</button><button class="btn" id="crear">Crear mi consultorio</button></div>
+    </div>
+
+    <!-- LISTO -->
+    <div id="ok" class="hidden">
+      <div class="card done">
+        <p style="font-size:46px">🎉</p>
+        <h2 style="margin:6px 0 8px">¡Tu consultorio está listo!</h2>
+        <p class="sub" id="okMsg">Estamos verificando tu matrícula. Mientras tanto ya podés configurar tu agenda y recibir turnos.</p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:22px">
+          <a class="btn" href="/portal" style="text-decoration:none">Entrar a mi consultorio</a>
+          <a class="btn sec" id="linkReservas" href="#" target="_blank" style="text-decoration:none">Ver mi página de turnos</a>
+        </div>
+        <div class="card" style="background:#fff;box-shadow:none;border:1px solid var(--line);text-align:left">
+          <h3 style="font-size:16px;margin-bottom:6px">📱 Bajate la app para médicos</h3>
+          <p class="muted" style="margin-bottom:12px">Para una mejor atención: tu agenda, la sala de espera, historias clínicas y recetas desde el celular, con avisos de cada turno nuevo.</p>
+          <div id="stores"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="side">
+    <div class="card">
+      <h3>¿Por qué pedimos estos datos?</h3>
+      <ul>
+        <li><span>🪪</span>Tu DNI y matrícula se validan en REFEPS (Ministerio de Salud) para que puedas emitir recetas electrónicas.</li>
+        <li><span>🔒</span>Las fotos de tus documentos solo las ve el equipo de verificación.</li>
+        <li><span>✍️</span>Después cargás tu firma y, si tenés, tu certificado de firma digital.</li>
+        <li><span>💬</span>¿Dudas? <a href="mailto:contact@rispy.io">contact@rispy.io</a></li>
+      </ul>
+    </div>
+  </aside>
+</section>
+
+<script>
+const $=id=>document.getElementById(id);
+const PROV=['Buenos Aires','Ciudad de Buenos Aires','Catamarca','Chaco','Chubut','Córdoba','Corrientes','Entre Ríos','Formosa','Jujuy','La Pampa','La Rioja','Mendoza','Misiones','Neuquén','Río Negro','Salta','San Juan','San Luis','Santa Cruz','Santa Fe','Santiago del Estero','Tierra del Fuego','Tucumán'];
+const ESP=['Clínica médica','Medicina general y familiar','Pediatría','Ginecología y obstetricia','Cardiología','Dermatología','Traumatología y ortopedia','Oftalmología','Otorrinolaringología','Neurología','Psiquiatría','Endocrinología','Gastroenterología','Neumonología','Nefrología','Urología','Reumatología','Infectología','Oncología','Hematología','Nutrición','Cirugía general','Diagnóstico por imágenes','Medicina del deporte','Geriatría','Alergia e inmunología','Kinesiología y fisiatría'];
+$('provMat').innerHTML=$('provCons').innerHTML=PROV.map(p=>`<option ${p==='Entre Ríos'?'selected':''}>${p}</option>`).join('');
+$('esps').innerHTML=ESP.map(e=>`<option value="${e}">`).join('');
+const D={prefijo:'Dr.',tipoMat:'MP',avatar:null,dniFoto:null,credFoto:null};
+let paso=1;
+function seg(id,key){$(id).querySelectorAll('button').forEach(b=>b.onclick=()=>{$(id).querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));D[key]=b.dataset.v;if(key==='tipoMat')$('provBox').style.display=D.tipoMat==='MP'?'':'none'})}
+seg('prefijo','prefijo');seg('tipoMat','tipoMat');
+function ir(n){paso=n;[1,2,3].forEach(i=>{$('p'+i).classList.toggle('hidden',i!==n);$('d'+i).classList.toggle('on',i<=n)});$('b1').classList.toggle('on',n>1);$('b2').classList.toggle('on',n>2);document.getElementById('alta').scrollIntoView({behavior:'smooth'})}
+// Imágenes: se achican en el navegador
+function leerImg(file,lado){return new Promise((ok,mal)=>{const fr=new FileReader();fr.onerror=()=>mal(new Error('No se pudo leer'));fr.onload=()=>{const i=new Image();i.onerror=()=>mal(new Error('Formato no soportado (usá JPG o PNG)'));i.onload=()=>{const r=Math.min(1,lado/Math.max(i.width,i.height));const c=document.createElement('canvas');c.width=Math.round(i.width*r);c.height=Math.round(i.height*r);c.getContext('2d').drawImage(i,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.82))};i.src=fr.result};fr.readAsDataURL(file)})}
+$('avatar').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{D.avatar=await leerImg(f,512);$('avPrev').innerHTML=`<img src="${D.avatar}" alt="">`}catch(x){alert(x.message)}};
+$('dniFoto').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{D.dniFoto=await leerImg(f,1400);$('dniDrop').innerHTML=`<img src="${D.dniFoto}" alt="DNI">`;$('dniDrop').appendChild($('dniFoto'));$('dniFotoErr').classList.add('hidden')}catch(x){alert(x.message)}};
+$('credFoto').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{D.credFoto=await leerImg(f,1400);$('credDrop').innerHTML=`<img src="${D.credFoto}" alt="Credencial">`;$('credDrop').appendChild($('credFoto'))}catch(x){alert(x.message)}};
+// REFEPS al escribir el DNI (como en el registro de SISA)
+let tRef=null;
+$('dni').oninput=()=>{clearTimeout(tRef);const d=$('dni').value.replace(/\D/g,'');const h=$('refepsHint');h.classList.add('hidden');if(d.length<7)return;
+  tRef=setTimeout(async()=>{try{const r=await fetch('/api/v1/verification/refeps?dni='+d).then(x=>x.ok?x.json():null);if(!r||!r.consultado)return;
+    h.classList.remove('hidden');
+    if(r.encontrado&&r.esMedico&&r.matriculaVigente){h.className='hint ok';h.textContent='✓ Encontramos tu matrícula de médico en REFEPS (SISA).'}
+    else if(r.encontrado&&r.esMedico){h.className='hint w';h.textContent='Figurás en REFEPS pero sin matrícula vigente. Revisalo.'}
+    else{h.className='hint w';h.textContent='No hemos encontrado su DNI en el registro de REFEPS de SISA. Revise si es correcto.'}}catch{}},700)};
+$('n1').onclick=()=>{
+  const falta=!$('nombre').value.trim()?'nombre':!$('apellido').value.trim()?'apellido':$('dni').value.replace(/\D/g,'').length<7?'dni':'';
+  if(falta){$(falta).focus();$(falta).style.borderColor='var(--bad)';return}
+  if(!D.dniFoto){$('dniFotoErr').classList.remove('hidden');return}
+  if(!$('consultorio').value) $('consultorio').value=`Consultorio ${D.prefijo} ${$('apellido').value.trim()}`;
+  ir(2)};
+$('v2').onclick=()=>ir(1);$('v3').onclick=()=>ir(2);
+$('n2').onclick=()=>{const f=!$('matricula').value.trim()?'matricula':!$('especialidad').value.trim()?'especialidad':!$('consultorio').value.trim()?'consultorio':'';if(f){$(f).focus();$(f).style.borderColor='var(--bad)';return}ir(3)};
+document.querySelectorAll('input').forEach(i=>i.addEventListener('input',()=>i.style.borderColor=''));
+
+async function api(path,{method='GET',body,token,org}={}){
+  const h={'Content-Type':'application/json'};if(token)h.Authorization='Bearer '+token;if(org)h['x-organization-id']=org;
+  const r=await fetch(path,{method,headers:h,body:body?JSON.stringify(body):undefined});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(Array.isArray(d.errors)?d.errors.join(', '):Array.isArray(d.message)?d.message.join(', '):(d.message||'Error'));
+  return d;
+}
+$('crear').onclick=async()=>{
+  const err=$('err');err.classList.add('hidden');
+  const email=$('email').value.trim(),pass=$('password').value,cel=$('celular').value.replace(/\D/g,'');
+  const fallo=!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)?'Ingresá un email válido':cel.length<8?'Ingresá tu celular con código de área':pass.length<8?'La contraseña tiene que tener al menos 8 caracteres':!$('acepto').checked?'Tenés que aceptar los términos':'';
+  if(fallo){err.textContent=fallo;err.classList.remove('hidden');return}
+  const b=$('crear');b.disabled=true;b.textContent='Creando tu consultorio…';
+  try{
+    const s=await api('/api/v1/auth/register',{method:'POST',body:{email,password:pass,firstName:$('nombre').value.trim(),lastName:$('apellido').value.trim(),phone:'+54'+cel,medicalLicense:$('matricula').value.trim(),specialty:$('especialidad').value.trim()}});
+    const token=s.accessToken,org=(s.organizations||[])[0]?.org_id;
+    // Sesión para el portal (mismas claves que /portal)
+    try{const u={...(s.user||s.doctor||{}),first_name:$('nombre').value.trim(),last_name:$('apellido').value.trim(),full_name:`${D.prefijo} ${$('nombre').value.trim()} ${$('apellido').value.trim()}`};localStorage.setItem('mediclick_token',token);localStorage.setItem('mediclick_refreshToken',s.refreshToken||'');localStorage.setItem('mediclick_userId',u?.id||u?.user_id||'');localStorage.setItem('mediclick_userType','doctor');localStorage.setItem('mediclick_user',JSON.stringify(u));localStorage.setItem('mediclick_orgs',JSON.stringify(s.organizations||[]))}catch{}
+    const avisos=[];
+    await api('/api/v1/verification',{method:'POST',token,org,body:{dni:$('dni').value,licenseType:D.tipoMat,province:D.tipoMat==='MP'?$('provMat').value:undefined,medicalLicense:$('matricula').value.trim(),specialty:$('especialidad').value.trim(),dniDocument:D.dniFoto,document:D.credFoto||undefined}}).catch(e=>avisos.push('Matrícula: '+e.message));
+    await api('/api/v1/profile',{method:'PUT',token,org,body:{titlePrefix:D.prefijo,avatarUrl:D.avatar||undefined}}).catch(()=>{});
+    if(org) await api('/api/v1/organizations/'+org,{method:'PUT',token,org,body:{name:$('consultorio').value.trim(),phone:$('telCons').value.trim()||undefined,address:$('direccion').value.trim()||undefined,city:$('ciudad').value.trim()||undefined,province:$('provCons').value}}).catch(()=>{});
+    const bk=await api('/api/v1/booking/settings',{token,org}).catch(()=>null);
+    const estado=await api('/api/v1/verification',{token,org}).catch(()=>null);
+    if(bk&&(bk.public_slug||bk.slug))$('linkReservas').href='/reservar/'+(bk.public_slug||bk.slug);else $('linkReservas').classList.add('hidden');
+    $('okMsg').textContent=(estado&&estado.puedeRecetar?'✅ Tu matrícula quedó verificada en REFEPS: ya podés emitir recetas.':'Estamos verificando tu matrícula (suele tardar menos de 24 h hábiles). Mientras tanto ya podés configurar tu agenda y recibir turnos.')+(avisos.length?' '+avisos.join(' '):'');
+    const cfg=await fetch('/api/v1/public/config').then(r=>r.json()).catch(()=>({}));
+    $('stores').innerHTML=(cfg.iosAppUrl?`<a class="store" href="${cfg.iosAppUrl}" target="_blank" rel="noopener"><span style="font-size:24px"></span><span><small>Descargala en el</small>App Store</span></a> `:`<span class="store" style="opacity:.6"><span style="font-size:24px"></span><span><small>Muy pronto en el</small>App Store</span></span> `)+(cfg.androidAppUrl?`<a class="store" href="${cfg.androidAppUrl}" target="_blank" rel="noopener"><span style="font-size:22px">▶</span><span><small>Disponible en</small>Google Play</span></a>`:'');
+    [1,2,3].forEach(i=>$('p'+i).classList.add('hidden'));$('ok').classList.remove('hidden');document.querySelector('.steps').classList.add('hidden');document.querySelector('.lbls').classList.add('hidden');
+  }catch(e){err.textContent=e.message;err.classList.remove('hidden');b.disabled=false;b.textContent='Crear mi consultorio'}
+};
+</script>
+</body>
+</html>

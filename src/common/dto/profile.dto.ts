@@ -7,6 +7,16 @@ import {
 export class UpdateProfileDto {
   @IsOptional()
   @IsString()
+  @MaxLength(6)
+  titlePrefix?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(400000)
+  avatarUrl?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(100)
   firstName?: string;
 

@@ -10,6 +10,7 @@ export interface SolicitudVerificacion {
   province?: string;
   specialty?: string;
   document?: string; // foto de la credencial (data URL)
+  dniDocument?: string; // foto del DNI (data URL)
 }
 
 @Injectable()
@@ -55,6 +56,10 @@ export class VerificationService implements OnModuleInit {
     if (dto.document && (!/^data:image\/(jpeg|png|webp);base64,/.test(dto.document) || dto.document.length > 2_000_000)) {
       throw new BadRequestException('La foto de la credencial no es válida o es muy grande');
     }
+    if (dto.dniDocument && (!/^data:image\/(jpeg|png|webp);base64,/.test(dto.dniDocument) || dto.dniDocument.length > 2_000_000)) {
+      throw new BadRequestException('La foto del DNI no es válida o es muy grande');
+    }
+    if (dto.dniDocument) await this.db.query(`UPDATE doctors SET dni_document = $2 WHERE id = $1`, [doctorId, dto.dniDocument]);
     // La misma matrícula no puede estar verificada en otra cuenta
     const otra = await this.db.queryOne(
       `SELECT id FROM doctors WHERE id <> $1 AND license_status = 'verified'
@@ -112,7 +117,7 @@ export class VerificationService implements OnModuleInit {
     return this.db.queryMany(
       `SELECT id, first_name, last_name, email, phone, dni, medical_license, license_type, medical_license_province,
               specialty, license_status, license_requested_at, license_verified_at, license_verified_by,
-              license_verification_note, license_document, refeps_data, created_at
+              license_verification_note, license_document, dni_document, refeps_data, created_at
        FROM doctors
        WHERE COALESCE(license_status, 'unverified') = $1
        ORDER BY license_requested_at DESC NULLS LAST, created_at DESC LIMIT 200`,
@@ -135,6 +140,14 @@ export class VerificationService implements OnModuleInit {
     );
     this.logger.log(`Matrícula de ${doctorId} ${aprobar ? 'aprobada' : 'rechazada'} por ${admin}`);
     return { ok: true };
+  }
+
+  /** Consulta previa para el alta: solo dice si el DNI figura como médico en REFEPS (sin datos personales) */
+  async chequeoPublico(dni: string) {
+    const d = String(dni || '').replace(/\D/g, '');
+    if (d.length < 7 || d.length > 9) throw new BadRequestException('DNI inválido');
+    const r = await this.refeps.consultar(d);
+    return { consultado: r.consultado, encontrado: r.encontrado, esMedico: r.esMedico, matriculaVigente: r.matriculaVigente };
   }
 
   /** Para recetas: el médico tiene que estar verificado */

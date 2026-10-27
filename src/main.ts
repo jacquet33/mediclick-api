@@ -121,6 +121,9 @@ class HealthController {
     return {
       googleClientId: this.config.get('GOOGLE_CLIENT_ID') || this.config.get('GOOGLE_CLIENT_ID_WEB') || '',
       appleSignInEnabled: !!this.config.get('APPLE_CLIENT_ID'),
+      // Link de la app para médicos (App Store). Variable IOS_APP_STORE_URL (vacío = "próximamente")
+      iosAppUrl: this.config.get('IOS_APP_STORE_URL') || '',
+      androidAppUrl: this.config.get('ANDROID_APP_URL') || '',
     };
   }
 }
@@ -251,7 +254,7 @@ async function bootstrap() {
     .filter(Boolean);
   // Dominios propios: siempre permitidos (el nuevo de Rispy Health y el anterior, mientras dure la migración)
   if (allowedOrigins.length) {
-    for (const o of ['https://tuconsultorio.rispy.io', 'https://mediclick.art3d-studio.com.ar']) {
+    for (const o of ['https://tuconsultorio.rispy.io', 'https://medicos.rispy.io', 'https://mediclick.art3d-studio.com.ar']) {
       if (!allowedOrigins.includes(o)) allowedOrigins.push(o);
     }
   }
@@ -304,6 +307,9 @@ async function bootstrap() {
   app.use((req, res, next) => {
     const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(':')[0].toLowerCase();
     const url = String(req.originalUrl || req.url || '/');
+    if (host === 'medicos.rispy.io' && (url === '/' || url.startsWith('/?'))) {
+      req.url = '/medicos.html' + url.slice(1);
+    }
     if (host === 'mediclick.art3d-studio.com.ar' && (req.method === 'GET' || req.method === 'HEAD') && !url.startsWith('/api/')) {
       const destino = url.replace(/^\/portal\.html/, '/portal');
       return res.redirect(301, 'https://tuconsultorio.rispy.io' + destino);
