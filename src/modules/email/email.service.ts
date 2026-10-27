@@ -62,7 +62,7 @@ export class EmailService {
   // ─── ENVIAR ──────────────────────────────────────────────
 
   async send(options: EmailOptions): Promise<boolean> {
-    const from = this.config.get('SMTP_FROM') || 'MediClick <no-reply@mediclick.app>';
+    const from = this.config.get('SMTP_FROM') || 'TuConsultorioOnline <no-reply@mediclick.app>';
 
     if (!this.transporter) {
       this.logger.log(`[EMAIL] To: ${options.to} | Subject: ${options.subject}`);
@@ -89,7 +89,7 @@ export class EmailService {
   // ─── ENVIAR CON ADJUNTOS ─────────────────────────────────
 
   async sendWithAttachment(options: EmailWithAttachmentOptions): Promise<boolean> {
-    const from = this.config.get('SMTP_FROM') || 'MediClick <no-reply@mediclick.app>';
+    const from = this.config.get('SMTP_FROM') || 'TuConsultorioOnline <no-reply@mediclick.app>';
 
     if (!this.transporter) {
       this.logger.log(`[EMAIL+ATTACHMENT] To: ${options.to} | Subject: ${options.subject} | Files: ${options.attachments.map(a => a.filename).join(', ')}`);
@@ -123,10 +123,10 @@ export class EmailService {
   async sendWelcome(email: string, name: string): Promise<boolean> {
     return this.send({
       to: email,
-      subject: '¡Bienvenido a MediClick!',
+      subject: '¡Bienvenido a TuConsultorioOnline!',
       html: this.wrapTemplate(`
         <h2 style="color:#161925;margin-bottom:16px;">¡Hola Dr/a. ${name}!</h2>
-        <p>Tu cuenta de MediClick fue creada exitosamente.</p>
+        <p>Tu cuenta de TuConsultorioOnline fue creada exitosamente.</p>
         <p>Ya tenés todo listo para empezar:</p>
         <ul style="padding-left:20px;">
           <li>📅 Tu agenda Lunes a Viernes de 9 a 18hs ya está configurada</li>
@@ -208,13 +208,13 @@ export class EmailService {
   ): Promise<boolean> {
     return this.send({
       to: email,
-      subject: `Pago confirmado — MediClick ${plan}`,
+      subject: `Pago confirmado — TuConsultorioOnline ${plan}`,
       html: this.wrapTemplate(`
         <h2 style="color:#161925;margin-bottom:16px;">¡Pago confirmado!</h2>
         <p>Hola Dr/a. ${name},</p>
         <p>Tu pago fue procesado exitosamente:</p>
         <div style="background:#FFF7F3;border-radius:12px;padding:20px;margin:16px 0;">
-          <p style="margin:4px 0;"><strong>Plan:</strong> MediClick ${plan}</p>
+          <p style="margin:4px 0;"><strong>Plan:</strong> TuConsultorioOnline ${plan}</p>
           <p style="margin:4px 0;"><strong>Monto:</strong> ${amount}</p>
           <p style="margin:4px 0;"><strong>Estado:</strong> ✅ Aprobado</p>
         </div>
@@ -237,7 +237,7 @@ export class EmailService {
     <!-- Header -->
     <tr>
       <td style="background:#161925;padding:24px 32px;">
-        <h1 style="color:#879DFF;margin:0;font-size:24px;font-weight:700;">MediClick</h1>
+        <h1 style="color:#879DFF;margin:0;font-size:24px;font-weight:700;">TuConsultorioOnline</h1><p style="margin:4px 0 0;color:#9A9DAD;font-size:12px;">by Rispy</p>
       </td>
     </tr>
     <!-- Content -->
@@ -250,7 +250,7 @@ export class EmailService {
     <tr>
       <td style="background:#FFF7F3;padding:16px 32px;text-align:center;">
         <p style="margin:0;color:#999;font-size:12px;">
-          © ${new Date().getFullYear()} MediClick ·
+          © ${new Date().getFullYear()} TuConsultorioOnline by Rispy ·
           <a href="https://tuconsultorio.rispy.io/privacidad" style="color:#879DFF;">Privacidad</a> ·
           <a href="https://tuconsultorio.rispy.io/terminos" style="color:#879DFF;">Términos</a>
         </p>

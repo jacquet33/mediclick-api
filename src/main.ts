@@ -291,7 +291,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');
-  console.log(`MediClick API v1.0.0 running on port ${port}`);
+  console.log(`TuConsultorioOnline API v1.0.0 running on port ${port}`);
   console.log(`Health: http://localhost:${port}/api/v1/health`);
 }
 bootstrap();

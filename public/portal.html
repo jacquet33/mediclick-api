@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#161925">
-<title>MediClick — Portal</title>
+<title>TuConsultorioOnline by Rispy — Portal</title>
 <meta property="og:type" content="website">
-<meta property="og:title" content="MediClick — Portal profesional">
+<meta property="og:title" content="TuConsultorioOnline — Portal profesional">
 <meta property="og:description" content="Accedé al portal de gestión de tu consultorio. Turnos, pacientes, recetas y más.">
-<meta property="og:site_name" content="MediClick">
+<meta property="og:site_name" content="TuConsultorioOnline">
 <meta name="twitter:card" content="summary">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -248,7 +248,8 @@ tr:hover td{background:var(--bg-soft)}
 <div id="loginPage" class="login-wrap">
   <div class="login-box">
     <div class="login-header">
-      <h1>MediClick</h1>
+      <h1>TuConsultorio<span style="font-weight:500;opacity:.75">Online</span></h1>
+      <p class="muted" style="font-size:12px;margin-top:-4px;letter-spacing:.04em">by Rispy</p>
       <p>Ingresá a tu cuenta</p>
     </div>
     <div class="card">
@@ -1597,17 +1598,17 @@ function waLink(phone,msg){
 }
 function waConfirmBtn(phone,patientName,date,time,doctorName,orgName){
   if(!phone)return '';
-  const msg=`Hola ${patientName}! 👋\n\nTu turno está *confirmado*:\n📅 ${date}\n⏰ ${time} hs\n👨‍⚕️ Dr/a. ${doctorName}\n🏥 ${orgName}\n\nTe esperamos!\n— MediClick`;
+  const msg=`Hola ${patientName}! 👋\n\nTu turno está *confirmado*:\n📅 ${date}\n⏰ ${time} hs\n👨‍⚕️ Dr/a. ${doctorName}\n🏥 ${orgName}\n\nTe esperamos!\n— TuConsultorioOnline`;
   return `<a href="${waLink(phone,msg)}" target="_blank" class="btn btn-sm" style="background:#25D366;color:#fff;border:none;font-size:11px;padding:6px 10px" title="Enviar por WhatsApp">📱 WA</a>`;
 }
 function waReminderBtn(phone,patientName,date,time){
   if(!phone)return '';
-  const msg=`Hola ${patientName}! 👋\n\nTe recordamos que tenés turno:\n📅 ${date}\n⏰ ${time} hs\n\n¿Confirmás asistencia?\n— MediClick`;
+  const msg=`Hola ${patientName}! 👋\n\nTe recordamos que tenés turno:\n📅 ${date}\n⏰ ${time} hs\n\n¿Confirmás asistencia?\n— TuConsultorioOnline`;
   return `<a href="${waLink(phone,msg)}" target="_blank" class="btn btn-sm" style="background:#25D366;color:#fff;border:none;font-size:11px;padding:6px 10px" title="Recordatorio WA">📱 Recordar</a>`;
 }
 function waSlotReleasedBtn(phone,contactName,date,time,doctorName){
   if(!phone)return '';
-  const msg=`Hola ${contactName}! 👋\n\n¡Se liberó un turno!\n📅 ${date}\n⏰ ${time} hs\n👨‍⚕️ Dr/a. ${doctorName}\n\n¿Querés reservarlo? Respondé este mensaje.\n— MediClick`;
+  const msg=`Hola ${contactName}! 👋\n\n¡Se liberó un turno!\n📅 ${date}\n⏰ ${time} hs\n👨‍⚕️ Dr/a. ${doctorName}\n\n¿Querés reservarlo? Respondé este mensaje.\n— TuConsultorioOnline`;
   return `<a href="${waLink(phone,msg)}" target="_blank" class="btn btn-sm" style="background:#25D366;color:#fff;border:none;font-size:11px;padding:6px 10px" title="Avisar turno libre">📱 Avisar</a>`;
 }
 

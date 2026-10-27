@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#161925">
-<title>Registro de paciente — MediClick</title>
+<title>Registro de paciente — TuConsultorioOnline by Rispy</title>
 <meta property="og:type" content="website">
-<meta property="og:title" content="Registro de paciente — MediClick">
+<meta property="og:title" content="Registro de paciente — TuConsultorioOnline">
 <meta property="og:description" content="Registrate como paciente para reservar turnos online.">
-<meta property="og:site_name" content="MediClick">
+<meta property="og:site_name" content="TuConsultorioOnline">
 <meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -387,7 +387,7 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 </div>
 
 <div class="footer">
-  Version 1.0.0 &middot; Powered by <a href="/">MediClick</a>
+  Version 1.0.0 &middot; <a href="/">TuConsultorioOnline</a> by <a href="https://rispy.io">Rispy</a>
 </div>
 
 </div>
@@ -423,7 +423,7 @@ async function init() {
     profile = await r.json();
     document.getElementById('docRef').textContent = 'Dr/a. ' + profile.doctor_name;
     document.getElementById('docRef2').textContent = 'Dr/a. ' + profile.doctor_name;
-    document.title = `Registro — Dr/a. ${profile.doctor_name} — MediClick`;
+    document.title = `Registro — Dr/a. ${profile.doctor_name} — TuConsultorioOnline`;
     initInsuranceSearch();
   } catch { showError(); }
 }

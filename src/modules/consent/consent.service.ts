@@ -5,7 +5,7 @@ const DEFAULT_CONSENT_TEXT = `CONSENTIMIENTO INFORMADO PARA HISTORIA CLÍNICA DI
 
 En cumplimiento de la Ley 26.529 de Derechos del Paciente y la Ley 25.326 de Protección de Datos Personales, se informa al paciente que:
 
-1. Su historia clínica será registrada y almacenada en formato digital a través de la plataforma MediClick.
+1. Su historia clínica será registrada y almacenada en formato digital a través de la plataforma TuConsultorioOnline (Rispy).
 
 2. Los datos registrados incluyen: datos personales, antecedentes médicos, diagnósticos, tratamientos, prescripciones, estudios complementarios y toda otra información relevante para su atención médica.
 

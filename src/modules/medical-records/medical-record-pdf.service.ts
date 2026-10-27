@@ -142,9 +142,9 @@ export class MedicalRecordPdfService {
         bufferPages: true,
         info: {
           Title: `Historia Clínica - ${patient.first_name} ${patient.last_name}`,
-          Author: doctor ? `Dr. ${doctor.first_name} ${doctor.last_name}` : 'MediClick',
+          Author: doctor ? `Dr. ${doctor.first_name} ${doctor.last_name}` : 'TuConsultorioOnline',
           Subject: 'Historia Clínica Digital — Trazabilidad completa',
-          Creator: 'MediClick',
+          Creator: 'TuConsultorioOnline by Rispy',
           Keywords: 'historia clínica, Ley 26.529, trazabilidad',
         },
       });
@@ -245,7 +245,7 @@ export class MedicalRecordPdfService {
 
     // MEDICLICK branding
     doc.fontSize(22).font('Helvetica-Bold').fillColor(TINTA)
-      .text('MediClick', LEFT, y);
+      .text('TuConsultorioOnline', LEFT, y);
     doc.fontSize(9).font('Helvetica').fillColor(LAVANDA)
       .text('HISTORIA CLÍNICA DIGITAL', LEFT + 115, y + 8);
 
@@ -816,7 +816,7 @@ export class MedicalRecordPdfService {
     // Legal notice
     doc.fontSize(7).font('Helvetica-Oblique').fillColor(TEXT_MUTED)
       .text(
-        'Historia Clinica generada digitalmente por MediClick. ' +
+        'Historia Clinica generada digitalmente por TuConsultorioOnline (Rispy). ' +
         'Conforme Ley 26.529 de Derechos del Paciente en su Relacion con los Profesionales e Instituciones de la Salud. ' +
         'Ley 25.326 de Proteccion de los Datos Personales. ' +
         'Este documento incluye trazabilidad completa de cada registro: fecha, hora, profesional interviniente y matricula.',
@@ -838,7 +838,7 @@ export class MedicalRecordPdfService {
       .text(`Pagina ${page} de ${total}`, LEFT + W - 80, footerY + 6, { width: 80, align: 'right' });
 
     doc.fontSize(6).fillColor(TEXT_MUTED)
-      .text('MediClick - Historia Clinica Digital - Documento confidencial', LEFT, footerY + 18, { width: W, align: 'center' });
+      .text('TuConsultorioOnline by Rispy - Historia Clinica Digital - Documento confidencial', LEFT, footerY + 18, { width: W, align: 'center' });
   }
 
   // ─── Helpers ─────────────────────────────────────────────

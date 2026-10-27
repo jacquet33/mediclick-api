@@ -118,7 +118,7 @@ export class PrescriptionPdfService {
           Title: `Receta - ${rx.patient_first_name} ${rx.patient_last_name}`,
           Author: `Dr. ${rx.doctor_first_name} ${rx.doctor_last_name}`,
           Subject: 'Receta Médica Digital',
-          Creator: 'MediClick',
+          Creator: 'TuConsultorioOnline by Rispy',
         },
       });
 
@@ -154,7 +154,7 @@ export class PrescriptionPdfService {
 
       // MEDICLICK branding
       doc.fontSize(18).font('Helvetica-Bold').fillColor('#161925')
-        .text('MediClick', LEFT, y, { width: W / 2 });
+        .text('TuConsultorioOnline', LEFT, y, { width: W / 2 });
 
       doc.fontSize(8).font('Helvetica').fillColor('#879DFF')
         .text('RECETARIO DIGITAL', LEFT, y + 20, { width: W / 2 });

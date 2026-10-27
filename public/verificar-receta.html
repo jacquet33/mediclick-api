@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#161925">
-<title>Verificar receta — MediClick</title>
+<title>Verificar receta — TuConsultorioOnline by Rispy</title>
 <meta property="og:type" content="website">
-<meta property="og:title" content="Verificar receta electrónica — MediClick">
-<meta property="og:description" content="Verifique la autenticidad de una receta electrónica emitida por MediClick (Ley 27.553).">
-<meta property="og:site_name" content="MediClick">
+<meta property="og:title" content="Verificar receta electrónica — TuConsultorioOnline">
+<meta property="og:description" content="Verifique la autenticidad de una receta electrónica emitida por TuConsultorioOnline (Ley 27.553).">
+<meta property="og:site_name" content="TuConsultorioOnline">
 <meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -104,7 +104,7 @@ async function verify() {
   const el = document.getElementById('content');
 
   if (!code) {
-    el.innerHTML = `<div class="error"><div class="icon">🔍</div><h2>Código no proporcionado</h2><p>Escanee el código QR de una receta de MediClick para verificarla.</p></div>`;
+    el.innerHTML = `<div class="error"><div class="icon">🔍</div><h2>Código no proporcionado</h2><p>Escanee el código QR de una receta de TuConsultorioOnline para verificarla.</p></div>`;
     return;
   }
 
@@ -220,7 +220,7 @@ async function verify() {
       <div class="legal">
         Receta electrónica emitida conforme la Ley 27.553 (Recetas Electrónicas o Digitales)
         y su reglamentación. La verificación confirma que este documento fue emitido a través
-        de la plataforma MediClick y corresponde a una prescripción legítima.<br><br>
+        de la plataforma TuConsultorioOnline y corresponde a una prescripción legítima.<br><br>
         Para cualquier consulta, comuníquese con el profesional emisor.
       </div>
     `;
@@ -230,7 +230,7 @@ async function verify() {
         <div class="error">
           <div class="icon">❌</div>
           <h2>Receta no encontrada</h2>
-          <p>El código de verificación no corresponde a ninguna receta registrada en MediClick.
+          <p>El código de verificación no corresponde a ninguna receta registrada en TuConsultorioOnline.
           Verifique que el código QR escaneado sea correcto.</p>
         </div>
       </div>

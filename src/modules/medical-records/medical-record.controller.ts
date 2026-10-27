@@ -164,7 +164,7 @@ export class MedicalRecordController {
           <p style="margin:4px 0;"><strong>N° Afiliado:</strong> ${patient?.insurance_number || '—'}</p>
         </div>
         <p style="color:#666;font-size:13px;">
-          Este documento fue generado digitalmente por MediClick.<br>
+          Este documento fue generado digitalmente por TuConsultorioOnline (Rispy).<br>
           Conforme Ley 26.529 y Ley 25.326.
         </p>
       `),
