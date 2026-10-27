@@ -95,9 +95,13 @@ class HealthController {
   @Get('health')
   async health() {
     const dbOk = await this.db.isHealthy();
+    const schema = dbOk
+      ? await this.db.queryOne<{ v: string }>(`SELECT max(filename) AS v FROM schema_migrations`).catch(() => null)
+      : null;
     return {
       status: dbOk ? 'ok' : 'degraded',
       service: 'mediclick-api',
+      schema: schema?.v?.slice(0, 3) || null,
       version: '1.0.0',
       database: dbOk ? 'connected' : 'disconnected',
       timestamp: new Date().toISOString(),

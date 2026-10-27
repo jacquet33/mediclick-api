@@ -48,6 +48,13 @@ export const OrgId = createParamDecorator(
             [user.doctorId],
           );
           if (org?.organization_id) return org.organization_id;
+          if (user.userType === 'staff') {
+            const m = await db.queryOne(
+              'SELECT organization_id FROM organization_members WHERE staff_id = $1 AND is_active = true LIMIT 1',
+              [user.doctorId],
+            );
+            if (m?.organization_id) return m.organization_id;
+          }
         }
       } catch {}
     }

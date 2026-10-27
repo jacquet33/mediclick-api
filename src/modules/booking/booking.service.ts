@@ -320,7 +320,7 @@ export class BookingService {
 
     return slots
       .filter(s => {
-        const slotDateTime = new Date(`${date}T${s.startTime}:00`);
+        const slotDateTime = new Date(`${date}T${s.startTime}:00-03:00`); // hora de Argentina
         return slotDateTime >= minTime && !heldTimes.has(s.startTime);
       })
       .map(s => ({
@@ -700,6 +700,13 @@ export class BookingService {
          SET status = 'rejected', rejection_reason = $1, reviewed_at = NOW(), reviewed_by = $2
          WHERE id = $3 AND organization_id = $4`,
         [reason, doctorId, requestId, orgId],
+      );
+      // El turno que se creó al reservar queda cancelado (si no, seguía figurando como pendiente)
+      await client.query(
+        `UPDATE appointments SET status = 'cancelled', cancelled_at = NOW(), cancelled_reason = $1
+         WHERE id = (SELECT appointment_id FROM booking_requests WHERE id = $2 AND organization_id = $3)
+           AND status IN ('pending_approval','pending_payment','pending')`,
+        [reason || 'Solicitud rechazada', requestId, orgId],
       );
       await client.query(`DELETE FROM slot_holds WHERE booking_request_id = $1`, [requestId]);
     });

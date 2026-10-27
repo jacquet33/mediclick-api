@@ -14,6 +14,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/src/database/migrations ./migrations
 USER mediclick
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \

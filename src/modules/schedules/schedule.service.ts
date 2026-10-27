@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 
 export interface SetScheduleDto {
@@ -37,6 +37,12 @@ export class ScheduleService {
 
   async setSchedules(orgId: string, dto: SetScheduleDto) {
     const orgDoctorId = await this.getOrgDoctorId(orgId, dto.doctorId);
+    for (const x of dto.schedules || []) {
+      if (!(x.dayOfWeek >= 0 && x.dayOfWeek <= 6)) throw new BadRequestException('Día inválido (0 = domingo … 6 = sábado)');
+      if (!/^\d{2}:\d{2}/.test(x.startTime || '') || !/^\d{2}:\d{2}/.test(x.endTime || '') || x.startTime >= x.endTime) {
+        throw new BadRequestException('Revisá los horarios: el inicio tiene que ser antes del fin');
+      }
+    }
 
     return this.db.transaction(async (client) => {
       await client.query(
@@ -81,7 +87,12 @@ export class ScheduleService {
   }
 
   async deleteException(orgId: string, id: string) {
-    await this.db.query(`DELETE FROM schedule_exceptions WHERE id = $1`, [id]);
+    // Solo excepciones de médicos de este consultorio
+    await this.db.query(
+      `DELETE FROM schedule_exceptions se USING organization_doctors od
+       WHERE se.id = $1 AND od.id = se.org_doctor_id AND od.organization_id = $2`,
+      [id, orgId],
+    );
     return { message: 'Excepción eliminada' };
   }
 
@@ -90,7 +101,7 @@ export class ScheduleService {
       `SELECT id FROM organization_doctors WHERE organization_id = $1 AND doctor_id = $2 AND is_active = true`,
       [orgId, doctorId],
     );
-    if (!r) throw new Error('Doctor no pertenece a esta organización');
+    if (!r) throw new BadRequestException('El médico no pertenece a este consultorio');
     return r.id;
   }
 }

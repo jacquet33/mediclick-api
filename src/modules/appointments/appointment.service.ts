@@ -146,7 +146,7 @@ export class AppointmentService {
     }
 
     // 3. Validar que la hora no sea pasada
-    const appointmentDateTime = new Date(`${dto.date}T${dto.startTime}:00`);
+    const appointmentDateTime = new Date(`${dto.date}T${dto.startTime.substring(0, 5)}:00-03:00`); // hora de Argentina
     if (appointmentDateTime < new Date()) {
       throw new BadRequestException('No se puede crear un turno en el pasado');
     }
@@ -256,7 +256,7 @@ export class AppointmentService {
     const orgDoctorId = await this.orgService.getOrgDoctorId(organizationId, doctorId);
 
     // 1. Obtener día de la semana
-    const dayOfWeek = new Date(date).getDay();
+    const dayOfWeek = new Date(date + 'T12:00:00Z').getUTCDay(); // independiente de la zona horaria del servidor
 
     // 2. Obtener horario del doctor para este día EN ESTA ORG
     const schedule = await this.db.queryOne(
@@ -475,10 +475,14 @@ export class AppointmentService {
 
   async updateStatus(appointmentId: string, organizationId: string, status: string, cancelReason?: string) {
     const validTransitions: Record<string, string[]> = {
-      pending: ['confirmed', 'cancelled'],
-      confirmed: ['checked_in', 'in_progress', 'cancelled', 'no_show'],
-      checked_in: ['in_progress', 'cancelled', 'no_show'],
+      pending: ['confirmed', 'checked_in', 'cancelled', 'no_show'],
+      pending_approval: ['confirmed', 'cancelled'],
+      pending_payment: ['confirmed', 'cancelled'],
+      confirmed: ['checked_in', 'in_progress', 'completed', 'cancelled', 'no_show'],
+      checked_in: ['in_progress', 'completed', 'cancelled', 'no_show'],
       in_progress: ['completed', 'cancelled'],
+      cancelled: ['confirmed'],
+      no_show: ['confirmed'],
     };
 
     const current = await this.db.queryOne(
@@ -509,6 +513,20 @@ export class AppointmentService {
       params,
     );
 
+    // Turnos reservados online: la solicitud acompaña el estado del turno y se libera el bloqueo del horario
+    if (updated && ['confirmed', 'cancelled'].includes(status) && ['pending_approval', 'pending_payment', 'pending'].includes(current.status)) {
+      await this.db.query(
+        `UPDATE booking_requests SET status = $1::text::booking_status, reviewed_at = NOW(),
+                rejection_reason = CASE WHEN $1::text = 'rejected' THEN $3::text ELSE rejection_reason END
+         WHERE appointment_id = $2 AND status IN ('pending_approval','pending_payment')`,
+        [status === 'confirmed' ? 'confirmed' : 'rejected', appointmentId, cancelReason || null],
+      ).catch((e) => this.logger.warn(`booking_requests: ${e.message}`));
+      await this.db.query(
+        `DELETE FROM slot_holds WHERE booking_request_id IN (SELECT id FROM booking_requests WHERE appointment_id = $1)`,
+        [appointmentId],
+      ).catch(() => undefined);
+    }
+
     // Si se canceló, notificar a la lista de espera
     if (status === 'cancelled' && updated) {
       try {
@@ -538,6 +556,82 @@ export class AppointmentService {
        ORDER BY a.date, a.start_time`,
       [orgDoctorId, from, to],
     );
+  }
+
+  // ─── Listado por estado (médico, dueño/admin o secretaría) ──
+
+  /**
+   * org_doctor_id que puede ver quien consulta:
+   * - staff (secretaría, etc.) y médicos dueños/admin: todos los médicos del consultorio, o el elegido
+   * - médico común: solo su propia agenda
+   */
+  async visibleOrgDoctorIds(orgId: string, user: { doctorId: string; userType: string; orgRole?: string }, doctorId?: string): Promise<string[]> {
+    const ve_todo = user.userType === 'staff'
+      || ['owner', 'admin'].includes(user.orgRole || '')
+      || !!(await this.db.queryOne(
+        `SELECT 1 FROM organization_doctors WHERE organization_id = $1 AND doctor_id = $2 AND is_active = true AND (is_owner OR role IN ('owner','admin'))`,
+        [orgId, user.doctorId],
+      ));
+    if (user.userType !== 'staff' && !ve_todo) {
+      return [await this.orgService.getOrgDoctorId(orgId, user.doctorId)];
+    }
+    const rows = await this.db.queryMany<{ id: string }>(
+      `SELECT id FROM organization_doctors WHERE organization_id = $1 AND is_active = true ${doctorId ? 'AND doctor_id = $2' : ''}`,
+      doctorId ? [orgId, doctorId] : [orgId],
+    );
+    return rows.map((r) => r.id);
+  }
+
+  async listByStatus(orgId: string, orgDoctorIds: string[], f: { status?: string; from?: string; to?: string; q?: string; limit?: number }) {
+    if (!orgDoctorIds.length) return { appointments: [], total: 0 };
+    const params: any[] = [orgId, orgDoctorIds];
+    let where = 'a.organization_id = $1 AND a.org_doctor_id = ANY($2::uuid[])';
+    const statuses = (f.status || '').split(',').map((x) => x.trim()).filter(Boolean);
+    if (statuses.length) { params.push(statuses); where += ` AND a.status::text = ANY($${params.length}::text[])`; }
+    if (f.from) { params.push(f.from); where += ` AND a.date >= $${params.length}::date`; }
+    if (f.to) { params.push(f.to); where += ` AND a.date <= $${params.length}::date`; }
+    if (f.q) {
+      params.push(`%${f.q.toLowerCase()}%`);
+      where += ` AND (lower(p.first_name || ' ' || p.last_name) LIKE $${params.length} OR p.dni LIKE $${params.length} OR p.phone LIKE $${params.length})`;
+    }
+    const limit = Math.min(Math.max(f.limit || 200, 1), 500);
+    // Próximos primero para pendientes/confirmados; los finalizados del más reciente al más viejo
+    const finalizados = statuses.length > 0 && statuses.every((x) => ['completed', 'cancelled', 'no_show'].includes(x));
+    const order = finalizados ? 'a.date DESC, a.start_time DESC' : 'a.date ASC, a.start_time ASC';
+    const appointments = await this.db.queryMany(
+      `SELECT a.id, to_char(a.date, 'YYYY-MM-DD') AS date, a.start_time, a.end_time, a.status, a.reason, a.notes, a.is_first_visit,
+              a.created_by_type, a.created_at, a.cancelled_reason,
+              p.id AS patient_id, p.first_name || ' ' || p.last_name AS patient_name, p.phone AS patient_phone,
+              p.email AS patient_email, p.dni AS patient_dni, p.insurance_provider,
+              d.id AS doctor_id, d.first_name || ' ' || d.last_name AS doctor_name, d.specialty
+       FROM appointments a
+       JOIN patients p ON p.id = a.patient_id
+       JOIN organization_doctors od ON od.id = a.org_doctor_id
+       JOIN doctors d ON d.id = od.doctor_id
+       WHERE ${where}
+       ORDER BY ${order}
+       LIMIT ${limit}`,
+      params,
+    );
+    return { appointments, total: appointments.length };
+  }
+
+  async countsByStatus(orgId: string, orgDoctorIds: string[], from?: string, to?: string) {
+    const out: Record<string, number> = {};
+    if (!orgDoctorIds.length) return out;
+    const params: any[] = [orgId, orgDoctorIds];
+    let where = 'organization_id = $1 AND org_doctor_id = ANY($2::uuid[])';
+    if (from) { params.push(from); where += ` AND date >= $${params.length}::date`; }
+    if (to) { params.push(to); where += ` AND date <= $${params.length}::date`; }
+    const rows = await this.db.queryMany(`SELECT status::text AS status, COUNT(*)::int AS n FROM appointments WHERE ${where} GROUP BY status`, params);
+    for (const r of rows) out[r.status] = r.n;
+    return out;
+  }
+
+  /** Agenda del día de todo el consultorio (para secretaría / dueño) */
+  async getOrgDailyAgenda(orgId: string, orgDoctorIds: string[], date: string) {
+    const r = await this.listByStatus(orgId, orgDoctorIds, { from: date, to: date, limit: 500 });
+    return { date, organizationId: orgId, appointments: r.appointments.filter((a: any) => a.status !== 'cancelled'), otherOrgBlocks: [] };
   }
 
   // ─── Helpers ────────────────────────────────────────────

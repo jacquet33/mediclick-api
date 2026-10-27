@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus, Put } from '@nestjs/common';
 import { AppointmentService } from './appointment.service';
 import { CreateAppointmentDto, UpdateAppointmentStatusDto } from '../../common/dto/appointment.dto';
-import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
+import { OrgId, DoctorId, CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AuthUser } from '../../common/guards/auth.guard';
 
 @Controller('api/v1/appointments')
 export class AppointmentController {
@@ -39,14 +40,54 @@ export class AppointmentController {
   async getByDate(
     @OrgId() orgId: string,
     @DoctorId() doctorId: string,
+    @CurrentUser() user: AuthUser,
     @Query('date') date: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
+    @Query('doctor_id') filterDoctor?: string,
   ) {
+    // Secretaría (o pedido explícito de otro médico): agenda de todo el consultorio
+    if (user.userType === 'staff' || filterDoctor) {
+      const ids = await this.apptService.visibleOrgDoctorIds(orgId, user, filterDoctor);
+      if (from && to) return (await this.apptService.listByStatus(orgId, ids, { from, to, limit: 500 })).appointments;
+      return this.apptService.getOrgDailyAgenda(orgId, ids, date || new Date().toISOString().split('T')[0]);
+    }
     if (from && to) {
       return this.apptService.getByDateRange(orgId, doctorId, from, to);
     }
     return this.apptService.getDailyAgenda(orgId, doctorId, date || new Date().toISOString().split('T')[0]);
+  }
+
+  /**
+   * GET /appointments/list?status=pending,pending_approval&from=&to=&doctor_id=&q=
+   * Turnos por estado. La secretaría y el dueño ven todo el consultorio; un médico, su agenda.
+   */
+  @Get('list')
+  async list(
+    @OrgId() orgId: string,
+    @CurrentUser() user: AuthUser,
+    @Query('status') status?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('doctor_id') filterDoctor?: string,
+    @Query('q') q?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const ids = await this.apptService.visibleOrgDoctorIds(orgId, user, filterDoctor);
+    return this.apptService.listByStatus(orgId, ids, { status, from, to, q, limit: limit ? parseInt(limit, 10) : undefined });
+  }
+
+  /** GET /appointments/counts?from=&to=&doctor_id= → { pending: 3, confirmed: 10, ... } */
+  @Get('counts')
+  async counts(
+    @OrgId() orgId: string,
+    @CurrentUser() user: AuthUser,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('doctor_id') filterDoctor?: string,
+  ) {
+    const ids = await this.apptService.visibleOrgDoctorIds(orgId, user, filterDoctor);
+    return this.apptService.countsByStatus(orgId, ids, from, to);
   }
 
   /**

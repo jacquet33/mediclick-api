@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, ForbiddenException } from '@nestjs/common';
 import { Public } from '../../common/guards/auth.guard';
 import { StrictThrottle } from '../../common/decorators/throttle.decorator';
 import { AuthService } from './auth.service';
@@ -35,8 +35,10 @@ export class AuthController {
 
   /** Registro de staff (admin, secretaria, enfermero, etc.) */
   @Post('register/staff')
-  async registerStaff(@Body() dto: RegisterStaffDto) {
-    return this.authService.registerStaff(dto);
+  async registerStaff(@Body() _dto: RegisterStaffDto) {
+    // Era público y permitía sumarse a cualquier consultorio: ahora el titular crea las cuentas desde Equipo
+    // (POST /api/v1/organizations/:orgId/members/staff).
+    throw new ForbiddenException('Las cuentas de secretaría las crea el médico titular desde Equipo y roles');
   }
 
   @Post('refresh')

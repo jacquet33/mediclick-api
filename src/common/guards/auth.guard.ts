@@ -122,13 +122,18 @@ export class AuthGuard implements CanActivate {
     //    Solo aplica a doctors y staff, no a pacientes.
     const orgId = req.header('x-organization-id');
     if (orgId && userType !== 'patient') {
-      const memberTable = userType === 'staff' ? 'organization_staff' : 'organization_doctors';
-      const memberCol = userType === 'staff' ? 'staff_id' : 'doctor_id';
-      const membership = await this.db.queryOne<{ role: string }>(
-        `SELECT role FROM ${memberTable}
-         WHERE organization_id = $1 AND ${memberCol} = $2 AND is_active = true`,
-        [orgId, userRecord.id],
-      );
+      // Médicos: organization_doctors. Staff (secretaría, enfermería…): organization_members con su rol.
+      const membership = userType === 'staff'
+        ? await this.db.queryOne<{ role: string }>(
+            `SELECT r.code AS role FROM organization_members om JOIN roles r ON r.id = om.role_id
+             WHERE om.organization_id = $1 AND om.staff_id = $2 AND om.is_active = true`,
+            [orgId, userRecord.id],
+          )
+        : await this.db.queryOne<{ role: string }>(
+            `SELECT role FROM organization_doctors
+             WHERE organization_id = $1 AND doctor_id = $2 AND is_active = true`,
+            [orgId, userRecord.id],
+          );
 
       if (!membership) {
         throw new ForbiddenException('No tenés acceso a esta organización');
@@ -136,6 +141,14 @@ export class AuthGuard implements CanActivate {
 
       user.organizationId = orgId;
       user.orgRole = membership.role;
+    }
+
+    // Secretaría / recepción: gestionan turnos y pacientes, pero no acceden a datos clínicos
+    if (userType === 'staff') {
+      const path = String(req.originalUrl || req.url || '').split('?')[0];
+      if (/^\/api\/v1\/(medical-records|prescriptions|consent|consents|informed-consents)(\/|$)/.test(path) || /\/api\/v1\/patients\/[^/]+\/timeline/.test(path)) {
+        throw new ForbiddenException('La secretaría no tiene acceso a la historia clínica');
+      }
     }
 
     req.user = user;

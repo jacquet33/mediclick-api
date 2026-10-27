@@ -1,6 +1,8 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Pool, PoolClient, QueryResult } from 'pg';
+import { existsSync, readdirSync, readFileSync } from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class DatabaseService implements OnModuleInit, OnModuleDestroy {
@@ -31,6 +33,50 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     } catch (err) {
       this.logger.error('Failed to connect to PostgreSQL', err.stack);
       throw err;
+    }
+
+    await this.runMigrations().catch((e) => this.logger.error(`Migraciones: ${e.message}`));
+  }
+
+  /**
+   * Aplica los .sql de migrations/ que todavía no corrieron (tabla schema_migrations).
+   * En una base que ya existía sin registro, se toman como aplicados los archivos hasta el 019
+   * (la base se creó con ellos) y el 020 completa lo que faltara. Cada archivo corre en una transacción;
+   * si uno falla se registra el error y la API sigue arrancando.
+   */
+  private async runMigrations() {
+    const dir = [join(__dirname, '..', '..', 'migrations'), join(__dirname, 'migrations'), join(process.cwd(), 'src', 'database', 'migrations')]
+      .find((d) => existsSync(d));
+    if (!dir) return;
+    const files = readdirSync(dir).filter((f) => /^\d{3}_.*\.sql$/.test(f)).sort();
+    const c = await this.pool.connect();
+    try {
+      await c.query(`CREATE TABLE IF NOT EXISTS schema_migrations (filename TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())`);
+      const done = new Set((await c.query('SELECT filename FROM schema_migrations')).rows.map((r) => r.filename));
+      if (done.size === 0) {
+        const existing = await c.query(`SELECT to_regclass('public.doctors') IS NOT NULL AS ok`);
+        if (existing.rows[0].ok) {
+          for (const f of files.filter((f) => f < '020')) {
+            await c.query('INSERT INTO schema_migrations (filename) VALUES ($1) ON CONFLICT DO NOTHING', [f]);
+            done.add(f);
+          }
+        }
+      }
+      for (const f of files) {
+        if (done.has(f)) continue;
+        try {
+          await c.query('BEGIN');
+          await c.query(readFileSync(join(dir, f), 'utf8'));
+          await c.query('INSERT INTO schema_migrations (filename) VALUES ($1)', [f]);
+          await c.query('COMMIT');
+          this.logger.log(`Migración aplicada: ${f}`);
+        } catch (e) {
+          await c.query('ROLLBACK').catch(() => undefined);
+          this.logger.error(`Migración ${f} falló: ${e.message}`);
+        }
+      }
+    } finally {
+      c.release();
     }
   }
 
