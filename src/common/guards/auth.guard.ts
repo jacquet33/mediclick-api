@@ -12,7 +12,7 @@ import { DatabaseService } from '../../database/database.service';
 export const IS_PUBLIC = 'isPublic';
 export const Public = () => SetMetadata(IS_PUBLIC, true);
 
-/** Marca una ruta como solo para staff de MediClick */
+/** Marca una ruta como solo para staff de TuConsultorioOnline */
 export const IS_ADMIN = 'isAdmin';
 export const AdminOnly = () => SetMetadata(IS_ADMIN, true);
 

@@ -243,7 +243,7 @@ export class MedicalRecordPdfService {
     doc.rect(LEFT, y, W * 0.4, 2).fill(LAVANDA);
     y += 14;
 
-    // MEDICLICK branding
+    // Marca TuConsultorioOnline
     doc.fontSize(22).font('Helvetica-Bold').fillColor(TINTA)
       .text('TuConsultorioOnline', LEFT, y);
     doc.fontSize(9).font('Helvetica').fillColor(LAVANDA)

@@ -152,7 +152,7 @@ export class PrescriptionPdfService {
       doc.rect(LEFT, y, W * 0.4, 2).fill('#9A6B3F');
       y += 10;
 
-      // MEDICLICK branding
+      // Marca TuConsultorioOnline
       doc.fontSize(18).font('Helvetica-Bold').fillColor('#2B241F')
         .text('TuConsultorioOnline', LEFT, y, { width: W / 2 });
 
