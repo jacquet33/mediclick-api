@@ -63,6 +63,10 @@ import { VerificationController } from './modules/verification/verification.cont
 import { VerificationService } from './modules/verification/verification.service';
 import { RefepsService } from './modules/verification/refeps.service';
 import { PrescriptionSigningService } from './modules/prescriptions/prescription-signing.service';
+import { DigitalSignatureService } from './modules/prescriptions/digital-signature.service';
+import { DigitalSignatureController } from './modules/prescriptions/digital-signature.controller';
+import { PharmacyService } from './modules/pharmacy/pharmacy.service';
+import { PharmacyApiController, PharmacyAdminController } from './modules/pharmacy/pharmacy.controller';
 import { AuditController } from './modules/audit/audit.controller';
 import { AuditService } from './modules/audit/audit.service';
 import { ConsentController } from './modules/consent/consent.controller';
@@ -159,6 +163,9 @@ class HealthController {
     SubscriptionController,
     ProfileController,
     VerificationController,
+    DigitalSignatureController,
+    PharmacyApiController,
+    PharmacyAdminController,
     AuditController,
     ConsentController,
     OnboardingController,
@@ -203,6 +210,8 @@ class HealthController {
     VerificationService,
     RefepsService,
     PrescriptionSigningService,
+    DigitalSignatureService,
+    PharmacyService,
     AuditService,
     ConsentService,
     OnboardingService,

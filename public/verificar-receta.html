@@ -115,13 +115,15 @@ async function verify() {
 
     const now = new Date();
     const expires = new Date(rx.expires_at);
-    const isValid = rx.status === 'active' && expires > now;
+    const isValid = ['active','partially_dispensed'].includes(rx.status) && expires > now;
     const isExpired = expires <= now;
     const isCancelled = rx.status === 'cancelled';
 
     let statusClass, statusText, statusIcon;
     if (isCancelled) {
       statusClass = 'status-cancelled'; statusText = 'ANULADA'; statusIcon = '⚠️';
+    } else if (rx.status === 'dispensed') {
+      statusClass = 'status-cancelled'; statusText = 'DISPENSADA'; statusIcon = '🏪';
     } else if (isExpired) {
       statusClass = 'status-expired'; statusText = 'VENCIDA'; statusIcon = '⏰';
     } else if (isValid) {
@@ -148,6 +150,17 @@ async function verify() {
         </div>
         ${rx.firma?.hash?`<div class="field"><div class="field-label">Huella SHA-256 del contenido firmado</div><div class="field-value" style="font-family:monospace;font-size:11px;word-break:break-all">${rx.firma.hash}</div></div>`:''}
       </div>
+
+      ${rx.firmaDigital?.firmada ? `<div class="card" style="border:1.5px solid ${rx.firmaDigital.valida?'#9FDCC3':'#F1B9B9'}">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="font-size:18px">🔐</span><span style="font-size:15px;font-weight:600">Firma digital (Ley 25.506)</span></div>
+        <div class="status-badge ${rx.firmaDigital.valida?'status-valid':'status-expired'}">${rx.firmaDigital.valida?'✅ Firma digital válida':'❌ '+(rx.firmaDigital.motivo||'Firma inválida')}</div>
+        <div class="field"><div class="field-label">Firmante</div><div class="field-value">${rx.firmaDigital.titular||'—'} ${rx.firmaDigital.cuil?'· '+rx.firmaDigital.cuil:''}</div></div>
+        <div class="field"><div class="field-label">Certificado emitido por</div><div class="field-value">${rx.firmaDigital.emisor||'—'} ${rx.firmaDigital.emisorLicenciado?'<span style="color:#0D8F5F;font-size:12px">✔ certificador licenciado</span>':''}</div></div>
+        <div class="field"><div class="field-label">Firmada el</div><div class="field-value">${rx.firmaDigital.firmadaEl?new Date(rx.firmaDigital.firmadaEl).toLocaleString('es-AR'):'—'}</div></div>
+      </div>` : ''}
+      ${(rx.dispensas||[]).length ? `<div class="card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="font-size:18px">🏪</span><span style="font-size:15px;font-weight:600">Dispensas</span></div>
+        ${rx.dispensas.map(d=>`<div class="field"><div class="field-label">${new Date(d.created_at).toLocaleString('es-AR')}</div><div class="field-value">${d.farmacia}</div></div>`).join('')}</div>` : ''}
+      <div class="card" style="text-align:center"><a href="${API}/api/v1/prescriptions/verify/${encodeURIComponent(code)}/pdf" target="_blank" rel="noopener" style="display:inline-block;padding:12px 20px;border-radius:12px;background:#9A6B3F;color:#fff;font-weight:600;text-decoration:none">Descargar PDF de la receta</a></div>
 
       <div class="card">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">

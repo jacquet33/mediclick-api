@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from '@nes
 import { DatabaseService } from '../../database/database.service';
 import { VerificationService } from '../verification/verification.service';
 import { PrescriptionSigningService } from './prescription-signing.service';
+import { DigitalSignatureService } from './digital-signature.service';
 
 export interface PrescriptionItemDto {
   medicationName: string;
@@ -37,7 +38,14 @@ export class PrescriptionService {
     private db: DatabaseService,
     private verification: VerificationService,
     private signing: PrescriptionSigningService,
+    private digital: DigitalSignatureService,
   ) {}
+
+  /** PDF firmado digitalmente (si existe) */
+  async signedPdf(id: string): Promise<Buffer | null> {
+    const r = await this.db.queryOne(`SELECT signed_pdf FROM prescriptions WHERE id = $1`, [id]);
+    return r?.signed_pdf || null;
+  }
 
   async findAll(orgId: string, doctorId: string, query?: { patientId?: string; status?: string; updatedSince?: string }) {
     let where = 'WHERE rx.organization_id = $1';
@@ -63,6 +71,7 @@ export class PrescriptionService {
     return this.db.queryMany(
       `SELECT rx.id, rx.patient_id, rx.doctor_id, rx.organization_id, rx.medical_record_id, rx.status, rx.diagnosis, rx.diagnosis_code,
               rx.issued_at, rx.expires_at, rx.verification_code, rx.notes, rx.cuir, rx.content_hash, rx.signed_at, rx.created_at, rx.updated_at,
+              rx.digital_signed_at,
               p.first_name || ' ' || p.last_name AS patient_name, p.phone AS patient_phone, p.email AS patient_email,
               d.first_name || ' ' || d.last_name AS doctor_name
        FROM prescriptions rx
@@ -103,6 +112,8 @@ export class PrescriptionService {
     const patientId = dto.patientId || dto.patient_id;
     const items = (dto.items || []).filter((i: any) => (i.medicationName || i.medication_name || i.genericName || i.generic_name || '').trim());
     if (!items.length) throw new BadRequestException('Agregá al menos un medicamento');
+    const incompleto = items.findIndex((i: any) => !String(i.dosage || '').trim() || !String(i.frequency || '').trim());
+    if (incompleto >= 0) throw new BadRequestException(`Completá la dosis y la frecuencia del medicamento ${incompleto + 1}`);
     if (!dto.diagnosis?.trim()) throw new BadRequestException('Indicá el diagnóstico');
     const paciente = await this.db.queryOne(`SELECT dni FROM patients WHERE id = $1 AND organization_id = $2`, [patientId, orgId]);
     if (!paciente) throw new NotFoundException('Paciente no encontrado');
@@ -201,7 +212,11 @@ export class PrescriptionService {
 
     const firma = await this.signing.verificar(rx.id).catch(() => ({ firmada: false, valida: false, motivo: 'No se pudo verificar' }));
     const vencida = rx.expires_at && new Date(rx.expires_at) < new Date();
-    const out: any = { ...rx, items, firma, vigente: rx.status === 'active' && !vencida };
+    const firmaDigital = await this.digital.verificarReceta(rx.id).catch(() => ({ firmada: false }));
+    const dispensas = await this.db.queryMany(
+      `SELECT d.created_at, ph.name AS farmacia, d.items FROM prescription_dispensations d JOIN pharmacies ph ON ph.id = d.pharmacy_id
+       WHERE d.prescription_id = $1 ORDER BY d.created_at`, [rx.id]).catch(() => []);
+    const out: any = { ...rx, items, firma, firmaDigital, dispensas, vigente: ['active', 'partially_dispensed'].includes(rx.status) && !vencida };
     if (!interno) { delete out.id; delete out.organization_id; }
     return out;
   }

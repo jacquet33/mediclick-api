@@ -363,27 +363,31 @@
     try { await apiFetch(`/api/v1/prescriptions/${id}/cancel`, { method: 'PATCH' }); navigateTo(currentSection); } catch (err) { alert(err.message); }
   };
 
-  const ESTADO_RX = { active: ['Vigente', 'confirmed'], cancelled: ['Anulada', 'cancelled'], dispensed: ['Dispensada', 'completed'], expired: ['Vencida', 'no_show'] };
+  const ESTADO_RX = { active: ['Vigente', 'confirmed'], cancelled: ['Anulada', 'cancelled'], dispensed: ['Dispensada', 'completed'], partially_dispensed: ['Dispensa parcial', 'pending'], expired: ['Vencida', 'no_show'] };
   function filaReceta(r) {
     const vencida = r.expires_at && new Date(r.expires_at) < new Date() && r.status === 'active';
     const [lbl, cls] = vencida ? ['Vencida', 'no_show'] : (ESTADO_RX[r.status] || [r.status, '']);
     return `<div class="appt-row">
       <div class="when"><b>${fmtDate(r.issued_at)}</b><span>${e(r.verification_code || '')}</span></div>
       <div class="who link" onclick="abrirPaciente('${r.patient_id}')"><strong>${e(r.patient_name || '')}</strong><small>${e(r.diagnosis || '')}${r.diagnosis_code ? ' · ' + e(r.diagnosis_code) : ''}</small>
-        ${r.content_hash ? '<small style="color:#0f6e56">🔏 Firmada electrónicamente</small>' : ''}</div>
+        ${r.digital_signed_at ? '<small style="color:#0f6e56">🔐 Firma digital con certificado</small>' : r.content_hash ? '<small style="color:#0f6e56">🔏 Firmada electrónicamente</small>' : ''}</div>
       <div class="side"><span class="badge-sm ${cls}">${lbl}</span>
         <div class="acts">
           <button class="btn btn-sm btn-soft" onclick="recetaPdf('${r.id}')">🖨️ Imprimir / PDF</button>
           <button class="btn btn-sm" style="background:#25D366;color:#fff" onclick="recetaWhatsApp('${e(r.verification_code)}','${e(r.patient_phone || '')}','${e((r.patient_name || '').split(' ')[0])}')">WhatsApp</button>
           <button class="btn btn-sm btn-soft" onclick="recetaEmail('${r.id}','${e(r.patient_email || '')}')">✉️ Email</button>
+          ${!r.digital_signed_at && r.status === 'active' && _cert ? `<button class="btn btn-sm btn-ok" onclick="firmarYRecargar('${r.id}')">🔐 Firmar digitalmente</button>` : ''}
           ${r.status === 'active' ? `<button class="btn btn-sm btn-no" onclick="recetaAnular('${r.id}')">Anular</button>` : ''}
         </div></div></div>`;
   }
+  let _cert = null;
+  async function certificadoActual() { _cert = await apiFetch('/api/v1/digital-signature/certificate').catch(() => null); return _cert; }
+  window.firmarYRecargar = async function (id) { if (await firmarRecetaDigital(id)) { alert('✅ Receta firmada digitalmente'); navigateTo(currentSection); } };
 
   window.loadRecetas = async function () {
     const m = main(); m.innerHTML = '<div class="spinner"></div>';
     try {
-      const [v, rxs] = await Promise.all([verificacion(true), apiFetch('/api/v1/prescriptions')]);
+      const [v, rxs] = await Promise.all([verificacion(true), apiFetch('/api/v1/prescriptions'), certificadoActual()]);
       const l = asList(rxs);
       m.innerHTML = `<div class="topbar"><h1>Recetas</h1><button class="btn btn-sm btn-primary" onclick="abrirNuevaReceta({})" ${v && !v.puedeRecetar ? 'disabled style="opacity:.5"' : ''}>+ Nueva receta</button></div>
         ${bannerVerificacion(v)}
@@ -404,6 +408,7 @@
     R = { patientId: opts.patientId || '', patient: null, medicalRecordId: opts.medicalRecordId || null, diagnosis: opts.diagnosis || '', diagnosisCode: opts.diagnosisCode || '', expiresInDays: 30, notes: '', items: [itemVacio()], templates: [] };
     if (R.patientId) R.patient = await apiFetch(`/api/v1/patients/${R.patientId}`).catch(() => null);
     R.templates = asList(await apiFetch('/api/v1/prescription-templates').catch(() => []));
+    await certificadoActual();
     pintarReceta(v);
   };
 
@@ -433,8 +438,8 @@
             <div class="field"><label>Marca (opcional)</label><input data-i="${i}" data-f="medicationName" value="${e(it.medicationName)}" placeholder="Ej: Ibupirac"></div>
             <div class="field"><label>Forma farmacéutica</label><input data-i="${i}" data-f="pharmaceuticalForm" value="${e(it.pharmaceuticalForm)}" list="rxFormas" placeholder="Comprimidos"></div>
             <div class="field"><label>Presentación / concentración</label><input data-i="${i}" data-f="presentation" value="${e(it.presentation)}" placeholder="400 mg x 20"></div>
-            <div class="field"><label>Dosis</label><input data-i="${i}" data-f="dosage" value="${e(it.dosage)}" placeholder="1 comprimido"></div>
-            <div class="field"><label>Frecuencia</label><input data-i="${i}" data-f="frequency" value="${e(it.frequency)}" placeholder="Cada 8 horas"></div>
+            <div class="field"><label>Dosis *</label><input data-i="${i}" data-f="dosage" value="${e(it.dosage)}" placeholder="1 comprimido"></div>
+            <div class="field"><label>Frecuencia *</label><input data-i="${i}" data-f="frequency" value="${e(it.frequency)}" placeholder="Cada 8 horas"></div>
             <div class="field"><label>Duración</label><input data-i="${i}" data-f="duration" value="${e(it.duration)}" placeholder="5 días"></div>
             <div class="field"><label>Cantidad (envases)</label><input data-i="${i}" data-f="quantity" value="${e(it.quantity)}" inputmode="numeric" placeholder="1"></div>
           </div>
@@ -446,6 +451,7 @@
       <div class="card"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px">
         <div class="field"><label>Validez</label><select id="rxVence">${[[30, '30 días'], [60, '60 días'], [90, '90 días (tratamiento prolongado)']].map(([d, l]) => `<option value="${d}" ${R.expiresInDays == d ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
         <div class="field"><label>Notas para la farmacia (opcional)</label><input id="rxNotas" value="${e(R.notes)}"></div></div>
+        ${_cert && !_cert.vencido ? `<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:4px 0 12px"><input type="checkbox" id="rxDigital" checked style="width:18px;height:18px;accent-color:var(--primary)"> 🔐 Firmar digitalmente con mi certificado (${e(_cert.subject_cn)})</label>` : `<p class="muted" style="font-size:12px;margin-bottom:10px">Podés sumar firma digital con certificado (Ley 25.506) cargándolo en <a href="#" onclick="abrirMatricula();return false" style="color:var(--primary)">Matrícula y firma</a>.</p>`}
         <p id="rxErr" class="error hidden"></p>
         <button class="btn btn-primary" id="rxEmitir" style="max-width:320px" ${v && !v.puedeRecetar ? 'disabled' : ''}>🔏 Firmar y emitir receta</button>
         <p class="muted" style="margin-top:8px;font-size:12px">Se firma electrónicamente con tus datos de matrícula y queda con código QR y CUIR para que la farmacia la valide (Ley 27.553).</p>
@@ -502,7 +508,8 @@
       leerReceta();
       const err = $('rxErr');
       const items = R.items.filter((x) => (x.genericName || '').trim());
-      const fallo = !R.patientId ? 'Elegí el paciente' : !R.diagnosis.trim() ? 'Indicá el diagnóstico' : !items.length ? 'Agregá al menos un medicamento con su nombre genérico' : '';
+      const sinDosis = items.findIndex((x) => !(x.dosage || '').trim() || !(x.frequency || '').trim());
+      const fallo = !R.patientId ? 'Elegí el paciente' : !R.diagnosis.trim() ? 'Indicá el diagnóstico' : !items.length ? 'Agregá al menos un medicamento con su nombre genérico' : sinDosis >= 0 ? `Completá dosis y frecuencia del medicamento ${sinDosis + 1}` : '';
       if (fallo) { err.textContent = fallo; err.classList.remove('hidden'); return; }
       emitir.disabled = true; emitir.textContent = 'Firmando…';
       try {
@@ -512,10 +519,13 @@
           items: items.map((x) => ({ genericName: x.genericName.trim(), medicationName: (x.medicationName || '').trim() || x.genericName.trim(), pharmaceuticalForm: x.pharmaceuticalForm || undefined, presentation: x.presentation || undefined, dosage: x.dosage || undefined, frequency: x.frequency || undefined, duration: x.duration || undefined, quantity: parseInt(x.quantity, 10) || undefined, instructions: x.instructions || undefined })),
         } });
         const p = R.patient || {};
+        const digital = $('rxDigital')?.checked ? await firmarRecetaDigital(r.id) : false;
         main().innerHTML = `<div class="card center" style="padding:30px">
           <p style="font-size:42px">✅</p><h2 style="margin:6px 0">Receta emitida y firmada</h2>
           <p class="muted">CUIR <b>${e(r.cuir || r.verification_code)}</b> · código ${e(r.verification_code)}</p>
+          <p style="margin-top:8px;font-size:13px">${digital ? '🔐 Con firma digital de tu certificado (Ley 25.506)' : '🔏 Con firma electrónica de la plataforma'}</p>
           <div class="flex" style="justify-content:center;flex-wrap:wrap;margin-top:16px">
+            ${!digital && _cert ? `<button class="btn btn-sm btn-ok" onclick="firmarYRecargar('${r.id}')">🔐 Firmar digitalmente</button>` : ''}
             <button class="btn btn-sm btn-primary" onclick="recetaPdf('${r.id}')">🖨️ Imprimir / PDF</button>
             <button class="btn btn-sm" style="background:#25D366;color:#fff" onclick="recetaWhatsApp('${e(r.verification_code)}','${e(p.phone || '')}','${e(p.first_name || '')}')">Enviar por WhatsApp</button>
             <button class="btn btn-sm btn-soft" onclick="recetaEmail('${r.id}','${e(p.email || '')}')">✉️ Enviar por email</button>
@@ -565,8 +575,21 @@
           <span id="firmaMsg" class="muted"></span>
         </div>
       </div>
-      ${v.is_platform_admin ? `<div class="card"><div class="card-title">🛡️ Administración</div><button class="btn btn-sm btn-outline" onclick="abrirVerificaciones()">Revisar matrículas pendientes</button></div>` : ''}`;
+      <div class="card"><div class="card-title">🔐 Firma digital con certificado (Ley 25.506)</div>
+        <p class="muted" style="margin-bottom:10px">Con tu certificado de firma digital (archivo .p12 / .pfx emitido por un certificador licenciado: AC ONTI, AC Modernización, etc.) cada receta queda firmada digitalmente dentro del PDF y cualquier lector (Adobe, la farmacia) puede validarla. La clave privada y la contraseña <b>nunca salen de tu equipo</b>.</p>
+        <div id="certBox"><div class="spinner" style="margin:10px 0"></div></div>
+      </div>
+      ${v.is_platform_admin ? `<div class="card"><div class="card-title">🛡️ Administración</div><div class="flex" style="flex-wrap:wrap"><button class="btn btn-sm btn-outline" onclick="abrirVerificaciones()">Revisar matrículas pendientes</button><button class="btn btn-sm btn-outline" onclick="abrirFarmaciasAdmin()">Farmacias habilitadas</button></div></div>` : ''}`;
     enlazarMatricula();
+    const c = await certificadoActual();
+    const box = $('certBox');
+    if (box) box.innerHTML = c ? `<div class="kv"><div><span>Titular</span><b>${e(c.subject_cn)}</b></div><div><span>CUIL/CUIT</span><b>${e(c.subject_serial)}</b></div>
+        <div><span>Emisor</span><b>${e(c.issuer_cn || c.issuer_o)}${c.issuer_recognized ? ' ✅' : ' <span style="color:#85500b">(no reconocido como certificador licenciado)</span>'}</b></div>
+        <div><span>Vigencia</span><b>${fmtDate(c.not_before)} – ${fmtDate(c.not_after)}${c.vencido ? ' <span style="color:var(--danger)">VENCIDO</span>' : ''}</b></div></div>
+        <p class="muted" style="margin-top:8px;font-size:12px">${(await certificadoGuardadoLocal()) ? 'El certificado está guardado en este navegador; al firmar solo te pide la contraseña.' : 'En este navegador no está guardado: al firmar vas a elegir el archivo.'}</p>
+        <div class="flex" style="margin-top:10px;flex-wrap:wrap"><button class="btn btn-sm btn-soft" onclick="cargarCertificadoDigital()">Reemplazar certificado</button><button class="btn btn-sm btn-no" onclick="quitarCertificadoDigital()">Quitar</button></div>`
+      : `<button class="btn btn-sm btn-primary" onclick="cargarCertificadoDigital()">Cargar mi certificado (.p12 / .pfx)</button>
+         <p class="muted" style="margin-top:8px;font-size:12px">¿No tenés? Se tramita gratis en la <a href="https://www.argentina.gob.ar/servicio/obtener-un-certificado-de-firma-digital" target="_blank" rel="noopener" style="color:var(--primary)">AC ONTI / AC Modernización</a> o con tu colegio médico. Los tokens USB todavía no se pueden usar desde el navegador.</p>`;
   };
 
   const leerImagen = (file, lado, tipo = 'image/jpeg') => new Promise((ok, mal) => {
@@ -647,5 +670,33 @@
     const nota = prompt(ok ? 'Nota (opcional): cómo la verificaste' : 'Motivo del rechazo (lo ve el médico):', ok ? 'Verificada en REFEPS' : '');
     if (nota === null) return;
     try { await apiFetch(`/api/v1/verification/admin/${id}/${ok ? 'aprobar' : 'rechazar'}`, { method: 'POST', body: { nota } }); abrirVerificaciones(estado); } catch (ex) { alert(ex.message); }
+  };
+  // ─── Farmacias habilitadas (administrador de la plataforma) ───
+  window.abrirFarmaciasAdmin = async function (nuevaClave) {
+    const m = main(); m.innerHTML = '<div class="spinner"></div>';
+    try {
+      const l = await apiFetch('/api/v1/admin/pharmacies');
+      m.innerHTML = `<div class="topbar"><button class="btn btn-sm btn-outline" onclick="abrirMatricula()">← Volver</button><h1>Farmacias</h1><span></span></div>
+        ${nuevaClave ? `<div class="card" style="border:1.5px solid #9FDCC3;background:#F0FBF6"><b>Clave de ${e(nuevaClave.name)}</b> (se muestra una sola vez; enviásela a la farmacia):<p style="font-family:monospace;font-size:14px;margin-top:8px;word-break:break-all;user-select:all">${e(nuevaClave.apiKey)}</p><p class="muted" style="margin-top:6px">La farmacia entra en ${location.origin}/farmacia o integra su sistema con la API.</p></div>` : ''}
+        <div class="card"><div class="card-title">➕ Habilitar farmacia</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px">
+            ${[['phName', 'Nombre *'], ['phCuit', 'CUIT'], ['phHab', 'N° de habilitación'], ['phFarm', 'Farmacéutico/a responsable'], ['phMat', 'Matrícula del farmacéutico'], ['phEmail', 'Email'], ['phTel', 'Teléfono'], ['phDir', 'Dirección'], ['phCiudad', 'Ciudad'], ['phProv', 'Provincia']].map(([id, l]) => `<div class="field"><label>${l}</label><input id="${id}"></div>`).join('')}
+          </div><button class="btn btn-sm btn-primary" id="phCrear">Crear y generar clave</button></div>
+        <div class="card"><div class="card-title">🏪 Farmacias (${l.length})</div>
+          ${l.length ? l.map((f) => `<div class="appt-row"><div class="who"><strong>${e(f.name)}</strong><small>${e([f.city, f.province, f.cuit && 'CUIT ' + f.cuit, f.pharmacist_name].filter(Boolean).join(' · '))}</small><small>Clave ${e(f.api_key_prefix)}… · ${f.dispensas} dispensas · último uso ${f.last_used_at ? fmtDate(f.last_used_at) : 'nunca'}</small></div>
+            <div class="side"><span class="badge-sm ${f.is_active ? 'confirmed' : 'cancelled'}">${f.is_active ? 'Activa' : 'Deshabilitada'}</span><div class="acts">
+              <button class="btn btn-sm btn-soft" onclick="farmaciaAccion('${f.id}','regenerate-key')">Nueva clave</button>
+              <button class="btn btn-sm ${f.is_active ? 'btn-no' : 'btn-ok'}" onclick="farmaciaAccion('${f.id}','${f.is_active ? 'deactivate' : 'activate'}')">${f.is_active ? 'Deshabilitar' : 'Habilitar'}</button></div></div></div>`).join('') : '<p class="muted">Todavía no hay farmacias habilitadas.</p>'}
+        </div>`;
+      $('phCrear').onclick = async () => {
+        const v = (id) => $(id).value.trim() || undefined;
+        try { const r = await apiFetch('/api/v1/admin/pharmacies', { method: 'POST', body: { name: v('phName'), cuit: v('phCuit'), habilitacion: v('phHab'), pharmacistName: v('phFarm'), pharmacistLicense: v('phMat'), email: v('phEmail'), phone: v('phTel'), address: v('phDir'), city: v('phCiudad'), province: v('phProv') } }); abrirFarmaciasAdmin(r); }
+        catch (ex) { alert(ex.message); }
+      };
+    } catch (ex) { m.innerHTML = `<div class="card"><p class="error">${e(ex.message)}</p></div>`; }
+  };
+  window.farmaciaAccion = async function (id, acc) {
+    if (acc === 'regenerate-key' && !confirm('La clave anterior deja de funcionar. ¿Generar una nueva?')) return;
+    try { const r = await apiFetch(`/api/v1/admin/pharmacies/${id}/${acc}`, { method: 'POST' }); abrirFarmaciasAdmin(r && r.apiKey ? r : null); } catch (ex) { alert(ex.message); }
   };
 })();

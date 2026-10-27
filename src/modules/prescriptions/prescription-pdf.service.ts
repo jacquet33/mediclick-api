@@ -65,7 +65,7 @@ export class PrescriptionPdfService {
 
   constructor(private db: DatabaseService, private config: ConfigService) {}
 
-  async generatePdf(orgId: string, prescriptionId: string): Promise<Buffer> {
+  async generatePdf(orgId: string, prescriptionId: string, opts: { firmaDigital?: { titular?: string; cuil?: string; emisor?: string } } = {}): Promise<Buffer> {
     // 1) Cargar datos completos (sin filtrar por org, el ID es único)
     const rx = await this.db.queryOne(
       `SELECT
@@ -112,10 +112,10 @@ export class PrescriptionPdfService {
     }
 
     // 3) Generar PDF
-    return this.buildPdf(rx as PrescriptionData, qrDataUrl);
+    return this.buildPdf(rx as PrescriptionData, qrDataUrl, opts);
   }
 
-  private buildPdf(rx: PrescriptionData, qrDataUrl: string | null): Promise<Buffer> {
+  private buildPdf(rx: PrescriptionData, qrDataUrl: string | null, opts: { firmaDigital?: { titular?: string; cuil?: string; emisor?: string } } = {}): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({
         size: 'A4',
@@ -362,10 +362,19 @@ export class PrescriptionPdfService {
         .text(rx.doctor_specialty || 'Médico', LEFT, signatureY + 20, { width: W, align: 'center' });
 
       doc.fontSize(9)
-        .text(`MP. ${rx.doctor_medical_license || 'S/N'}`, LEFT, signatureY + 33, { width: W, align: 'center' });
+        .text(`${rx.doctor_license_type === 'MN' ? 'M.N.' : 'M.P.'} ${rx.doctor_medical_license || 'S/N'}`, LEFT, signatureY + 33, { width: W, align: 'center' });
 
       doc.fontSize(8).font('Helvetica-Bold').fillColor('#666666')
         .text('FIRMA Y SELLO', LEFT, signatureY + 50, { width: W, align: 'center' });
+
+      // Leyenda de firma digital con certificado (Ley 25.506)
+      if (opts.firmaDigital) {
+        const f = opts.firmaDigital;
+        doc.fontSize(7).font('Helvetica-Bold').fillColor('#0f6e56')
+          .text(`FIRMADO DIGITALMENTE por ${f.titular || ''}${f.cuil ? ' · ' + f.cuil : ''}`, LEFT, signatureY + 62, { width: W, align: 'center' });
+        doc.fontSize(6.5).font('Helvetica').fillColor('#555555')
+          .text(`Certificado emitido por ${f.emisor || '—'} · Ley 25.506 de Firma Digital`, LEFT, signatureY + 72, { width: W, align: 'center' });
+      }
 
       // ═══════════════════════════════════════════════════════
       // PIE DE PÁGINA con QR de verificación (Ley 27.553)

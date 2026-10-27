@@ -20,7 +20,7 @@ export class PrescriptionController {
     const rx = await this.rxService.findById(orgId, id);
     const to = (email || rx.patient_email || '').trim();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) throw new BadRequestException('Indicá un email válido');
-    const buffer = await this.pdfService.generatePdf(orgId, id);
+    const buffer = (await this.rxService.signedPdf(id)) || await this.pdfService.generatePdf(orgId, id);
     const base = process.env.BASE_URL || 'https://tuconsultorio.rispy.io';
     const sent = await this.emailService.sendWithAttachment({
       to,
@@ -62,7 +62,7 @@ export class PrescriptionController {
     try {
       const rx = await this.rxService.verify(code, true);
       if (!rx) return res.status(404).json({ message: 'Receta no encontrada' });
-      const buffer = await this.pdfService.generatePdf(rx.organization_id, rx.id);
+      const buffer = (await this.rxService.signedPdf(rx.id)) || await this.pdfService.generatePdf(rx.organization_id, rx.id);
       res.set({
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="receta-${code}.pdf"`,
@@ -81,7 +81,8 @@ export class PrescriptionController {
     @Res() res: Response,
   ) {
     try {
-      const buffer = await this.pdfService.generatePdf(orgId, id);
+      await this.rxService.findById(orgId, id);
+      const buffer = (await this.rxService.signedPdf(id)) || await this.pdfService.generatePdf(orgId, id);
       res.set({
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="receta-${id.slice(0, 8)}.pdf"`,

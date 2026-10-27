@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Farmacias · TuConsultorioOnline by Rispy</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F5F1EA;--surface:#FFFDF9;--line:#ECE5D9;--text:#2B241F;--soft:#7A6E62;--muted:#A99D90;--primary:#9A6B3F;--cyan:#C08A55;--deep:#6F4A2A;--ok:#0f6e56;--okbg:#e0f7ed;--bad:#993535;--badbg:#fce8e8;--warn:#85500b;--warnbg:#fff3d9}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+.wrap{max-width:860px;margin:0 auto;padding:24px 16px 60px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.brand{font-weight:700;font-size:18px}.brand span{font-weight:500;color:var(--soft);font-size:13px}
+.card{background:var(--surface);border-radius:16px;padding:20px;box-shadow:0 4px 20px rgba(154,107,63,.08);border:1px solid rgba(210,168,119,.12);margin-bottom:14px}
+h2{font-size:15px;margin-bottom:12px}
+label{display:block;font-size:11px;font-weight:600;color:var(--soft);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+input,textarea{width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;font:inherit;font-size:14px;background:#fff;color:var(--text)}
+input:focus{outline:none;border-color:var(--cyan)}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.btn{border:none;border-radius:12px;padding:12px 18px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;background:linear-gradient(135deg,var(--cyan),var(--primary));color:#fff}
+.btn.sec{background:#F5ECE1;color:var(--deep)}.btn.sm{padding:8px 12px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:default}
+.muted{color:var(--muted);font-size:13px}
+.badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.ok{background:var(--okbg);color:var(--ok)}.bad{background:var(--badbg);color:var(--bad)}.warn{background:var(--warnbg);color:var(--warn)}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 16px;font-size:13px}
+.kv span{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.item{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:#fff}
+.item b{font-size:15px}
+.hidden{display:none!important}
+.err{color:var(--bad);font-size:13px;margin-top:8px}
+video{width:100%;max-height:280px;border-radius:12px;background:#000;margin-top:10px}
+code{background:#F5ECE1;padding:2px 6px;border-radius:6px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">TuConsultorioOnline <span>by Rispy · Farmacias</span></div>
+    <div id="phInfo" class="muted"></div>
+  </header>
+
+  <div class="card" id="cardClave">
+    <h2>🔑 Clave de la farmacia</h2>
+    <p class="muted" style="margin-bottom:10px">La entrega TuConsultorioOnline al habilitar la farmacia (escribinos a contact@rispy.io). Queda guardada solo en este equipo.</p>
+    <div style="display:flex;gap:8px"><input id="clave" type="password" placeholder="tco_ph_…" autocomplete="off"><button class="btn" id="btnClave">Ingresar</button></div>
+    <p id="errClave" class="err hidden"></p>
+  </div>
+
+  <div id="app" class="hidden">
+    <div class="card">
+      <h2>🔎 Buscar receta</h2>
+      <div class="row">
+        <div><label>Código de la receta o CUIR</label><input id="codigo" placeholder="Ej: 7AE27D0D" autocomplete="off"></div>
+        <div><label>DNI del paciente</label><input id="dni" inputmode="numeric" placeholder="Sin puntos" autocomplete="off"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn" id="btnBuscar">Buscar</button>
+        <button class="btn sec" id="btnQr">📷 Escanear QR</button>
+        <button class="btn sec sm" id="btnSalir" style="margin-left:auto">Cambiar de farmacia</button>
+      </div>
+      <video id="video" class="hidden" playsinline muted></video>
+      <p id="errBuscar" class="err hidden"></p>
+    </div>
+    <div id="receta"></div>
+    <div class="card">
+      <h2>🧩 Integración con el sistema de la farmacia</h2>
+      <p class="muted">API REST con el header <code>X-Pharmacy-Key</code>:</p>
+      <p class="muted" style="margin-top:6px"><code>GET /api/v1/farmacia/recetas?codigo=…&amp;dni=…</code> · <code>POST /api/v1/farmacia/recetas/{codigo}/dispensar</code> con <code>{"dni","items":[{"itemId","cantidad","producto","lote","vencimiento"}],"farmaceutico"}</code></p>
+    </div>
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=d=>d?new Date(d).toLocaleDateString('es-AR'):'—';
+let KEY=''; try{KEY=localStorage.getItem('tco_ph_key')||''}catch{}
+async function api(path,opts={}){
+  const r=await fetch(path,{method:opts.method||'GET',headers:{'Content-Type':'application/json','X-Pharmacy-Key':KEY},body:opts.body?JSON.stringify(opts.body):undefined});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(Array.isArray(d.message)?d.message.join(', '):(d.message||'Error'));
+  return d;
+}
+async function entrar(){
+  try{
+    const me=await api('/api/v1/farmacia/me');
+    $('phInfo').textContent=`🏪 ${me.nombre}${me.ciudad?' · '+me.ciudad:''}`;
+    $('cardClave').classList.add('hidden');$('app').classList.remove('hidden');
+    const q=new URLSearchParams(location.search);if(q.get('code')){$('codigo').value=q.get('code');$('dni').focus()}
+  }catch(e){$('errClave').textContent=e.message;$('errClave').classList.remove('hidden');$('cardClave').classList.remove('hidden');$('app').classList.add('hidden')}
+}
+$('btnClave').onclick=()=>{KEY=$('clave').value.trim();try{localStorage.setItem('tco_ph_key',KEY)}catch{};entrar()};
+$('btnSalir').onclick=()=>{try{localStorage.removeItem('tco_ph_key')}catch{};KEY='';location.reload()};
+if(KEY) entrar();
+
+// QR: la URL de verificación trae ?code=
+$('btnQr').onclick=async()=>{
+  if(!('BarcodeDetector' in window)){alert('Este navegador no puede leer QR con la cámara. Escribí el código que figura en la receta.');return}
+  const v=$('video');
+  try{
+    const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    v.srcObject=st;v.classList.remove('hidden');await v.play();
+    const det=new BarcodeDetector({formats:['qr_code']});
+    const loop=async()=>{
+      if(v.classList.contains('hidden'))return;
+      const c=await det.detect(v).catch(()=>[]);
+      if(c[0]){const t=c[0].rawValue;let code=t;try{code=new URL(t).searchParams.get('code')||t}catch{}
+        $('codigo').value=code;st.getTracks().forEach(x=>x.stop());v.classList.add('hidden');$('dni').focus();return}
+      requestAnimationFrame(loop);
+    };loop();
+  }catch(e){alert('No se pudo usar la cámara: '+e.message)}
+};
+
+let RX=null;
+$('btnBuscar').onclick=buscar;$('dni').onkeydown=e=>{if(e.key==='Enter')buscar()};
+async function buscar(){
+  const err=$('errBuscar');err.classList.add('hidden');$('receta').innerHTML='';
+  try{
+    RX=await api(`/api/v1/farmacia/recetas?codigo=${encodeURIComponent($('codigo').value.trim())}&dni=${encodeURIComponent($('dni').value.trim())}`);
+    pintar();
+  }catch(e){err.textContent=e.message;err.classList.remove('hidden')}
+}
+function pintar(){
+  const r=RX;
+  const estado={active:['Vigente','ok'],partially_dispensed:['Dispensada parcialmente','warn'],dispensed:['Dispensada','bad'],cancelled:['Anulada','bad'],expired:['Vencida','bad']}[r.estado]||[r.estado,'warn'];
+  const fe=r.firmaElectronica,fd=r.firmaDigital;
+  $('receta').innerHTML=`
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <div><b style="font-size:17px">Receta ${esc(r.codigo)}</b><br><span class="muted">CUIR ${esc(r.cuir||'—')} · emitida ${fmt(r.emitida)} · vence ${fmt(r.vence)}</span></div>
+      <div><span class="badge ${estado[1]}">${estado[0]}</span></div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+      ${fe?`<span class="badge ${fe.valida?'ok':'bad'}">${fe.valida?'🔏 Firma electrónica válida':'❌ '+esc(fe.motivo||'Firma inválida')}</span>`:''}
+      ${fd&&fd.firmada?`<span class="badge ${fd.valida?'ok':'bad'}">${fd.valida?'🔐 Firma digital válida':'❌ Firma digital inválida'} · ${esc(fd.titular||'')}${fd.emisorLicenciado?' · certificador licenciado':''}</span>`:''}
+      <span class="badge ${r.prescriptor.matriculaVerificada?'ok':'bad'}">${r.prescriptor.matriculaVerificada?'✔ Matrícula verificada':'Matrícula sin verificar'}</span>
+    </div>
+    ${r.motivoNoDispensable?`<p class="badge bad" style="margin-bottom:12px">${esc(r.motivoNoDispensable)}</p>`:''}
+    <div class="kv">
+      <div><span>Paciente</span><b>${esc(r.paciente.nombre)}</b></div><div><span>DNI</span><b>${esc(r.paciente.dni)}</b></div>
+      <div><span>Cobertura</span><b>${esc(r.paciente.cobertura||'Particular')}${r.paciente.plan?' · '+esc(r.paciente.plan):''}</b></div><div><span>N° afiliado</span><b>${esc(r.paciente.afiliado||'—')}</b></div>
+      <div><span>Médico/a</span><b>${esc(r.prescriptor.nombre)}</b></div><div><span>Matrícula</span><b>${r.prescriptor.tipo==='MN'?'M.N.':'M.P.'} ${esc(r.prescriptor.matricula)}${r.prescriptor.provincia?' ('+esc(r.prescriptor.provincia)+')':''}</b></div>
+      <div><span>Diagnóstico</span><b>${esc([r.cie10,r.diagnostico].filter(Boolean).join(' — '))}</b></div><div><span>Establecimiento</span><b>${esc(r.establecimiento.nombre||'')}</b></div>
+    </div>
+    ${r.notas?`<p class="muted" style="margin-top:10px">Notas: ${esc(r.notas)}</p>`:''}
+  </div>
+  <div class="card"><h2>💊 Medicamentos</h2>
+    ${r.items.map(i=>`<div class="item">
+      <b>${esc(i.generic_name||i.medication_name)}</b> ${i.medication_name&&i.medication_name!==i.generic_name?`<span class="muted">(${esc(i.medication_name)})</span>`:''}
+      <div class="muted">${esc([i.pharmaceutical_form,i.presentation].filter(Boolean).join(' · '))}</div>
+      <div style="font-size:13px;margin-top:4px">${esc([i.dosage,i.frequency,i.duration].filter(Boolean).join(' — '))}</div>
+      <div class="muted" style="margin-top:4px">Recetado: ${i.quantity} · Entregado: ${i.dispensed_quantity} · Pendiente: <b>${i.pendiente}</b></div>
+      ${r.dispensable&&i.pendiente>0?`<div class="row" style="margin-top:8px">
+        <div><label>Entregar</label><input type="number" min="0" max="${i.pendiente}" value="${i.pendiente}" data-cant="${i.id}"></div>
+        <div><label>Producto entregado</label><input data-prod="${i.id}" placeholder="Marca / presentación"></div>
+        <div><label>Lote</label><input data-lote="${i.id}"></div>
+        <div><label>Vencimiento</label><input data-venc="${i.id}" placeholder="MM/AAAA"></div></div>`:''}
+    </div>`).join('')}
+    ${r.dispensable?`<div class="row" style="margin-top:6px"><div><label>Farmacéutico/a</label><input id="farm"></div><div><label>Notas</label><input id="notas"></div></div>
+      <p id="errDisp" class="err hidden"></p>
+      <button class="btn" id="btnDisp" style="margin-top:12px">Registrar dispensa</button>`:''}
+  </div>
+  ${(r.dispensas||[]).length?`<div class="card"><h2>🧾 Dispensas anteriores</h2>${r.dispensas.map(d=>`<p class="muted">${new Date(d.created_at).toLocaleString('es-AR')} · ${esc(d.farmacia)}${d.pharmacist_name?' · '+esc(d.pharmacist_name):''}</p>`).join('')}</div>`:''}`;
+  const b=$('btnDisp');if(b)b.onclick=dispensar;
+}
+async function dispensar(){
+  const items=[...document.querySelectorAll('[data-cant]')].map(x=>({itemId:x.dataset.cant,cantidad:+x.value,producto:document.querySelector(`[data-prod="${x.dataset.cant}"]`).value||undefined,lote:document.querySelector(`[data-lote="${x.dataset.cant}"]`).value||undefined,vencimiento:document.querySelector(`[data-venc="${x.dataset.cant}"]`).value||undefined})).filter(x=>x.cantidad>0);
+  const err=$('errDisp');err.classList.add('hidden');
+  if(!items.length){err.textContent='Indicá cuántas unidades se entregan';err.classList.remove('hidden');return}
+  if(!confirm('¿Registrar la dispensa? Queda asentada en la receta.'))return;
+  try{
+    const r=await api(`/api/v1/farmacia/recetas/${encodeURIComponent(RX.codigo)}/dispensar`,{method:'POST',body:{dni:$('dni').value.trim(),items,farmaceutico:$('farm').value||undefined,notas:$('notas').value||undefined}});
+    alert(r.estado==='dispensed'?'✅ Receta dispensada por completo':'✅ Dispensa parcial registrada');
+    buscar();
+  }catch(e){err.textContent=e.message;err.classList.remove('hidden')}
+}
+</script>
+</body>
+</html>
