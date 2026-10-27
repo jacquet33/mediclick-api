@@ -47,6 +47,13 @@ jobs:
             cat > docker-compose.rispy.yml <<'YAML'
             services:
               api:
+                # localhost resuelve a IPv6 (::1) y la API escucha en IPv4: el chequeo fallaba y el proxy ignoraba el contenedor
+                healthcheck:
+                  test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/api/v1/health"]
+                  interval: 30s
+                  timeout: 10s
+                  retries: 3
+                  start_period: 40s
                 networks:
                   - mediclick-net
                   - traefik-public
