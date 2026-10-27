@@ -96,7 +96,7 @@ export class PrescriptionPdfService {
     rx.items = items;
 
     // 2) Generar QR de verificación
-    const baseUrl = this.config.get('BASE_URL') || 'https://mediclick.art3d-studio.com.ar';
+    const baseUrl = this.config.get('BASE_URL') || 'https://tuconsultorio.rispy.io';
     const verifyUrl = `${baseUrl}/verificar-receta.html?code=${rx.verification_code}`;
     let qrDataUrl: string | null = null;
     try {

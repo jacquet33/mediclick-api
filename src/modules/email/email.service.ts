@@ -134,7 +134,7 @@ export class EmailService {
           <li>📱 Descargá la app para gestionar desde tu celular</li>
         </ul>
         <p style="margin-top:24px;">
-          <a href="https://mediclick.art3d-studio.com.ar/para-medicos"
+          <a href="https://tuconsultorio.rispy.io/para-medicos"
              style="background:#879DFF;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:600;">
             Ver mi panel
           </a>
@@ -251,8 +251,8 @@ export class EmailService {
       <td style="background:#FFF7F3;padding:16px 32px;text-align:center;">
         <p style="margin:0;color:#999;font-size:12px;">
           © ${new Date().getFullYear()} MediClick ·
-          <a href="https://mediclick.art3d-studio.com.ar/privacidad" style="color:#879DFF;">Privacidad</a> ·
-          <a href="https://mediclick.art3d-studio.com.ar/terminos" style="color:#879DFF;">Términos</a>
+          <a href="https://tuconsultorio.rispy.io/privacidad" style="color:#879DFF;">Privacidad</a> ·
+          <a href="https://tuconsultorio.rispy.io/terminos" style="color:#879DFF;">Términos</a>
         </p>
       </td>
     </tr>
