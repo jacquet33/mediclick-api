@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus, Put } from '@nestjs/common';
 import { AppointmentService } from './appointment.service';
 import { CreateAppointmentDto, UpdateAppointmentStatusDto } from '../../common/dto/appointment.dto';
 import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
@@ -97,6 +97,16 @@ export class AppointmentController {
    */
   @Patch(':id/status')
   async updateStatus(
+    @Param('id') id: string,
+    @OrgId() orgId: string,
+    @Body() dto: UpdateAppointmentStatusDto,
+  ) {
+    return this.apptService.updateStatus(id, orgId, dto.status, dto.cancelReason);
+  }
+
+  /** Mismo cambio de estado por PUT: las apps de iOS publicadas lo llaman así. */
+  @Put(':id/status')
+  async updateStatusPut(
     @Param('id') id: string,
     @OrgId() orgId: string,
     @Body() dto: UpdateAppointmentStatusDto,
