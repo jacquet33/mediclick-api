@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { join } from 'path';
+import { json } from 'express';
 import { SanitizeInterceptor } from './common/interceptors/sanitize.interceptor';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 import { Module, Controller, Get, NestModule, MiddlewareConsumer } from '@nestjs/common';
@@ -279,9 +280,14 @@ async function bootstrap() {
   // Páginas públicas: /portal y /portal.html sirven lo mismo (los mails enlazan sin .html)
   app.useStaticAssets(join(__dirname, '..', 'public'), { extensions: ['html'] });
   
-  // Auto-convert snake_case → camelCase on all incoming JSON bodies
+  // Auto-convert snake_case → camelCase on all incoming JSON bodies.
+  // El JSON se parsea acá mismo: Nest agrega su parser recién en init(), así que sin esto
+  // req.body todavía no existía y la conversión nunca corría (las apps mandan snake_case
+  // y los DTO rechazaban esos campos, o se guardaban vacíos).
+  // Los webhooks de terceros (Mercado Pago, Apple, Google) se dejan tal cual llegan.
+  app.use(json({ limit: '10mb' }));
   app.use((req: any, _res: any, next: any) => {
-    if (req.body && typeof req.body === 'object') {
+    if (req.body && typeof req.body === 'object' && !String(req.originalUrl || req.url).includes('/webhooks/')) {
       req.body = snakeToCamel(req.body);
     }
     next();
