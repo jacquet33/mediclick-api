@@ -17,6 +17,8 @@ jobs:
             echo "TRAEFIK nombre=$T"
             docker inspect $T --format "{{range .Args}}{{println .}}{{end}}" | grep -iE "provider|entrypoint|network|constraint|cert|file" | head -8 | sed "s/^/TRAEFIK /"
             docker inspect mediclick-api --format "{{range \$k,\$v := .Config.Labels}}{{println \$k \$v}}{{end}}" | grep -i traefik | head -12 | sed "s/^/LABEL /"
+            echo "LOCAL health $(docker inspect mediclick-api --format "{{if .State.Health}}{{.State.Health.Status}} {{range .State.Health.Log}}{{.ExitCode}}:{{printf \"%.80s\" .Output}}|{{end}}{{else}}sin-healthcheck{{end}}" | tr "\n" " " | head -c 400)"
+            echo "LOCAL directo $(curl -s -o /dev/null -w %{http_code} http://127.0.0.1:3100/api/v1/health)"
             echo "LOCAL https $(curl -sk -o /dev/null -w %{http_code} -H "Host: tuconsultorio.rispy.io" https://127.0.0.1/api/v1/health)"
             echo "LOCAL http $(curl -s -o /dev/null -w %{http_code} -H "Host: tuconsultorio.rispy.io" http://127.0.0.1/api/v1/health)"
             echo "LOCAL api.rispy.io https $(curl -sk -o /dev/null -w %{http_code} -H "Host: api.rispy.io" https://127.0.0.1/health)"
