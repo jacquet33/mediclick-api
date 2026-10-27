@@ -272,7 +272,8 @@ async function bootstrap() {
     transformOptions: { enableImplicitConversion: true },
     stopAtFirstError: false,
   }));
-  app.useStaticAssets(join(__dirname, '..', 'public'));
+  // Páginas públicas: /portal y /portal.html sirven lo mismo (los mails enlazan sin .html)
+  app.useStaticAssets(join(__dirname, '..', 'public'), { extensions: ['html'] });
   
   // Auto-convert snake_case → camelCase on all incoming JSON bodies
   app.use((req: any, _res: any, next: any) => {
