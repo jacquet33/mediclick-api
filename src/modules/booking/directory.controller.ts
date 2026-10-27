@@ -90,4 +90,14 @@ export class DirectoryController {
       GROUP BY o.city, o.province ORDER BY count DESC
     `);
   }
+
+  /** GET /public/directory/insurers — obras sociales y prepagas activas (para los buscadores de reserva y registro) */
+  @Get('insurers')
+  async listInsurers() {
+    return this.db.queryMany(`
+      SELECT COALESCE(short_name, name) AS label, name, kind, province
+      FROM insurers WHERE is_active = true
+      ORDER BY lower(COALESCE(short_name, name))
+    `);
+  }
 }

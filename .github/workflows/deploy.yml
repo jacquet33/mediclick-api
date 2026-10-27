@@ -57,6 +57,9 @@ jobs:
                 environment:
                   # ID de cliente OAuth web de Google (es público, no es secreto). Variable del repo GOOGLE_CLIENT_ID_WEB
                   GOOGLE_CLIENT_ID_WEB: "${{ vars.GOOGLE_CLIENT_ID_WEB }}"
+                  # Links de recetas, pagos y correos con el dominio nuevo
+                  BASE_URL: "https://tuconsultorio.rispy.io"
+                  API_BASE_URL: "https://tuconsultorio.rispy.io"
                 networks:
                   - mediclick-net
                   - traefik-public

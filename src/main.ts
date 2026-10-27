@@ -282,6 +282,17 @@ async function bootstrap() {
     stopAtFirstError: false,
   }));
   // Páginas públicas: /portal y /portal.html sirven lo mismo (los mails enlazan sin .html)
+  // Dominio anterior (mediclick.art3d-studio.com.ar): las páginas redirigen al nuevo.
+  // La API sigue respondiendo ahí para las versiones de la app que todavía lo usan.
+  app.use((req, res, next) => {
+    const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(':')[0].toLowerCase();
+    const url = String(req.originalUrl || req.url || '/');
+    if (host === 'mediclick.art3d-studio.com.ar' && (req.method === 'GET' || req.method === 'HEAD') && !url.startsWith('/api/')) {
+      const destino = url.replace(/^\/portal\.html/, '/portal');
+      return res.redirect(301, 'https://tuconsultorio.rispy.io' + destino);
+    }
+    next();
+  });
   app.useStaticAssets(join(__dirname, '..', 'public'), { extensions: ['html'] });
   
   // Auto-convert snake_case → camelCase on all incoming JSON bodies.

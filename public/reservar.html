@@ -513,18 +513,30 @@ let selectedDate = null;
 let selectedSlot = null;
 
 // ─── Obras sociales argentinas ───────────────────────────
-const OBRAS_SOCIALES = [
-  "IOSPER","OSDE","Swiss Medical","Galeno","Medicus","OSECAC","OSPECON","OSPLAD",
-  "OSPJN","OSPRERA","PAMI","IOMA","Sancor Salud","Federada Salud","Accord Salud",
-  "ACA Salud","AMEBPBA","AMSA","APROSS","ASE","Avalian","Boreal","Casa","CEMIC",
-  "Colón Salud","Comei","DASUTEN","DIBA","Doremi","Hominis","Hospital Alemán",
-  "Hospital Británico","Hospital Italiano","Jerarquicos Salud","Luis Pasteur",
-  "Medifé","Napolitana","OMSIDA","OSADEF","OSAM","OSBA","OSCOEMA","OSCOYSE",
-  "OSDEPYM","OSDOP","OSEIV","OSIM","OSMATA","OSMISS","OSPATCA","OSPE","OSPECON",
-  "OSPEDYC","OSPIA","OSPLAD","OSPN","OSPRN","OSTEE","OSTEPA","OSTIG","OSUTHGRA",
-  "Plan de Salud","Prevención Salud","Red Sanitas","Unión Personal","Omint",
-  "William Hope","Poder Judicial","Particular (sin obra social)"
+let OBRAS_SOCIALES = [
+  "ACA Salud","Accord Salud","AMEBPBA","AMSA","Andar","APOS","APROSS","ASE","Avalian",
+  "Boreal","Casa","CEMIC","Cober","Colón Salud","Comei","CSS Santa Cruz","DASPU","DASUTEN",
+  "DIBA","Doctored","Doremi","DOSEP","Federada Salud","Femedica","Galeno","Grupo Oroño",
+  "Hominis","Hospital Alemán","Hospital Británico","Hospital Italiano","IAPOS","IASEP",
+  "Incluir Salud","INSSSEP","IOMA","IOSCOR","IOSEP","IOSFA","IOSPER","IPROSS",
+  "IPS Misiones","IPS Salta","ISJ","ISSN","Jerárquicos Salud","Luis Pasteur",
+  "Medicina Esencial","Medicus","Medifé","MET","Napolitana","Nobis",
+  "Obra Social Provincia San Juan","ObSBA","Omint","OMSIDA","OSADEF","OSAM","OSBA",
+  "OSCHOCA","OSCOEMA","OSCOYSE","OSCTCP","OSDE","OSDEPYM","OSDOP","OSECAC","OSEF","OSEIV",
+  "OSEP Catamarca","OSEP Mendoza","OSER","OSFATLYF","OSFATUN","OSIM","OSMATA","OSMEDICA",
+  "OSMISS","OSPAGA","OSPATCA","OSPE","OSPECON","OSPEDYC","OSPERYH","OSPF","OSPIA","OSPIM",
+  "OSPIP","OSPIQYP","OSPJN","OSPLAD","OSPM","OSPN","OSPOCE","OSPRERA","OSPRN","OSPSA",
+  "OSSEG","OSTEE","OSTEPA","OSTIG","OSUOMRA","OSUTHGRA","PAMI",
+  "Particular (sin obra social)","Plan de Salud","Poder Judicial","Premedic",
+  "Prevención Salud","Red Sanitas","Sancor Salud","SEMPRE","SEROS","Sipssa","Staff Médico",
+  "Subsidio de Salud","Swiss Medical","Unión Personal","William Hope"
 ].sort();
+// Suma las que se carguen en la base (padrón de obras sociales) sin depender de que responda
+fetch('/api/v1/public/directory/insurers').then(r=>r.ok?r.json():[]).then(rows=>{
+  const ya=new Set(OBRAS_SOCIALES.map(x=>x.toLowerCase()));
+  (rows||[]).forEach(r=>{const l=(r.label||'').trim();if(l&&!ya.has(l.toLowerCase())){OBRAS_SOCIALES.push(l);ya.add(l.toLowerCase())}});
+  OBRAS_SOCIALES.sort((a,b)=>a.localeCompare(b,'es'));
+}).catch(()=>{});
 
 // ─── Init ────────────────────────────────────────────────
 async function init(){
