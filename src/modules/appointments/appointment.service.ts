@@ -167,7 +167,15 @@ export class AppointmentService {
     if (conflictCheck.hasConflict && !forceCreate) {
       // Devolver error con detalle de los conflictos
       const conflictMessages = conflictCheck.conflicts.map(c =>
-        `${c.startTime.substring(0, 5)}-${c.endTime.substring(0, 5)} en "${c.organizationName}" con ${c.patientName} (${c.status})`
+        {
+          // Las filas vienen de SQL en snake_case: se aceptan ambas formas
+          const r: any = c;
+          const ini = String(r.startTime ?? r.start_time ?? '').substring(0, 5);
+          const fin = String(r.endTime ?? r.end_time ?? '').substring(0, 5);
+          const org = r.organizationName ?? r.organization_name ?? r.org_name ?? 'otro consultorio';
+          const pac = r.patientName ?? r.patient_name ?? 'paciente';
+          return `${ini}-${fin} en "${org}" con ${pac} (${r.status})`;
+        }
       );
 
       throw new ConflictException({

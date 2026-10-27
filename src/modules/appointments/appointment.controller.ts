@@ -24,6 +24,8 @@ export class AppointmentController {
     @Body() dto: CreateAppointmentDto & { forceCreate?: boolean },
   ) {
     const { forceCreate, ...appointmentDto } = dto;
+    // Las apps no mandan doctorId: por defecto es el médico que inició sesión
+    if (!appointmentDto.doctorId) appointmentDto.doctorId = doctorId;
     return this.apptService.create(orgId, doctorId, 'doctor', appointmentDto, forceCreate);
   }
 
