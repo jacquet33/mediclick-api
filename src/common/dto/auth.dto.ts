@@ -1,6 +1,6 @@
 import {
   IsEmail, IsString, IsNotEmpty, MinLength, MaxLength,
-  IsOptional, IsUUID, Matches,
+  IsOptional, IsUUID, Matches, IsIn,
 } from 'class-validator';
 
 // ─── Login ───────────────────────────────────────────────
@@ -185,9 +185,25 @@ export class GoogleLoginDto {
   @IsString()
   @IsNotEmpty()
   idToken: string;
+
+  @IsOptional()
+  @IsIn(['patient', 'doctor'])
+  intent?: 'patient' | 'doctor';
+
+  @IsOptional()
+  @IsString()
+  organizationId?: string;
 }
 
 export class AppleLoginDto {
+  @IsOptional()
+  @IsIn(['patient', 'doctor'])
+  intent?: 'patient' | 'doctor';
+
+  @IsOptional()
+  @IsString()
+  organizationId?: string;
+
   @IsString()
   @IsNotEmpty()
   identityToken: string;

@@ -104,7 +104,7 @@ export class AuthService {
 
   // ─── Sesión de doctor ────────────────────────────────────
 
-  private async buildDoctorSession(user: any): Promise<AuthSession> {
+  async buildDoctorSession(user: any): Promise<AuthSession> {
     const tokens = await this.generateTokens({
       sub: user.user_id, email: user.email, role: 'doctor', userType: 'doctor',
     });
@@ -139,7 +139,7 @@ export class AuthService {
 
   // ─── Sesión de paciente ──────────────────────────────────
 
-  private async buildPatientSession(user: any): Promise<AuthSession> {
+  async buildPatientSession(user: any): Promise<AuthSession> {
     const tokens = await this.generateTokens({
       sub: user.user_id, email: user.email, role: 'patient',
       userType: 'patient', patientId: user.patient_id,
@@ -179,7 +179,7 @@ export class AuthService {
 
   // ─── Sesión de staff/admin ───────────────────────────────
 
-  private async buildStaffSession(user: any): Promise<AuthSession> {
+  async buildStaffSession(user: any): Promise<AuthSession> {
     const tokens = await this.generateTokens({
       sub: user.user_id, email: user.email, role: 'staff',
       userType: 'staff', staffId: user.staff_id,

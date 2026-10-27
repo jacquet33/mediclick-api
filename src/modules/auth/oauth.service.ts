@@ -3,11 +3,15 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { DatabaseService } from '../../database/database.service';
+import { AuthService } from './auth.service';
 
 // ─── DTOs ───────────────────────────────────────────────────
 
 export interface GoogleLoginDto {
   idToken: string;          // Token que devuelve Google Sign-In SDK
+  /** 'patient' desde el portal web: si no hay cuenta se crea un paciente. Sin valor (apps) o 'doctor': se crea médico. */
+  intent?: 'patient' | 'doctor';
+  organizationId?: string;
 }
 
 export interface AppleLoginDto {
@@ -18,6 +22,8 @@ export interface AppleLoginDto {
     familyName?: string;
   };
   email?: string;           // Apple solo lo manda la primera vez
+  intent?: 'patient' | 'doctor';
+  organizationId?: string;
 }
 
 interface OAuthProfile {
@@ -39,6 +45,7 @@ export class OAuthService {
     private db: DatabaseService,
     private jwt: JwtService,
     private config: ConfigService,
+    private auth: AuthService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════
@@ -49,8 +56,43 @@ export class OAuthService {
     // 1. Verificar el idToken con Google
     const profile = await this.verifyGoogleToken(dto.idToken);
 
-    // 2. Buscar o crear doctor
-    return this.findOrCreateDoctor(profile);
+    // 2. Si el email ya tiene cuenta (médico, paciente o staff) se entra con esa cuenta
+    const existing = await this.db.queryOne(
+      `SELECT * FROM v_login_lookup WHERE lower(email) = lower($1) AND is_active = true
+       ORDER BY CASE user_type WHEN 'doctor' THEN 0 WHEN 'staff' THEN 1 ELSE 2 END LIMIT 1`,
+      [profile.email],
+    );
+    if (existing?.user_type === 'patient') return this.auth.buildPatientSession(existing);
+    if (existing?.user_type === 'staff') return this.auth.buildStaffSession(existing);
+    if (existing?.user_type === 'doctor' || dto.intent !== 'patient') return this.findOrCreateDoctor(profile);
+
+    // 3. Paciente nuevo desde el portal
+    return this.createPatientFromOAuth(profile, dto.organizationId);
+  }
+
+  private async createPatientFromOAuth(profile: OAuthProfile, organizationId?: string) {
+    const email = profile.email.toLowerCase().trim();
+    let patient = await this.db.queryOne('SELECT id FROM patients WHERE lower(email) = $1 LIMIT 1', [email]);
+    if (!patient) {
+      let orgId = organizationId;
+      if (!orgId) {
+        const org = await this.db.queryOne('SELECT id FROM organizations WHERE is_active = true ORDER BY created_at LIMIT 1');
+        orgId = org?.id;
+      }
+      if (!orgId) throw new UnauthorizedException('No hay consultorios disponibles');
+      patient = await this.db.queryOne(
+        `INSERT INTO patients (organization_id, first_name, last_name, email) VALUES ($1,$2,$3,$4) RETURNING id`,
+        [orgId, profile.firstName || 'Paciente', profile.lastName || '', email],
+      );
+    }
+    // Sin contraseña: solo puede entrar con Google hasta que cree una
+    const auth = await this.db.queryOne(
+      `INSERT INTO patient_auth (patient_id, email, password_hash, phone) VALUES ($1,$2,$3,'') RETURNING id`,
+      [patient.id, email, 'OAUTH_NO_PASSWORD'],
+    );
+    this.logger.log(`OAuth paciente nuevo: ${profile.provider} → ${email}`);
+    const session = await this.auth.buildPatientSession({ user_id: auth.id, email, patient_id: patient.id, user_type: 'patient' });
+    return { ...session, isNewUser: true };
   }
 
   private async verifyGoogleToken(idToken: string): Promise<OAuthProfile> {
@@ -100,9 +142,20 @@ export class OAuthService {
     // 1. Verificar el identityToken con Apple
     const profile = await this.verifyAppleToken(dto);
 
-    // 2. Buscar o crear doctor
-    return this.findOrCreateDoctor(profile);
+    // 2. Si el email ya tiene cuenta (médico, paciente o staff) se entra con esa cuenta
+    const existing = await this.db.queryOne(
+      `SELECT * FROM v_login_lookup WHERE lower(email) = lower($1) AND is_active = true
+       ORDER BY CASE user_type WHEN 'doctor' THEN 0 WHEN 'staff' THEN 1 ELSE 2 END LIMIT 1`,
+      [profile.email],
+    );
+    if (existing?.user_type === 'patient') return this.auth.buildPatientSession(existing);
+    if (existing?.user_type === 'staff') return this.auth.buildStaffSession(existing);
+    if (existing?.user_type === 'doctor' || dto.intent !== 'patient') return this.findOrCreateDoctor(profile);
+
+    // 3. Paciente nuevo desde el portal
+    return this.createPatientFromOAuth(profile, dto.organizationId);
   }
+
 
   private async verifyAppleToken(dto: AppleLoginDto): Promise<OAuthProfile> {
     // Decodificar el JWT de Apple (sin verificar firma por ahora,
@@ -272,6 +325,8 @@ export class OAuthService {
     return {
       accessToken,
       refreshToken,
+      userType: 'doctor' as const,
+      user: doctor,
       doctor,
       organizations,
       isNewUser,
