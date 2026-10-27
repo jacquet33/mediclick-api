@@ -227,6 +227,12 @@ async function bootstrap() {
     .split(',')
     .map(s => s.trim())
     .filter(Boolean);
+  // Dominios propios: siempre permitidos (el nuevo de Rispy Health y el anterior, mientras dure la migración)
+  if (allowedOrigins.length) {
+    for (const o of ['https://tuconsultorio.rispy.io', 'https://mediclick.art3d-studio.com.ar']) {
+      if (!allowedOrigins.includes(o)) allowedOrigins.push(o);
+    }
+  }
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     cors: {

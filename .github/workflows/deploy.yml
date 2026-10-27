@@ -42,8 +42,32 @@ jobs:
           port: 22
           script: |
             cd /opt/mediclick
-            docker compose pull api
-            docker compose up -d --force-recreate --no-deps api
+            # Rispy Health: la API también responde en tuconsultorio.rispy.io a través del proxy de Rispy
+            # (se suma al dominio actual; no lo reemplaza). Archivo propio, no pisa ningún override existente.
+            cat > docker-compose.rispy.yml <<'YAML'
+            services:
+              api:
+                networks:
+                  - mediclick-net
+                  - traefik-public
+                labels:
+                  - "traefik.enable=true"
+                  - "traefik.http.routers.rispy-health.rule=Host(`tuconsultorio.rispy.io`)"
+                  - "traefik.http.routers.rispy-health.entrypoints=websecure"
+                  - "traefik.http.routers.rispy-health.tls=true"
+                  - "traefik.http.routers.rispy-health.tls.certresolver=letsencrypt"
+                  - "traefik.http.services.rispy-health.loadbalancer.server.port=3000"
+                  - "traefik.docker.network=traefik-public"
+            networks:
+              traefik-public:
+                external: true
+            YAML
+            BASE=$(ls docker-compose.yml compose.yaml compose.yml 2>/dev/null | head -1)
+            FILES="-f $BASE"
+            [ -f docker-compose.override.yml ] && FILES="$FILES -f docker-compose.override.yml"
+            FILES="$FILES -f docker-compose.rispy.yml"
+            docker compose $FILES pull api
+            docker compose $FILES up -d --force-recreate --no-deps api
             docker image prune -f
             sleep 8
             curl -sf http://localhost:3100/api/v1/health && echo "API OK" || echo "API WARN"
