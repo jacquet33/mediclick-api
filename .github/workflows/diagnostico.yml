@@ -5,20 +5,18 @@ jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - uses: appleboy/ssh-action@v1.0.3
-        id: ssh
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            echo "HOST $(hostname) IP $(curl -s -4 ifconfig.me)"
-            docker ps --format '{{.Names}} | {{.Ports}} | {{.Networks}}' | sed 's/^/PS /'
-            docker network ls --format '{{.Name}}' | sed 's/^/NET /'
-            ls /opt | sed 's/^/OPT /'
-            docker inspect $(docker ps -q --filter name=traefik) --format '{{.Name}} {{join .Args " "}}' 2>/dev/null | sed 's/^/TRAEFIK /'
-          capture_stdout: true
-      - name: Resultado como anotaciones
+      - name: Leer estado del servidor
         env:
-          OUT: ${{ steps.ssh.outputs.stdout }}
-        run: echo "$OUT" | grep -E '^(HOST|PS|NET|OPT|TRAEFIK)' | head -45 | while IFS= read -r l; do echo "::notice::$l"; done
+          KEY: ${{ secrets.VPS_SSH_KEY }}
+          HOST: ${{ secrets.VPS_HOST }}
+          USER: ${{ secrets.VPS_USER }}
+        run: |
+          install -m 600 /dev/null k && printf '%s\n' "$KEY" > k
+          ssh -i k -o StrictHostKeyChecking=no -o ConnectTimeout=20 "$USER@$HOST" '
+            echo "HOST $(hostname) IP $(curl -s -4 ifconfig.me)"
+            docker ps --format "{{.Names}} | {{.Ports}} | {{.Networks}}" | sed "s/^/PS /"
+            ls /opt | sed "s/^/OPT /"
+            for c in $(docker ps --format "{{.Names}}" | grep -i traefik); do echo "TRAEFIK $c $(docker inspect $c --format "{{join .Args \" \"}}" | head -c 600)"; done
+          ' > out.txt 2>&1 || true
+          rm -f k
+          grep -E '^(HOST|PS|OPT|TRAEFIK)' out.txt | head -48 | while IFS= read -r l; do echo "::notice::$l"; done
