@@ -1,0 +1,24 @@
+# Lectura (no modifica nada): esquema de la base y errores recientes de la API → rama ci-diag
+name: Esquema DB y errores
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Leer
+        env:
+          KEY: ${{ secrets.VPS_SSH_KEY }}
+          HOST: ${{ secrets.VPS_HOST }}
+          USER: ${{ secrets.VPS_USER }}
+        run: |
+          install -m 600 /dev/null k && printf '%s\n' "$KEY" > k
+          S="ssh -i k -o StrictHostKeyChecking=no -o ConnectTimeout=20 $USER@$HOST"
+          mkdir out
+          $S 'U=$(docker exec mediclick-db printenv POSTGRES_USER); D=$(docker exec mediclick-db printenv POSTGRES_DB); docker exec mediclick-db pg_dump -s -O -x -U $U $D' > out/schema.sql 2>&1 || true
+          $S 'docker logs --since 48h mediclick-api 2>&1 | grep -iE "error|exception|fail" | grep -v "Unauthorized\|401" | cut -c1-400 | tail -300' > out/errores.txt 2>&1 || true
+          rm -f k
+          wc -l out/*
+          cd out && git init -q && git checkout -q -b ci-diag && git add . && git -c user.name=ci -c user.email=ci@x commit -qm diag
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-diag
