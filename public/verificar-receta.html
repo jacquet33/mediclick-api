@@ -135,16 +135,18 @@ async function verify() {
     el.innerHTML = `
       <div class="shield">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#21BF8C" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
-        <span>Documento verificado electrónicamente — Ley 27.553</span>
+        <span>${rx.firma?.valida?'Firma electrónica válida — el contenido no fue modificado':'Receta electrónica — Ley 27.553'}</span>
       </div>
+      ${rx.firma&&!rx.firma.valida?`<div class="card" style="border:1.5px solid #F1B9B9;background:#FDF1F1;color:#8A2B2B;font-size:13px">⚠️ ${rx.firma.motivo||'No se pudo validar la firma electrónica'}</div>`:''}
 
       <div class="card" style="text-align:center">
         <div class="status-badge ${statusClass}">${statusIcon} Receta ${statusText}</div>
 
         <div class="field">
-          <div class="field-label">Código de verificación (CUIR)</div>
-          <div class="field-value" style="font-family:monospace;font-size:16px;color:var(--lavanda)">${rx.verification_code}</div>
+          <div class="field-label">CUIR</div>
+          <div class="field-value" style="font-family:monospace;font-size:16px;color:var(--lavanda)">${rx.cuir||rx.verification_code}</div>
         </div>
+        ${rx.firma?.hash?`<div class="field"><div class="field-label">Huella SHA-256 del contenido firmado</div><div class="field-value" style="font-family:monospace;font-size:11px;word-break:break-all">${rx.firma.hash}</div></div>`:''}
       </div>
 
       <div class="card">
@@ -158,8 +160,8 @@ async function verify() {
           <div class="field-value">Dr/a. ${rx.doctor_name}</div>
         </div>
         <div class="field">
-          <div class="field-label">Matrícula Provincial</div>
-          <div class="field-value">MP. ${rx.medical_license || 'S/N'}</div>
+          <div class="field-label">Matrícula</div>
+          <div class="field-value">${rx.license_type==='MN'?'M.N.':'M.P.'} ${rx.medical_license || 'S/N'}${rx.license_type==='MP'&&rx.medical_license_province?' ('+rx.medical_license_province+')':''} ${rx.doctor_license_status==='verified'?'<span style="color:#0D8F5F;font-size:12px">✔ verificada</span>':''}</div>
         </div>
         <div class="field">
           <div class="field-label">Institución</div>
@@ -209,8 +211,9 @@ async function verify() {
           </div>
           ${rx.items.map(it => `
             <div class="med-item">
-              <div class="med-name">${it.medication_name}</div>
-              ${it.generic_name ? `<div class="med-detail" style="font-style:italic">DCI: ${it.generic_name}</div>` : ''}
+              <div class="med-name">${it.generic_name || it.medication_name}</div>
+              ${it.generic_name && it.medication_name && it.generic_name !== it.medication_name ? `<div class="med-detail" style="font-style:italic">Marca sugerida: ${it.medication_name}</div>` : ''}
+              ${[it.pharmaceutical_form, it.presentation].filter(Boolean).length ? `<div class="med-detail">${[it.pharmaceutical_form, it.presentation].filter(Boolean).join(' · ')}</div>` : ''}
               <div class="med-detail">${[it.dosage, it.frequency, it.duration, it.quantity ? 'Cant: '+it.quantity : ''].filter(Boolean).join(' — ')}</div>
             </div>
           `).join('')}

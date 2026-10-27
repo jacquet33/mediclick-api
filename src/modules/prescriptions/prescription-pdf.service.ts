@@ -15,6 +15,11 @@ interface PrescriptionData {
   issued_at: Date;
   expires_at: Date;
   verification_code: string;
+  cuir?: string | null;
+  content_hash?: string | null;
+  signature_key_id?: string | null;
+  doctor_license_type?: string | null;
+  doctor_license_province?: string | null;
   status: string;
   notes: string;
   // Doctor
@@ -68,6 +73,7 @@ export class PrescriptionPdfService {
         d.first_name AS doctor_first_name, d.last_name AS doctor_last_name,
         d.email AS doctor_email, d.phone AS doctor_phone,
         d.medical_license AS doctor_medical_license, d.specialty AS doctor_specialty,
+        d.license_type AS doctor_license_type, d.medical_license_province AS doctor_license_province, d.dni AS doctor_dni,
         d.signature_image AS doctor_signature_image,
         p.first_name AS patient_first_name, p.last_name AS patient_last_name,
         p.dni AS patient_dni, p.date_of_birth AS patient_date_of_birth,
@@ -97,7 +103,7 @@ export class PrescriptionPdfService {
 
     // 2) Generar QR de verificación
     const baseUrl = this.config.get('BASE_URL') || 'https://tuconsultorio.rispy.io';
-    const verifyUrl = `${baseUrl}/verificar-receta.html?code=${rx.verification_code}`;
+    const verifyUrl = `${baseUrl}/verificar-receta?code=${rx.verification_code}`;
     let qrDataUrl: string | null = null;
     try {
       qrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 120, margin: 1, color: { dark: '#2B241F', light: '#FFFFFF' } });
@@ -397,13 +403,16 @@ export class PrescriptionPdfService {
       doc.fontSize(7).font('Helvetica').fillColor('#555555')
         .text(`${rx.doctor_specialty?.toUpperCase() || 'MÉDICO'} — ${doctorName}`, textStartX, footerY + 32, { width: textW });
 
+      const tipoMat = rx.doctor_license_type === 'MN' ? 'M.N.' : 'M.P.';
       doc.fontSize(7)
-        .text(`MP. ${rx.doctor_medical_license || 'S/N'}`, textStartX, footerY + 44, { width: textW });
+        .text(`${tipoMat} ${rx.doctor_medical_license || 'S/N'}${rx.doctor_license_type === 'MP' && rx.doctor_license_province ? ' (' + rx.doctor_license_province + ')' : ''}`, textStartX, footerY + 44, { width: textW });
 
-      // Código de verificación (CUIR)
-      if (rx.verification_code) {
-        doc.fontSize(8).font('Helvetica-Bold').fillColor('#9A6B3F')
-          .text(`CUIR: ${rx.verification_code}`, textStartX, footerY + 58, { width: textW });
+      // CUIR y firma electrónica
+      doc.fontSize(8).font('Helvetica-Bold').fillColor('#9A6B3F')
+        .text(`CUIR: ${rx.cuir || rx.verification_code}   ·   Código: ${rx.verification_code}`, textStartX, footerY + 56, { width: textW });
+      if (rx.content_hash) {
+        doc.fontSize(6).font('Helvetica').fillColor('#777777')
+          .text(`Firma electrónica: SHA-256 ${rx.content_hash.slice(0, 32)}… · clave ${rx.signature_key_id || ''}`, textStartX, footerY + 68, { width: textW });
       }
 
       // Leyenda legal

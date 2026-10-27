@@ -14,6 +14,7 @@ export class ProfileService {
               medical_license, medical_license_province, refeps_code,
               specialty, secondary_specialties, avatar_url, bio,
               signature_image IS NOT NULL AS has_signature,
+              COALESCE(license_status, 'unverified') AS license_status, license_type, is_platform_admin,
               created_at
        FROM doctors WHERE id = $1`,
       [doctorId],
@@ -49,6 +50,14 @@ export class ProfileService {
     if (dto.bio !== undefined) { sets.push(`bio = $${idx++}`); vals.push(dto.bio); }
 
     if (sets.length === 0) return this.getProfile(doctorId);
+
+    // Si cambia la matrícula hay que volver a verificarla
+    if (dto.medicalLicense || dto.medicalLicenseProvince !== undefined) {
+      const actual = await this.db.queryOne(`SELECT medical_license, medical_license_province FROM doctors WHERE id = $1`, [doctorId]);
+      const cambia = (dto.medicalLicense && dto.medicalLicense !== actual?.medical_license)
+        || (dto.medicalLicenseProvince !== undefined && (dto.medicalLicenseProvince || null) !== (actual?.medical_license_province || null));
+      if (cambia) sets.push(`license_status = 'unverified'`, `license_verified_at = NULL`, `is_verified = false`);
+    }
 
     sets.push(`updated_at = NOW()`);
     vals.push(doctorId);

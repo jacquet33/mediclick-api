@@ -60,6 +60,11 @@ jobs:
                   # Links de recetas, pagos y correos con el dominio nuevo
                   BASE_URL: "https://tuconsultorio.rispy.io"
                   API_BASE_URL: "https://tuconsultorio.rispy.io"
+                  # Verificación de médicos y firma de recetas (secretos del repo; vacíos = revisión manual)
+                  PLATFORM_ADMIN_EMAILS: "${{ secrets.PLATFORM_ADMIN_EMAILS }}"
+                  SISA_USUARIO: "${{ secrets.SISA_USUARIO }}"
+                  SISA_CLAVE: "${{ secrets.SISA_CLAVE }}"
+                  RENAPDIS_PLATFORM_ID: "${{ vars.RENAPDIS_PLATFORM_ID }}"
                 networks:
                   - mediclick-net
                   - traefik-public

@@ -129,7 +129,8 @@ details.rec p{font-size:13px;margin-top:6px;white-space:pre-wrap}
 .field{margin-bottom:14px}
 .field label{display:block;font-size:12px;font-weight:600;color:var(--text-soft);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
 .field input,.field select{width:100%;padding:13px;font-size:14px;font-family:inherit;border:1.5px solid #ECE5D9;border-radius:12px;background:#FFFDF9;color:var(--text);outline:none;transition:.2s}
-.field input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(192,138,85,.15)}
+.field textarea{width:100%;padding:12px 13px;font-size:14px;font-family:inherit;border:1.5px solid #ECE5D9;border-radius:12px;background:#FFFDF9;color:var(--text);outline:none;resize:vertical;line-height:1.45}
+.field textarea:focus,.field input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(192,138,85,.15)}
 .btn{width:100%;padding:14px;font-size:14px;font-weight:700;font-family:inherit;border:none;border-radius:12px;cursor:pointer;transition:.2s}
 .btn-primary{background:linear-gradient(135deg,var(--cyan),var(--primary));color:#fff;box-shadow:0 6px 20px rgba(154,107,63,.25)}
 .btn-primary:hover{transform:translateY(-1px)}
@@ -361,6 +362,7 @@ details.rec p{font-size:13px;margin-top:6px;white-space:pre-wrap}
 </div>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="/js/hc-data.js"></script>
 <script>
 const API = window.location.origin;
 let GOOGLE_CLIENT_ID = ''; // Set via env or config
@@ -534,6 +536,7 @@ function buildNav(){
         {id:'obras-sociales',icon:'🏛️',label:'Obras sociales'},
         {id:'equipo',icon:'👔',label:'Equipo y roles'},
         {id:'facturacion',icon:'💰',label:'Facturación'},
+        {id:'matricula',icon:'🪪',label:'Matrícula y firma'},
         {id:'config',icon:'⚙️',label:'Configuración'},
       ]},
     ];
@@ -584,6 +587,7 @@ function navigateTo(id){
   const views={
     'dashboard':loadDoctorDashboard,
     'turnos':loadTurnos,
+    'matricula':()=>abrirMatricula(),
     'config-agenda':loadConfigAgenda,
     'sala-espera':loadWaitingRoom,
     'agenda':loadAgenda,
@@ -700,13 +704,15 @@ async function loadDoctorDashboard(){
 
 /** Acciones según estado (sirve en dashboard y en Turnos) */
 function accionesTurno(a){
+  // El médico carga la consulta desde el turno (al guardar, el turno queda finalizado)
+  const hc=t=>userType==='doctor'&&t.patient_id?`<button class="btn btn-sm btn-soft" onclick="abrirFormularioHC('${t.patient_id}',{appointmentId:'${t.id}',nombre:'${esc(t.patient_name||'')}'})">📋 Historia clínica</button>`:'';
   const b=(st,txt,cls)=>`<button class="btn btn-sm ${cls}" onclick="cambiarEstado('${a.id}','${st}')">${txt}</button>`;
   switch(a.status){
     case 'pending': case 'pending_approval': case 'pending_payment':
       return b('confirmed','✓ Aprobar','btn-ok')+b('cancelled','✕ Rechazar','btn-no');
     case 'confirmed': return b('checked_in','Llegó','btn-soft')+b('completed','Finalizar','btn-ok')+b('no_show','Ausente','btn-no')+b('cancelled','Cancelar','btn-no');
-    case 'checked_in': return b('in_progress','▶ Atender','btn-ok')+b('completed','Finalizar','btn-soft');
-    case 'in_progress': return b('completed','✓ Finalizar','btn-ok');
+    case 'checked_in': return b('in_progress','▶ Atender','btn-ok')+hc(a)+b('completed','Finalizar','btn-soft');
+    case 'in_progress': return hc(a)+b('completed','✓ Finalizar','btn-ok');
     case 'cancelled': case 'no_show': return b('confirmed','Reactivar','btn-soft');
     default: return '';
   }
@@ -759,7 +765,7 @@ async function abrirPaciente(id){
     const tel=(p.phone||'').replace(/\D/g,'');
     main.innerHTML=`
       <div class="topbar"><button class="btn btn-sm btn-outline" onclick="navigateTo(_fichaVolver||'pacientes')">← Volver</button>
-        <div class="flex">${userType==='doctor'?`<button class="btn btn-sm btn-primary" onclick="nuevaConsultaDesdeFicha('${p.id}','${esc(nombre)}')">+ Nueva consulta</button>`:''}<button class="btn btn-sm btn-outline" onclick="editarPaciente('${p.id}')">✏️ Editar datos</button></div></div>
+        <div class="flex" style="flex-wrap:wrap;justify-content:flex-end">${userType==='doctor'?`<button class="btn btn-sm btn-primary" onclick="abrirFormularioHC('${p.id}',{nombre:'${esc(nombre)}'})">+ Nueva consulta</button><button class="btn btn-sm btn-soft" onclick="abrirNuevaReceta({patientId:'${p.id}'})">💊 Nueva receta</button>`:''}<button class="btn btn-sm btn-outline" onclick="editarPaciente('${p.id}')">✏️ Editar datos</button></div></div>
       <div class="card">
         <div class="ficha-head">
           <label class="ficha-foto" title="Cambiar foto">
@@ -815,6 +821,7 @@ async function abrirPaciente(id){
           </div>
           <div class="card"><div class="card-title">📋 Consultas (${c.records.length})</div>
             ${c.records.length?c.records.map(r=>`<details class="rec"><summary><span><b>${fmtDate(r.date)}</b> · ${esc(r.diagnosis||r.chief_complaint||'Consulta')}${r.diagnosis_code?` <span class="muted">(${esc(r.diagnosis_code)})</span>`:''}</span><span class="muted">${esc(r.doctor_full_name||'')}</span></summary>
+              <div class="flex" style="margin-top:8px"><button class="btn btn-sm btn-soft" onclick="abrirFormularioHC('${p.id}',{recordId:'${r.id}',nombre:'${esc(nombre)}'})">✏️ Editar consulta</button><button class="btn btn-sm btn-soft" onclick="abrirNuevaReceta({patientId:'${p.id}',medicalRecordId:'${r.id}',diagnosis:'${esc((r.diagnosis||'').replace(/'/g,''))}',diagnosisCode:'${esc(r.diagnosis_code||'')}'})">💊 Receta</button></div>
               ${[['Motivo',r.chief_complaint],['Enfermedad actual',r.present_illness],['Revisión por sistemas',r.systems_review],['Examen físico',r.physical_exam],['Hallazgos',r.findings],['Diagnóstico',r.diagnosis],['Plan',r.treatment_plan],['Indicaciones',r.instructions],['Seguimiento',r.follow_up]].filter(x=>x[1]).map(([k,v])=>`<p><b>${k}:</b> ${esc(String(v).replace(/; /g,'\n'))}</p>`).join('')}
             </details>`).join(''):'<p class="muted">Sin consultas registradas.</p>'}
           </div>`:''}
@@ -828,7 +835,8 @@ async function abrirPaciente(id){
             ${f.appointments.length?f.appointments.slice(0,40).map(a=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #FAF6F0;font-size:13px"><span>${fmtDate(a.date)} ${a.start_time?.slice(0,5)||''}<br><small class="muted">${esc(a.reason||'')}${a.cancelled_reason?' · '+esc(a.cancelled_reason):''}</small></span><span class="badge-sm ${a.status}">${statusLabel(a.status)}</span></div>`).join(''):'<p class="muted">Sin turnos.</p>'}
           </div>
           ${c?`<div class="card"><div class="card-title">💊 Recetas (${c.prescriptions.length})</div>
-            ${c.prescriptions.length?c.prescriptions.map(r=>`<div style="padding:8px 0;border-bottom:1px solid #FAF6F0;font-size:13px"><b>${fmtDate(r.date)}</b> ${r.diagnosis?'· '+esc(r.diagnosis):''}<br><small class="muted">${(r.items||[]).map(i=>esc([i.name,i.dosage,i.frequency].filter(Boolean).join(' '))).join(' · ')||'—'}</small></div>`).join(''):'<p class="muted">Sin recetas.</p>'}
+            ${c.prescriptions.length?c.prescriptions.map(r=>`<div style="padding:8px 0;border-bottom:1px solid #FAF6F0;font-size:13px"><b>${fmtDate(r.date)}</b> ${r.diagnosis?'· '+esc(r.diagnosis):''} ${r.status==='cancelled'?'<span class="badge-sm cancelled">Anulada</span>':''}<br><small class="muted">${(r.items||[]).map(i=>esc([i.name,i.dosage,i.frequency].filter(Boolean).join(' '))).join(' · ')||'—'}</small>
+              <div class="flex" style="margin-top:6px;flex-wrap:wrap"><button class="btn btn-sm btn-soft" onclick="recetaPdf('${r.id}')">🖨️ PDF</button><button class="btn btn-sm" style="background:#25D366;color:#fff" onclick="recetaWhatsApp('${esc(r.verification_code)}','${esc(p.phone||'')}','${esc(p.first_name||'')}')">WhatsApp</button><button class="btn btn-sm btn-soft" onclick="recetaEmail('${r.id}','${esc(p.email||'')}')">✉️ Email</button></div></div>`).join(''):'<p class="muted">Sin recetas.</p>'}
           </div>
           ${c.consents.length?`<div class="card"><div class="card-title">✍️ Consentimientos</div>${c.consents.map(x=>`<div style="font-size:13px;padding:6px 0;border-bottom:1px solid #FAF6F0">${esc(x.consent_type)} · ${x.revoked_at?'revocado':x.accepted?'aceptado '+fmtDate(x.date):'pendiente'}</div>`).join('')}</div>`:''}`:''}
         </div>
@@ -1594,7 +1602,7 @@ async function viewPatientHistory(patientId,name){
       <div class="card" style="margin-top:16px">
         <div class="card-title">📋 Historia clínica — ${name}</div>
         <div style="display:flex;gap:8px;margin-bottom:16px">
-          <button class="btn btn-sm btn-primary" onclick="showNewRecord('${patientId}')">+ Nueva nota</button>
+          <button class="btn btn-sm btn-primary" onclick="abrirFormularioHC('${patientId}',{nombre:'${name}'})">+ Nueva consulta</button><button class="btn btn-sm btn-soft" onclick="abrirPaciente('${patientId}')">Ver ficha</button>
         </div>
         ${recs.length?recs.map(r=>`
           <div class="card" style="border-left:3px solid var(--primary);margin-bottom:10px">
@@ -2011,5 +2019,6 @@ function waSlotReleasedBtn(phone,contactName,date,time,doctorName){
 // ─── Boot ────────────────────────────────────────────────
 if(token&&userData) initApp();
 </script>
+<script src="/js/clinica.js"></script>
 </body>
 </html>

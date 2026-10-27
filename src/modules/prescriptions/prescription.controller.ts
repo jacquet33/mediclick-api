@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, Res, Header } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Query, Res, Header, BadRequestException } from '@nestjs/common';
+import { EmailService } from '../email/email.service';
 import { Public } from '../../common/guards/auth.guard';
 import { PrescriptionService, CreatePrescriptionDto } from './prescription.service';
 import { PrescriptionPdfService } from './prescription-pdf.service';
@@ -10,7 +11,30 @@ export class PrescriptionController {
   constructor(
     private rxService: PrescriptionService,
     private pdfService: PrescriptionPdfService,
+    private emailService: EmailService,
   ) {}
+
+  /** POST /prescriptions/:id/email { email? } — manda el PDF de la receta (por defecto al email del paciente) */
+  @Post(':id/email')
+  async email(@OrgId() orgId: string, @Param('id') id: string, @Body('email') email?: string) {
+    const rx = await this.rxService.findById(orgId, id);
+    const to = (email || rx.patient_email || '').trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) throw new BadRequestException('Indicá un email válido');
+    const buffer = await this.pdfService.generatePdf(orgId, id);
+    const base = process.env.BASE_URL || 'https://tuconsultorio.rispy.io';
+    const sent = await this.emailService.sendWithAttachment({
+      to,
+      subject: `Receta — Dr/a. ${rx.doctor_name}`,
+      html: this.emailService.wrapTemplate(`
+        <h2 style="color:#2B241F;margin-bottom:12px;">Tu receta electrónica</h2>
+        <p>Hola ${rx.patient_name}, te enviamos la receta indicada por Dr/a. ${rx.doctor_name}.</p>
+        <p>Podés presentarla en la farmacia desde el celular o impresa. Código de verificación: <b>${rx.verification_code}</b></p>
+        <p><a href="${base}/verificar-receta?code=${rx.verification_code}">Verificar la receta</a></p>
+      `),
+      attachments: [{ filename: `receta-${rx.verification_code}.pdf`, content: buffer, contentType: 'application/pdf' }],
+    });
+    return { sent, to };
+  }
 
   @Get()
   findAll(
@@ -36,7 +60,7 @@ export class PrescriptionController {
     @Res() res: Response,
   ) {
     try {
-      const rx = await this.rxService.verify(code);
+      const rx = await this.rxService.verify(code, true);
       if (!rx) return res.status(404).json({ message: 'Receta no encontrada' });
       const buffer = await this.pdfService.generatePdf(rx.organization_id, rx.id);
       res.set({
@@ -57,9 +81,7 @@ export class PrescriptionController {
     @Res() res: Response,
   ) {
     try {
-      console.log(`PDF request: prescriptionId=${id}, orgId=${orgId}`);
       const buffer = await this.pdfService.generatePdf(orgId, id);
-      console.log(`PDF generated: ${buffer.length} bytes`);
       res.set({
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="receta-${id.slice(0, 8)}.pdf"`,
@@ -68,22 +90,7 @@ export class PrescriptionController {
       res.end(buffer);
     } catch (e) {
       console.error(`PDF error: ${e.message}`, e.stack);
-      res.status(500).json({ message: e.message || 'Error generando PDF', stack: e.stack?.split('\n').slice(0, 5) });
-    }
-  }
-
-  @Get(':id/pdf-debug')
-  async debugPdf(
-    @OrgId() orgId: string,
-    @Param('id') id: string,
-  ) {
-    // Returns the data that would be used to generate the PDF
-    try {
-      const rx = await this.rxService.findById(orgId, id);
-      const pdfkitInstalled = (() => { try { require('pdfkit'); return true; } catch { return false; } })();
-      return { ok: true, prescriptionFound: !!rx, pdfkitInstalled, orgId, id, prescription: rx };
-    } catch (e) {
-      return { ok: false, error: e.message, orgId, id };
+      res.status(500).json({ message: 'Error generando el PDF' });
     }
   }
 

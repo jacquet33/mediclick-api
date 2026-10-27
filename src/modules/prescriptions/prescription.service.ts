@@ -1,5 +1,7 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
+import { VerificationService } from '../verification/verification.service';
+import { PrescriptionSigningService } from './prescription-signing.service';
 
 export interface PrescriptionItemDto {
   medicationName: string;
@@ -31,7 +33,11 @@ export interface CreatePrescriptionDto {
 export class PrescriptionService {
   private readonly logger = new Logger(PrescriptionService.name);
 
-  constructor(private db: DatabaseService) {}
+  constructor(
+    private db: DatabaseService,
+    private verification: VerificationService,
+    private signing: PrescriptionSigningService,
+  ) {}
 
   async findAll(orgId: string, doctorId: string, query?: { patientId?: string; status?: string; updatedSince?: string }) {
     let where = 'WHERE rx.organization_id = $1';
@@ -55,7 +61,9 @@ export class PrescriptionService {
     }
 
     return this.db.queryMany(
-      `SELECT rx.*, p.first_name || ' ' || p.last_name AS patient_name,
+      `SELECT rx.id, rx.patient_id, rx.doctor_id, rx.organization_id, rx.medical_record_id, rx.status, rx.diagnosis, rx.diagnosis_code,
+              rx.issued_at, rx.expires_at, rx.verification_code, rx.notes, rx.cuir, rx.content_hash, rx.signed_at, rx.created_at, rx.updated_at,
+              p.first_name || ' ' || p.last_name AS patient_name, p.phone AS patient_phone, p.email AS patient_email,
               d.first_name || ' ' || d.last_name AS doctor_name
        FROM prescriptions rx
        JOIN patients p ON p.id = rx.patient_id
@@ -69,7 +77,7 @@ export class PrescriptionService {
   async findById(orgId: string, id: string) {
     const rx = await this.db.queryOne(
       `SELECT rx.*, p.first_name || ' ' || p.last_name AS patient_name,
-              p.dni AS patient_dni,
+              p.dni AS patient_dni, p.email AS patient_email, p.phone AS patient_phone,
               d.first_name || ' ' || d.last_name AS doctor_name,
               d.medical_license AS doctor_license
        FROM prescriptions rx
@@ -89,12 +97,23 @@ export class PrescriptionService {
   }
 
   async create(orgId: string, doctorId: string, dto: any) {
-    return this.db.transaction(async (client) => {
-      const patientId = dto.patientId || dto.patient_id;
+    // Solo médicos con matrícula verificada (REFEPS o revisión manual)
+    await this.verification.exigirVerificado(doctorId);
+
+    const patientId = dto.patientId || dto.patient_id;
+    const items = (dto.items || []).filter((i: any) => (i.medicationName || i.medication_name || i.genericName || i.generic_name || '').trim());
+    if (!items.length) throw new BadRequestException('Agregá al menos un medicamento');
+    if (!dto.diagnosis?.trim()) throw new BadRequestException('Indicá el diagnóstico');
+    const paciente = await this.db.queryOne(`SELECT dni FROM patients WHERE id = $1 AND organization_id = $2`, [patientId, orgId]);
+    if (!paciente) throw new NotFoundException('Paciente no encontrado');
+    if (!String(paciente.dni || '').replace(/\D/g, '')) {
+      throw new BadRequestException('Para la receta electrónica el paciente tiene que tener DNI cargado');
+    }
+
+    const creada = await this.db.transaction(async (client) => {
       const diagnosis = dto.diagnosis;
       const diagnosisCode = dto.diagnosisCode || dto.diagnosis_code;
       const notes = dto.notes;
-      const items = dto.items || [];
 
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + (dto.expiresInDays || dto.expires_in_days || 30));
@@ -119,8 +138,9 @@ export class PrescriptionService {
             duration, quantity, instructions, pharmaceutical_form, presentation, sort_order
           ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
           [rxId,
-           item.medicationName || item.medication_name,
-           item.genericName || item.generic_name || null,
+           item.medicationName || item.medication_name || item.genericName || item.generic_name,
+           // Nombre genérico obligatorio (Ley 25.649): si no viene, se usa el indicado
+           item.genericName || item.generic_name || item.medicationName || item.medication_name,
            item.dosage || null,
            item.frequency || null,
            item.duration || null,
@@ -135,6 +155,13 @@ export class PrescriptionService {
       this.logger.log(`Prescription created: ${rxId} for patient ${patientId}`);
       return { ...rx.rows[0], items };
     });
+
+    // Firma electrónica y CUIR (después de confirmar la receta)
+    const firma = await this.signing.firmar(creada.id).catch((e) => {
+      this.logger.error(`No se pudo firmar la receta ${creada.id}: ${e.message}`);
+      return null;
+    });
+    return { ...creada, cuir: firma?.cuir, content_hash: firma?.hash, firmada: !!firma };
   }
 
   async cancel(orgId: string, id: string) {
@@ -145,9 +172,10 @@ export class PrescriptionService {
     );
   }
 
-  async verify(code: string) {
+  async verify(code: string, interno = false) {
     const rx = await this.db.queryOne(
-      `SELECT rx.verification_code, rx.diagnosis, rx.diagnosis_code,
+      `SELECT rx.id, rx.organization_id, rx.cuir, rx.verification_code, rx.diagnosis, rx.diagnosis_code,
+              d.license_type, d.medical_license_province, COALESCE(d.license_status, 'unverified') AS doctor_license_status,
               rx.issued_at, rx.expires_at, rx.status, rx.notes,
               p.first_name || ' ' || p.last_name AS patient_name,
               d.first_name || ' ' || d.last_name AS doctor_name,
@@ -171,6 +199,10 @@ export class PrescriptionService {
       [code],
     );
 
-    return { ...rx, items };
+    const firma = await this.signing.verificar(rx.id).catch(() => ({ firmada: false, valida: false, motivo: 'No se pudo verificar' }));
+    const vencida = rx.expires_at && new Date(rx.expires_at) < new Date();
+    const out: any = { ...rx, items, firma, vigente: rx.status === 'active' && !vencida };
+    if (!interno) { delete out.id; delete out.organization_id; }
+    return out;
   }
 }

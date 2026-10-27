@@ -59,6 +59,10 @@ import { SubscriptionController } from './modules/subscriptions/subscription.con
 import { SubscriptionService } from './modules/subscriptions/subscription.service';
 import { ProfileController } from './modules/profile/profile.controller';
 import { ProfileService } from './modules/profile/profile.service';
+import { VerificationController } from './modules/verification/verification.controller';
+import { VerificationService } from './modules/verification/verification.service';
+import { RefepsService } from './modules/verification/refeps.service';
+import { PrescriptionSigningService } from './modules/prescriptions/prescription-signing.service';
 import { AuditController } from './modules/audit/audit.controller';
 import { AuditService } from './modules/audit/audit.service';
 import { ConsentController } from './modules/consent/consent.controller';
@@ -154,6 +158,7 @@ class HealthController {
     PushController,
     SubscriptionController,
     ProfileController,
+    VerificationController,
     AuditController,
     ConsentController,
     OnboardingController,
@@ -195,6 +200,9 @@ class HealthController {
     PushNotificationService,
     SubscriptionService,
     ProfileService,
+    VerificationService,
+    RefepsService,
+    PrescriptionSigningService,
     AuditService,
     ConsentService,
     OnboardingService,
