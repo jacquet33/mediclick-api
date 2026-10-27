@@ -6,6 +6,9 @@ on:
       url:
         description: URL a probar
         default: https://tuconsultorio.rispy.io/api/v1/health
+      body:
+        description: JSON para mandar por POST (vacío = GET)
+        default: ""
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -14,6 +17,10 @@ jobs:
         run: |
           H=$(echo "${{ inputs.url }}" | sed -E 's#https?://([^/]+).*#\1#')
           echo "::notice::DNS $(dig +short $H | tr '\n' ' ')"
-          OUT=$(curl -sS -m 20 -o body.txt -w '%{http_code} %{ssl_verify_result}' "${{ inputs.url }}" 2>&1) || true
-          echo "::notice::HTTP $OUT · $(head -c 200 body.txt 2>/dev/null | tr '\n' ' ')"
+          if [ -n '${{ inputs.body }}' ]; then
+            OUT=$(curl -sS -m 20 -o body.txt -w '%{http_code} %{ssl_verify_result}' -H 'Content-Type: application/json' -d '${{ inputs.body }}' "${{ inputs.url }}" 2>&1) || true
+          else
+            OUT=$(curl -sS -m 20 -o body.txt -w '%{http_code} %{ssl_verify_result}' "${{ inputs.url }}" 2>&1) || true
+          fi
+          echo "::notice::HTTP $OUT · $(head -c 600 body.txt 2>/dev/null | tr '\n' ' ')"
           echo | openssl s_client -servername $H -connect $H:443 2>/dev/null | openssl x509 -noout -issuer -enddate 2>&1 | while read l; do echo "::notice::CERT $l"; done
