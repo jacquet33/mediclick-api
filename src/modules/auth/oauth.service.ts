@@ -70,6 +70,8 @@ export class OAuthService {
       this.config.get('GOOGLE_CLIENT_ID_IOS'),
       this.config.get('GOOGLE_CLIENT_ID_ANDROID'),
       this.config.get('GOOGLE_CLIENT_ID_WEB'),
+      // El portal web toma su ID de GOOGLE_CLIENT_ID (ver /api/v1/public/config): también es válido
+      this.config.get('GOOGLE_CLIENT_ID'),
     ].filter(Boolean);
 
     if (clientIds.length > 0 && !clientIds.includes(payload.aud)) {

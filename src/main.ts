@@ -106,7 +106,7 @@ class HealthController {
   @Get('public/config')
   publicConfig() {
     return {
-      googleClientId: this.config.get('GOOGLE_CLIENT_ID') || '',
+      googleClientId: this.config.get('GOOGLE_CLIENT_ID') || this.config.get('GOOGLE_CLIENT_ID_WEB') || '',
       appleSignInEnabled: !!this.config.get('APPLE_CLIENT_ID'),
     };
   }
