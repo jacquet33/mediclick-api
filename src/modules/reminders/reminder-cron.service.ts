@@ -40,7 +40,7 @@ export class ReminderCronService {
        JOIN doctors d ON d.id = od.doctor_id
        JOIN organizations o ON o.id = od.organization_id
        WHERE a.date = $1::date
-         AND a.status IN ('confirmed', 'scheduled')
+         AND a.status IN ('confirmed', 'pending')
          AND a.deleted_at IS NULL
        ORDER BY a.start_time`,
       [dateStr],
@@ -155,7 +155,7 @@ export class ReminderCronService {
        JOIN organizations o ON o.id = od.organization_id
        WHERE a.date = $1::date
          AND a.start_time::time BETWEEN $2::time AND $3::time
-         AND a.status IN ('confirmed', 'scheduled')
+         AND a.status IN ('confirmed', 'pending')
          AND a.deleted_at IS NULL
          AND NOT EXISTS (
            SELECT 1 FROM push_log pl

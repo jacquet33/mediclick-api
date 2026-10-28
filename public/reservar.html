@@ -83,6 +83,16 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--crema);min-height
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .field textarea{resize:none;height:60px}
 
+/* Recordatorio WhatsApp */
+.wa-rem{background:#E9F8EF;border:1.5px solid #25D366;border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.wa-rem-btn{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:#25D366;color:#fff;border:none;border-radius:12px;padding:14px;font:inherit;cursor:pointer;box-shadow:0 4px 14px rgba(37,211,102,.3)}
+.wa-rem-btn:disabled{opacity:.6}
+.wa-rem-btn strong{display:block;font-size:15px;line-height:1.25}
+.wa-rem-btn small{display:block;font-size:14px;margin-top:3px;font-weight:600;letter-spacing:.3px;opacity:.95}
+.wa-rem-edit{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#1D6B3B;padding:0 4px}
+.wa-link{background:none;border:none;color:#128C4A;font-weight:700;text-decoration:underline;cursor:pointer;font:inherit;font-size:13px}
+.wa-rem-form input{background:#fff}
+.wa-rem-ok{display:flex;flex-direction:column;gap:4px;font-size:14px;color:#1D6B3B;padding:6px 4px}
 /* Cobertura / particular */
 .cov-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .cov-opt{display:flex;align-items:center;gap:10px;text-align:left;padding:12px;border:1.5px solid var(--border,#E3DACC);border-radius:12px;background:#fff;cursor:pointer;font:inherit;color:inherit;min-height:60px}
@@ -887,6 +897,37 @@ function goStep(n){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
+// ─── Recordatorio por WhatsApp ───────────────────────────
+let _bookingToken='';
+function formatoCel(v){
+  // Se muestra tal como lo escribió el paciente (sin 0 ni 15), para que lo reconozca y lo verifique
+  const d=String(v||'').replace(/[^\d ]/g,'').trim().replace(/^54\s*9?\s*/,'');
+  return d?'+54 '+d:'(sin número)';
+}
+function editarCelWa(){
+  document.getElementById('waRemForm').classList.remove('hidden');
+  const i=document.getElementById('waRemInput');i.focus();i.select();
+  i.oninput=()=>{document.getElementById('waRemNum').textContent='Te llega al '+formatoCel(i.value)};
+}
+async function pedirRecordatorioWa(){
+  const btn=document.getElementById('waRemBtn');
+  const form=document.getElementById('waRemForm');
+  const crudo=!form.classList.contains('hidden')?document.getElementById('waRemInput').value:document.getElementById('phone').value;
+  const tel=crudo.replace(/\D/g,'').replace(/^0/,'');
+  if(tel.replace(/^54/,'').replace(/^9/,'').length<10){showToast('Revisá el celular: código de área y número, sin 0 ni 15');editarCelWa();return}
+  btn.disabled=true;
+  try{
+    const r=await fetch(`${API}/api/v1/public/booking/status/${_bookingToken}/whatsapp-reminder`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:'+54'+tel.replace(/^54/,'')})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.message||'No se pudo agendar');
+    const dia=new Date(selectedDate+'T12:00:00');dia.setDate(dia.getDate()-1);
+    const cuando=dia.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'numeric'});
+    document.getElementById('waRem').innerHTML=`<div class="wa-rem-ok"><strong>✓ Recordatorio agendado</strong>
+      <span>Te escribimos por WhatsApp el ${cuando} al ${formatoCel(crudo)}.</span></div>`;
+    document.getElementById('phone').value=String(d.phone||tel).replace(/^\+?54/,'').replace(/^9/,'');
+  }catch(e){showToast(e.message,4000);btn.disabled=false}
+}
+
 function toggleOptional(){
   const el=document.getElementById('optionalFields');
   const btn=document.getElementById('toggleOptBtn');
@@ -943,6 +984,7 @@ async function submitBooking(){
 }
 
 function showConfirmation(data){
+  _bookingToken=data.confirmationToken||'';
   const status=data.status;
   const icon=document.getElementById('statusIcon');
   const title=document.getElementById('statusTitle');
@@ -1008,9 +1050,24 @@ function showConfirmation(data){
 
   document.getElementById('summaryContent').innerHTML+=`
     <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">
-      ${waNum&&!staffSesion?`<a href="https://wa.me/${waNum}?text=${encodeURIComponent(msgConsultorio)}" target="_blank" rel="noopener" class="btn btn-primary" style="background:#25D366;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px">
-        💬 Avisar al consultorio por WhatsApp
-      </a>`:''}
+      ${!staffSesion&&data.confirmationToken?`<div class="wa-rem" id="waRem">
+        <button type="button" class="wa-rem-btn" id="waRemBtn" onclick="pedirRecordatorioWa()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.5 14.4c-.3-.1-1.8-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-.3-.1-1.3-.5-2.4-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6l.4-.5c.2-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5 2.5 1 3 .8 3.6.7.6-.1 1.8-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.2-.3-.3-.6-.4zM12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg>
+          <span><strong>Agregar recordatorio un día antes por WhatsApp</strong>
+          <small id="waRemNum">Te llega al ${esc(formatoCel(document.getElementById('phone').value))}</small></span>
+        </button>
+        <div class="wa-rem-edit">
+          <span id="waRemQ">¿Es tu número?</span>
+          <button type="button" class="wa-link" onclick="editarCelWa()">Cambiar número</button>
+        </div>
+        <div class="wa-rem-form hidden" id="waRemForm">
+          <div style="display:flex;gap:8px">
+            <input value="+54" readonly style="width:58px;text-align:center;flex-shrink:0">
+            <input id="waRemInput" type="tel" inputmode="tel" placeholder="3447 412345" value="${esc(document.getElementById('phone').value)}" style="flex:1">
+          </div>
+          <div class="hint">Con código de área, sin 0 ni 15</div>
+        </div>
+      </div>`:''}
       ${staffSesion?`<a href="https://wa.me/?text=${encodeURIComponent(msgCompartir)}" target="_blank" rel="noopener" class="btn btn-primary" style="background:#25D366;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px">
         📱 Enviar por WhatsApp
       </a>`:''}

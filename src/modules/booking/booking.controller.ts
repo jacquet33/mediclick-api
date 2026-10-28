@@ -1,8 +1,9 @@
 import { Controller, Get, Post, Put, Patch, Body, Param, Query } from '@nestjs/common';
 import { BookingService } from './booking.service';
+import { WhatsappReminderService } from '../reminders/whatsapp-reminder.service';
 import { CreateBookingDto, BookingSettingsDto } from '../../common/dto/booking.dto';
 import { PublicRegisterPatientDto } from '../../common/dto/public-patient.dto';
-import { UploadPaymentProofDto, CancelBookingDto } from '../../common/dto/misc.dto';
+import { UploadPaymentProofDto, CancelBookingDto, WhatsappReminderDto } from '../../common/dto/misc.dto';
 import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/guards/auth.guard';
 import { PublicThrottle } from '../../common/decorators/throttle.decorator';
@@ -15,7 +16,13 @@ import { PublicThrottle } from '../../common/decorators/throttle.decorator';
 @PublicThrottle()
 @Controller('api/v1/public/booking')
 export class PublicBookingController {
-  constructor(private bookingService: BookingService) {}
+  constructor(private bookingService: BookingService, private waReminder: WhatsappReminderService) {}
+
+  /** POST /public/booking/status/:token/whatsapp-reminder — el paciente pide recordatorio 1 día antes */
+  @Post('status/:token/whatsapp-reminder')
+  whatsappReminder(@Param('token') token: string, @Body() body: WhatsappReminderDto) {
+    return this.waReminder.solicitar(token, String(body?.phone || ''));
+  }
 
   /** GET /public/booking/doctor/:doctorSlug — todos los consultorios del doctor */
   @Get('doctor/:doctorSlug')

@@ -71,6 +71,10 @@ jobs:
                   CUIR_TIPO_MEDICAMENTO: "${{ vars.CUIR_TIPO_MEDICAMENTO }}"
                   MSAL_REPO_URL: "${{ vars.MSAL_REPO_URL }}"
                   MSAL_REPO_TOKEN: "${{ secrets.MSAL_REPO_TOKEN }}"
+                  # Recordatorio por WhatsApp (API de WhatsApp Cloud de Meta). Vacíos = no se envía
+                  WHATSAPP_TOKEN: "${{ secrets.WHATSAPP_TOKEN }}"
+                  WHATSAPP_PHONE_NUMBER_ID: "${{ vars.WHATSAPP_PHONE_NUMBER_ID }}"
+                  WHATSAPP_TEMPLATE: "${{ vars.WHATSAPP_TEMPLATE }}"
                   IOS_APP_STORE_URL: "${{ vars.IOS_APP_STORE_URL }}"
                 networks:
                   - mediclick-net

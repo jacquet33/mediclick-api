@@ -60,3 +60,9 @@ export class LogoutDto {
   @IsNotEmpty()
   userId: string;
 }
+
+export class WhatsappReminderDto {
+  @IsString()
+  @IsNotEmpty()
+  phone: string;
+}
