@@ -159,7 +159,8 @@
   let _rec = null;
   function enlazarDictado() {
     const ta = $('dicTxt'); if (!ta) return;
-    ta.oninput = () => { F.dictado = ta.value; const b = $('dicOrdenar'); if (b) b.disabled = ta.value.trim().length < 10; };
+    ta.oninput = () => { F.dictado = ta.value; for (const id of ['dicOrdenar', 'dicOrdenarIA']) { const b = $(id); if (b) b.disabled = ta.value.trim().length < 10; } };
+    if (F.iaModelo === undefined && window.iaEstado) { F.iaModelo = false; window.iaEstado().then((x) => { if (F && x && x.modelo) { F.iaModelo = true; pintar(); } }); }
     const mic = $('dicMic');
     if (mic) mic.onclick = () => {
       if (F.grabando) { try { _rec && _rec.stop(); } catch {} F.grabando = false; pintar(); return; }
@@ -178,12 +179,11 @@
       _rec.onend = () => { if (F.grabando) { F.grabando = false; pintar(); } };
       try { _rec.start(); F.grabando = true; F.dicMsg = 'Escuchando… El navegador transcribe la voz (Chrome usa el servicio de Google).'; pintar(); } catch (err) { F.dicMsg = err.message; pintar(); }
     };
-    const ord = $('dicOrdenar');
-    if (ord) ord.onclick = async () => {
+    const ordenar = (ord, ia) => async () => {
       if (F.grabando) { try { _rec && _rec.stop(); } catch {} F.grabando = false; }
-      ord.disabled = true; ord.textContent = 'Ordenando…';
+      ord.disabled = true; ord.textContent = ia ? 'La IA está ordenando… (hasta 1 min)' : 'Ordenando…';
       try {
-        const r = await apiFetch('/api/v1/ai/dictation', { method: 'POST', body: { text: F.dictado, patientId: F.patientId } });
+        const r = await apiFetch('/api/v1/ai/dictation' + (ia ? '?ia=1' : ''), { method: 'POST', body: { text: F.dictado, patientId: F.patientId } });
         const n = [];
         for (const [k, v] of Object.entries(r.campos || {})) {
           if (!v) continue;
@@ -191,10 +191,12 @@
           if (!actual) F[k] = v; else if (!actual.includes(v)) F[k] = actual + (['bloodPressure', 'heartRate', 'temperature', 'respiratoryRate', 'spO2', 'weight', 'height'].includes(k) ? '' : '. ' + v);
           n.push(k);
         }
-        F.dicMsg = n.length ? `Se completaron ${n.length} campos (${n.map((k) => ETIQ[k] || k).join(', ')}). ${r.aviso}` : 'No se reconocieron campos: revisá el texto.';
+        F.dicMsg = n.length ? `Se completaron ${n.length} campos (${n.map((k) => ETIQ[k] || k).join(', ')})${r.fuente !== 'reglas' ? ' con IA local' : ''}. ${r.aviso}` : 'No se reconocieron campos: revisá el texto.';
       } catch (err) { F.dicMsg = err.message; }
       pintar();
     };
+    const ord = $('dicOrdenar'); if (ord) ord.onclick = ordenar(ord, false);
+    const ordIa = $('dicOrdenarIA'); if (ordIa) ordIa.onclick = ordenar(ordIa, true);
   }
   const ETIQ = { chiefComplaint: 'motivo', presentIllness: 'enfermedad actual', personalHistory: 'antecedentes', familyHistory: 'ant. familiares', currentMedications: 'medicación', allergies: 'alergias', habits: 'hábitos', physicalExamExtra: 'examen físico', findings: 'hallazgos', diagnosis: 'diagnóstico', treatmentPlan: 'plan', instructions: 'indicaciones', followUp: 'seguimiento', labOrders: 'laboratorio', imagingOrders: 'imágenes', referrals: 'derivaciones', bloodPressure: 'TA', heartRate: 'FC', temperature: 'temperatura', respiratoryRate: 'FR', spO2: 'SpO₂', weight: 'peso', height: 'talla' };
 
@@ -208,7 +210,7 @@
       ${F.error ? `<div class="card" style="color:var(--danger)">${e(F.error)}</div>` : ''}
       <div class="card dictado">
         <div class="flex-between" style="flex-wrap:wrap;gap:8px"><b>🎙️ Dictado de la consulta</b>
-          <span class="flex" style="gap:6px;flex-wrap:wrap">${hayVoz() ? `<button type="button" class="btn btn-sm ${F.grabando ? 'btn-no' : 'btn-soft'}" id="dicMic">${F.grabando ? '⏹ Detener' : '🎙️ Dictar'}</button>` : ''}<button type="button" class="btn btn-sm btn-primary" id="dicOrdenar" ${(F.dictado || '').trim().length > 9 ? '' : 'disabled'}>✨ Ordenar en la historia</button></span></div>
+          <span class="flex" style="gap:6px;flex-wrap:wrap">${hayVoz() ? `<button type="button" class="btn btn-sm ${F.grabando ? 'btn-no' : 'btn-soft'}" id="dicMic">${F.grabando ? '⏹ Detener' : '🎙️ Dictar'}</button>` : ''}<button type="button" class="btn btn-sm btn-primary" id="dicOrdenar" ${(F.dictado || '').trim().length > 9 ? '' : 'disabled'}>✨ Ordenar en la historia</button>${F.iaModelo ? `<button type="button" class="btn btn-sm btn-soft" id="dicOrdenarIA" ${(F.dictado || '').trim().length > 9 ? '' : 'disabled'} title="Usa el modelo de IA local: entiende mejor el texto libre, pero tarda más">🤖 Ordenar con IA</button>` : ''}</span></div>
         <textarea id="dicTxt" rows="${F.dictado ? 4 : 2}" placeholder="${hayVoz() ? 'Tocá Dictar y hablá: «Motivo de consulta… Enfermedad actual… Examen físico… Diagnóstico… Plan… Indicaciones…». También podés pegar o escribir el texto.' : 'Pegá o escribí la nota libre: «Motivo de consulta… Examen físico… Diagnóstico… Plan…»'}">${e(F.dictado || '')}</textarea>
         ${F.dicMsg ? `<p class="muted" style="font-size:12px;margin-top:6px">${e(F.dicMsg)}</p>` : ''}
       </div>

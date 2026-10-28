@@ -75,15 +75,17 @@ jobs:
                   WHATSAPP_TOKEN: "${{ secrets.WHATSAPP_TOKEN }}"
                   WHATSAPP_PHONE_NUMBER_ID: "${{ vars.WHATSAPP_PHONE_NUMBER_ID }}"
                   WHATSAPP_TEMPLATE: "${{ vars.WHATSAPP_TEMPLATE }}"
-                  # Asistente IA (opcional): AI_PROVIDER=ollama (local) o anthropic. Vacío = solo reglas
-                  AI_PROVIDER: "${{ vars.AI_PROVIDER }}"
-                  OLLAMA_URL: "${{ vars.OLLAMA_URL }}"
-                  OLLAMA_MODEL: "${{ vars.OLLAMA_MODEL }}"
+                  # Asistente IA: Ollama local (el de Rispy, en este mismo servidor: los datos no salen). "none" = solo reglas
+                  AI_PROVIDER: "${{ vars.AI_PROVIDER || 'ollama' }}"
+                  OLLAMA_URL: "${{ vars.OLLAMA_URL || 'http://rispy-ollama:11434' }}"
+                  OLLAMA_MODEL: "${{ vars.OLLAMA_MODEL || 'qwen3.5:2b' }}"
                   ANTHROPIC_API_KEY: "${{ secrets.ANTHROPIC_API_KEY }}"
                   IOS_APP_STORE_URL: "${{ vars.IOS_APP_STORE_URL }}"
                 networks:
                   - mediclick-net
                   - traefik-public
+                  # Solo para llegar a Ollama (rispy-ollama); no expone nada nuevo
+                  - rispy-internal
                 labels:
                   - "traefik.enable=true"
                   - "traefik.http.routers.rispy-health.rule=Host(`tuconsultorio.rispy.io`)"
@@ -101,6 +103,9 @@ jobs:
             networks:
               traefik-public:
                 external: true
+              rispy-internal:
+                external: true
+                name: rispy-infra_rispy-internal
             YAML
             # Copia de seguridad diaria de la base (Ley 26.529 / Dto. 98/23 art. 4 inc. i): 03:15, se guardan 90 días
             mkdir -p /opt/mediclick/backups /opt/mediclick/logs

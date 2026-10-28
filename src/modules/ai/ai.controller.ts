@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Param, Post, Query } from '@nestjs/common';
 import { AiService } from './ai.service';
 import { CurrentUser, OrgId } from '../../common/decorators/current-user.decorator';
 import { AuthUser } from '../../common/guards/auth.guard';
@@ -19,20 +19,20 @@ export class AiController {
   }
 
   @Post('patients/:id/summary')
-  resumen(@OrgId() orgId: string, @CurrentUser() u: AuthUser, @Param('id') id: string) {
+  resumen(@OrgId() orgId: string, @CurrentUser() u: AuthUser, @Param('id') id: string, @Query('ia') ia?: string) {
     this.medico(u);
-    return this.ai.resumen(orgId, u.doctorId, id);
+    return this.ai.resumen(orgId, u.doctorId, id, ia === '1');
   }
 
   @Post('records/:id/instructions')
-  indicaciones(@OrgId() orgId: string, @CurrentUser() u: AuthUser, @Param('id') id: string) {
+  indicaciones(@OrgId() orgId: string, @CurrentUser() u: AuthUser, @Param('id') id: string, @Query('ia') ia?: string) {
     this.medico(u);
-    return this.ai.indicaciones(orgId, u.doctorId, id);
+    return this.ai.indicaciones(orgId, u.doctorId, id, ia === '1');
   }
 
   @Post('dictation')
-  dictado(@OrgId() orgId: string, @CurrentUser() u: AuthUser, @Body() b: { text?: string; patientId?: string }) {
+  dictado(@OrgId() orgId: string, @CurrentUser() u: AuthUser, @Body() b: { text?: string; patientId?: string }, @Query('ia') ia?: string) {
     this.medico(u);
-    return this.ai.ordenarDictado(orgId, u.doctorId, String(b?.text || ''), b?.patientId);
+    return this.ai.ordenarDictado(orgId, u.doctorId, String(b?.text || ''), b?.patientId, ia === '1');
   }
 }

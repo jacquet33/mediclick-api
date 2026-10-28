@@ -20,7 +20,7 @@ export class AiService {
 
   get proveedor(): string {
     const p = (this.config.get<string>('AI_PROVIDER') || '').toLowerCase();
-    if (p === 'ollama' && this.config.get('OLLAMA_URL')) return 'ollama';
+    if (p === 'ollama' && this.config.get('OLLAMA_URL')) return 'ollama'; // AI_PROVIDER=none desactiva
     if (p === 'anthropic' && this.config.get('ANTHROPIC_API_KEY')) return 'anthropic';
     return '';
   }
@@ -135,7 +135,7 @@ export class AiService {
   }
 
   /** Resumen de la historia clínica para leer antes de atender */
-  async resumen(orgId: string, doctorId: string, patientId: string) {
+  async resumen(orgId: string, doctorId: string, patientId: string, conModelo = false) {
     const d = await this.datosPaciente(orgId, patientId);
     const { p, consultas, recetas, docs, turnos } = d, u = consultas[0] || {};
     const ed = this.edad(p.date_of_birth);
@@ -169,7 +169,7 @@ export class AiService {
     const faltan = this.faltantes(d);
     let narrativo: string | null = null;
     const base = puntos.join('\n');
-    if (this.proveedor) {
+    if (conModelo && this.proveedor) {
       const texto = this.proveedor === 'anthropic' ? this.anonimizar(base, p) : base;
       narrativo = await this.llm(
         'Sos un asistente para médicos en Argentina. Redactá un resumen clínico breve (máximo 120 palabras), en español rioplatense profesional, a partir SOLO de los datos dados. No inventes datos, no sugieras diagnósticos ni tratamientos nuevos. Destacá alergias, problemas activos, medicación y pendientes. Texto plano, sin títulos.',
@@ -181,7 +181,7 @@ export class AiService {
   }
 
   /** Indicaciones claras para el paciente, a partir de la consulta y la receta asociada */
-  async indicaciones(orgId: string, doctorId: string, recordId: string) {
+  async indicaciones(orgId: string, doctorId: string, recordId: string, conModelo = false) {
     const r = await this.db.queryOne(
       `SELECT mr.*, p.first_name, p.last_name, p.dni, p.phone, p.email, p.cuil, p.address, p.insurance_number
          FROM medical_records mr JOIN patients p ON p.id = mr.patient_id
@@ -215,7 +215,7 @@ export class AiService {
     l.push('\nSi tenés fiebre alta, dificultad para respirar, dolor intenso o empeorás, consultá de inmediato o andá a la guardia.');
     let texto = l.join('\n');
     let fuente = 'reglas';
-    if (this.proveedor) {
+    if (conModelo && this.proveedor) {
       const entrada = this.proveedor === 'anthropic' ? this.anonimizar(texto, r) : texto;
       const out = await this.llm(
         'Reescribí estas indicaciones médicas para que un paciente argentino las entienda fácil: tuteo rioplatense, frases cortas, viñetas, sin tecnicismos. Mantené EXACTAMENTE los medicamentos, dosis, frecuencias, duraciones y estudios; no agregues ni quites indicaciones médicas. Conservá el saludo y el aviso final de guardia.',
@@ -228,13 +228,13 @@ export class AiService {
   }
 
   /** Ordena un dictado en los campos de la historia clínica */
-  async ordenarDictado(orgId: string, doctorId: string, texto: string, patientId?: string) {
+  async ordenarDictado(orgId: string, doctorId: string, texto: string, patientId?: string, conModelo = false) {
     const t = String(texto || '').trim();
     if (t.length < 10) throw new BadRequestException('El dictado es muy corto');
     if (t.length > 15000) throw new BadRequestException('El dictado es demasiado largo');
     const campos = this.porPalabrasClave(t);
     let fuente = 'reglas';
-    if (this.proveedor) {
+    if (conModelo && this.proveedor) {
       const out = await this.llm(
         `Convertí el dictado de un médico en campos de historia clínica. Respondé SOLO un JSON con estas claves (omití las que no se mencionan, no inventes nada):
 chiefComplaint (motivo de consulta), presentIllness (enfermedad actual), personalHistory, familyHistory, currentMedications, allergies, habits,

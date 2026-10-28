@@ -1104,6 +1104,8 @@ async function abrirPaciente(id){
   }catch(e){main.innerHTML=`<div class="card"><p class="error">${esc(e.message)}</p><button class="btn btn-sm btn-outline" onclick="navigateTo(_fichaVolver||'pacientes')">← Volver</button></div>`}
 }
 // ─── Asistente IA (borradores para revisar) ─────────────
+async function iaEstado(){if(!window._iaEst) window._iaEst=await apiFetch('/api/v1/ai/status').catch(()=>({modelo:false}));return window._iaEst}
+window.iaEstado=iaEstado;
 async function resumenIA(pid){
   const box=document.getElementById('iaResumen');if(!box)return;
   box.innerHTML='<div class="ia-box"><div class="spinner" style="margin:6px auto"></div></div>';
@@ -1114,7 +1116,14 @@ async function resumenIA(pid){
       <ul class="ia-pts">${r.puntos.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
       ${r.faltantes.length?`<div class="ia-falt"><b>Datos que faltan en la ficha (${r.faltantes.length})</b><ul>${r.faltantes.map(f=>`<li>${esc(f.texto)}</li>`).join('')}</ul>
         <div class="flex" style="gap:6px;flex-wrap:wrap"><button class="btn btn-sm btn-soft" onclick="editarResumenClinico('${pid}')">Completar resumen clínico</button><button class="btn btn-sm btn-soft" onclick="editarPaciente('${pid}')">Completar datos personales</button></div></div>`:'<p class="muted" style="font-size:12px">✓ La ficha tiene los datos principales.</p>'}
-      <p class="muted" style="font-size:11px;margin-top:8px">${esc(r.aviso)} · ${r.fuente==='reglas'?'Armado con los datos de la ficha':'Redactado con IA ('+esc(r.fuente)+')'}</p></div>`;
+      <p class="muted" style="font-size:11px;margin-top:8px">${esc(r.aviso)} · <span id="iaFuente">Armado con los datos de la ficha</span></p></div>`;
+    const est=await iaEstado();
+    if(est.modelo){
+      const pts=box.querySelector('.ia-pts');pts.insertAdjacentHTML('beforebegin','<p class="ia-nar muted" id="iaNar">✨ Redactando el resumen con IA (modelo local)…</p>');
+      const r2=await apiFetch(`/api/v1/ai/patients/${pid}/summary?ia=1`,{method:'POST'}).catch(()=>null);
+      const n=document.getElementById('iaNar');if(!n)return;
+      if(r2?.narrativo){n.classList.remove('muted');n.textContent=r2.narrativo;document.getElementById('iaFuente').textContent='Redactado con IA local; revisalo'}else n.remove();
+    }
   }catch(e){box.innerHTML=`<div class="ia-box"><p class="error">${esc(e.message)}</p></div>`}
 }
 async function indicacionesIA(pid,rid){
@@ -1129,8 +1138,15 @@ async function indicacionesIA(pid,rid){
         ${p.phone?`<button class="btn btn-sm wa-btn" onclick="window.open(waLink('${esc(p.phone)}',document.getElementById('iaTxt_${rid}').value),'_blank')">Enviar por WhatsApp</button>`:''}
         <button class="btn btn-sm btn-primary" onclick="compartirIndicaciones('${pid}','${rid}')">Guardar y compartir en su portal</button>
         <button class="btn btn-sm btn-soft" onclick="navigator.clipboard.writeText(document.getElementById('iaTxt_${rid}').value);this.textContent='✓ Copiado'">Copiar</button>
+        <button class="btn btn-sm btn-soft hidden" id="iaMej_${rid}" onclick="mejorarIndicaciones('${rid}')">✨ Mejorar redacción con IA</button>
       </div></div>`;
+    if((await iaEstado()).modelo) document.getElementById('iaMej_'+rid)?.classList.remove('hidden');
   }catch(e){box.innerHTML=`<div class="ia-box"><p class="error">${esc(e.message)}</p></div>`}
+}
+async function mejorarIndicaciones(rid){
+  const b=document.getElementById('iaMej_'+rid);b.disabled=true;b.textContent='✨ Redactando… (puede tardar un minuto)';
+  try{const r=await apiFetch(`/api/v1/ai/records/${rid}/instructions?ia=1`,{method:'POST'});if(r.fuente!=='reglas'){document.getElementById('iaTxt_'+rid).value=r.texto;b.textContent='✓ Redactado con IA: revisalo'}else{b.textContent='La IA no respondió; quedó el texto original'}}
+  catch(e){b.textContent='No se pudo: '+e.message}
 }
 async function compartirIndicaciones(pid,rid){
   const t=document.getElementById('iaTxt_'+rid).value;
