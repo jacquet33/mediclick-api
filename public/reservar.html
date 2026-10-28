@@ -83,6 +83,12 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--crema);min-height
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .field textarea{resize:none;height:60px}
 
+/* Cobertura / particular */
+.cov-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cov-opt{display:flex;align-items:center;gap:10px;text-align:left;padding:12px;border:1.5px solid var(--border,#E3DACC);border-radius:12px;background:#fff;cursor:pointer;font:inherit;color:inherit;min-height:60px}
+.cov-opt strong{display:block;font-size:14px}.cov-opt small{display:block;font-size:12px;opacity:.7}
+.cov-opt .cov-ico{font-size:20px}
+.cov-opt.on{border-color:var(--primary,#9A6B3F);background:rgba(154,107,63,.08);box-shadow:0 0 0 1px var(--primary,#9A6B3F)}
 /* Search select (obra social) */
 .search-select{position:relative}
 .search-select input{padding-right:36px}
@@ -256,33 +262,41 @@ body{padding-bottom:96px}
     </div>
 
     <div class="field">
-      <label>Obra social / Prepaga <span id="insRequired" class="hidden" style="color:var(--danger);font-weight:700">*</span></label>
-      <div class="search-select" id="insuranceSearch">
-        <input id="insurance" placeholder="Escribí para buscar en la lista..." autocomplete="off" style="padding-right:42px">
-        <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:#5B5047;font-size:16px;display:flex;align-items:center;gap:2px"
-              id="insListIcon">▾</span>
-        <button class="clear hidden" id="insClear" onclick="clearInsurance()">×</button>
-        <div class="dd" id="insuranceDd"></div>
+      <label>Tipo de turno *</label>
+      <div class="cov-opts" role="radiogroup">
+        <button type="button" class="cov-opt" data-cov="cobertura" onclick="setCobertura('cobertura')" role="radio" aria-checked="false">
+          <span class="cov-ico">🪪</span><span><strong>Con cobertura</strong><small>Obra social o prepaga</small></span>
+        </button>
+        <button type="button" class="cov-opt" data-cov="particular" onclick="setCobertura('particular')" role="radio" aria-checked="false">
+          <span class="cov-ico">👤</span><span><strong>Particular</strong><small>Sin obra social</small></span>
+        </button>
       </div>
-      <div class="hint" id="insHint">Elegí de la lista o escribí para buscar</div>
     </div>
 
-    <!-- Aviso para pacientes sin obra social -->
-    <div id="particularNotice" class="hidden" style="background:linear-gradient(135deg,#FFF8E1,#FFF3CD);border:1.5px solid #FFB333;border-radius:12px;padding:14px 16px;margin-bottom:14px">
-      <div style="font-size:14px;font-weight:600;color:#7A5D00;margin-bottom:6px;display:flex;align-items:center;gap:6px">
-        <span style="font-size:18px">💰</span> Información de pago
+    <div id="coberturaFields" class="hidden">
+      <div class="field">
+        <label>Obra social / Prepaga *</label>
+        <div class="search-select" id="insuranceSearch">
+          <input id="insurance" placeholder="Escribí para buscar en la lista..." autocomplete="off" style="padding-right:42px">
+          <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:#5B5047;font-size:16px;display:flex;align-items:center;gap:2px"
+                id="insListIcon">▾</span>
+          <button class="clear hidden" id="insClear" onclick="clearInsurance()">×</button>
+          <div class="dd" id="insuranceDd"></div>
+        </div>
+        <div class="hint" id="insHint">Elegí de la lista o escribí para buscar</div>
       </div>
+      <div class="field">
+        <label>N° de credencial / socio</label>
+        <input id="insNumber" placeholder="Número de afiliado" inputmode="text">
+        <div class="hint">Figura en tu credencial. Si no lo tenés a mano, llevala el día del turno.</div>
+      </div>
+    </div>
+
+    <!-- Turno particular: se abona en el consultorio -->
+    <div id="particularNotice" class="hidden" style="background:linear-gradient(135deg,#FFF8E1,#FFF3CD);border:1.5px solid #FFB333;border-radius:12px;padding:12px 14px;margin-bottom:14px">
       <p style="font-size:13px;color:#7A5D00;line-height:1.5;margin:0">
-        Al no contar con obra social, deberá abonar la consulta
-        <strong>por transferencia bancaria o en efectivo</strong>
-        al momento de la consulta.
-        <span id="feeAmount"></span>
+        La consulta particular se abona en el consultorio el día de la atención.<span id="feeAmount"></span>
       </p>
-    </div>
-
-    <div class="field">
-      <label>N° de credencial</label>
-      <input id="insNumber" placeholder="Número de afiliado">
     </div>
   </div>
 
@@ -308,17 +322,6 @@ body{padding-bottom:96px}
         <label>Motivo de consulta</label>
         <textarea id="reason" placeholder="Describí brevemente por qué pedís turno..."></textarea>
       </div>
-    </div>
-  </div>
-
-  <!-- Pago (si aplica) -->
-  <div class="card hidden" id="paymentCard">
-    <div class="card-title"><span class="ico">💳</span> Método de pago</div>
-    <div class="field">
-      <select id="payMethod">
-        <option value="cash" selected>Pago en el consultorio</option>
-        <option value="transfer">Transferencia bancaria</option>
-      </select>
     </div>
   </div>
 
@@ -700,19 +703,6 @@ function renderProfile(){
   if(profile.address) info += `<div>📍 ${profile.address}${profile.city?', '+profile.city:''}</div>`;
   if(profile.org_phone) info += `<div>📞 ${profile.org_phone}</div>`;
   document.getElementById('orgInfo').innerHTML = info;
-  if(profile.requires_deposit){
-    document.getElementById('paymentCard').classList.remove('hidden');
-    const sel=document.getElementById('payMethod');
-    if(profile.payment_methods==='transfer') sel.innerHTML='<option value="transfer">Transferencia bancaria</option>';
-    else if(profile.payment_methods==='cash') sel.innerHTML='<option value="cash">Pago en el consultorio</option>';
-    else sel.value='cash';
-  }
-  // Marcar obra social como obligatoria si el médico lo requiere
-  if(profile.requires_insurance_info){
-    document.getElementById('insRequired').classList.remove('hidden');
-    document.getElementById('insHint').textContent='Obligatorio — Elegí tu obra social o "Particular (sin obra social)"';
-    document.getElementById('insurance').setAttribute('required','true');
-  }
   document.title = `Turno con Dr/a. ${profile.doctor_name} — TuConsultorioOnline`;
 }
 
@@ -724,14 +714,15 @@ function renderDdItems(items){
   return items.map(o=>`<div class="dd-item" role="option" data-val="${o.replace(/"/g,'&quot;')}">${o}</div>`).join('');
 }
 
+const listaCobertura=()=>OBRAS_SOCIALES.filter(o=>!/particular|sin obra/i.test(o));
 function showInsuranceDropdown(){
   const input = document.getElementById('insurance');
   const dd = document.getElementById('insuranceDd');
   const q = input.value.toLowerCase().trim();
   if(q.length < 1){
-    dd.innerHTML = renderDdItems(OBRAS_SOCIALES.slice(0,8));
+    dd.innerHTML = renderDdItems(listaCobertura().slice(0,8));
   } else {
-    const matches = OBRAS_SOCIALES.filter(o=>o.toLowerCase().includes(q)).slice(0,8);
+    const matches = listaCobertura().filter(o=>o.toLowerCase().includes(q)).slice(0,8);
     if(!matches.length){dd.classList.remove('open');return}
     dd.innerHTML = renderDdItems(matches);
   }
@@ -793,26 +784,27 @@ function selectInsurance(val){
   document.getElementById('insuranceDd').classList.remove('open');
   document.getElementById('insClear').classList.remove('hidden');
   document.getElementById('insListIcon').style.display='none';
-  // Mostrar aviso si eligió "Particular (sin obra social)"
-  const isParticular = val.toLowerCase().includes('particular') || val.toLowerCase().includes('sin obra');
-  const notice = document.getElementById('particularNotice');
-  if(isParticular && !profile.requires_deposit){
-    notice.classList.remove('hidden');
-    const feeEl = document.getElementById('feeAmount');
-    if(profile.consultation_fee){
-      feeEl.innerHTML = `<br>Valor de la consulta: <strong>$${Number(profile.consultation_fee).toLocaleString('es-AR')}</strong>`;
-    } else {
-      feeEl.textContent = '';
-    }
-  } else {
-    notice.classList.add('hidden');
-  }
 }
 function clearInsurance(){
   document.getElementById('insurance').value='';
   document.getElementById('insClear').classList.add('hidden');
   document.getElementById('insListIcon').style.display='flex';
-  document.getElementById('particularNotice').classList.add('hidden');
+}
+// ─── Cobertura o particular ──────────────────────────────
+let cobertura='';
+function setCobertura(tipo){
+  cobertura=tipo;
+  document.querySelectorAll('.cov-opt').forEach(b=>{const on=b.dataset.cov===tipo;b.classList.toggle('on',on);b.setAttribute('aria-checked',on)});
+  document.getElementById('coberturaFields').classList.toggle('hidden',tipo!=='cobertura');
+  const notice=document.getElementById('particularNotice');
+  notice.classList.toggle('hidden',tipo!=='particular');
+  if(tipo==='particular'){
+    document.getElementById('feeAmount').innerHTML=profile&&profile.consultation_fee
+      ?` Valor: <strong>$${Number(profile.consultation_fee).toLocaleString('es-AR')}</strong>.`:'';
+  } else {
+    initInsuranceSearch();
+    setTimeout(()=>document.getElementById('insurance').focus(),50);
+  }
 }
 
 // ─── Calendar ────────────────────────────────────────────
@@ -909,10 +901,11 @@ async function submitBooking(){
   const phone=document.getElementById('phone').value.trim();
   if(!firstName||!lastName||!phone){showToast('Completá nombre, apellido y celular');return}
 
-  // Validar obra social si es obligatoria
+  // Tipo de turno: con cobertura (obra social obligatoria) o particular
+  if(!cobertura){showToast('Elegí si el turno es con cobertura o particular');document.querySelector('.cov-opts').scrollIntoView({behavior:'smooth',block:'center'});return}
   const insuranceVal=document.getElementById('insurance').value.trim();
-  if(profile.requires_insurance_info && !insuranceVal){
-    showToast('Seleccioná tu obra social o elegí "Particular"');
+  if(cobertura==='cobertura' && !insuranceVal){
+    showToast('Elegí tu obra social o prepaga');
     document.getElementById('insurance').focus();
     return;
   }
@@ -925,13 +918,14 @@ async function submitBooking(){
     email:document.getElementById('email')?.value.trim()||undefined,
     dni:document.getElementById('dni')?.value.trim()||undefined,
     dateOfBirth:document.getElementById('dob')?.value||undefined,
-    insuranceProvider:document.getElementById('insurance').value.trim()||undefined,
-    insuranceNumber:document.getElementById('insNumber').value.trim()||undefined,
+    insuranceProvider:cobertura==='particular'?'Particular (sin obra social)':(insuranceVal||undefined),
+    insuranceNumber:cobertura==='cobertura'?(document.getElementById('insNumber').value.trim()||undefined):undefined,
     requestedDate:selectedDate,
     requestedStartTime:selectedSlot.start,
     requestedEndTime:selectedSlot.end,
     reason:document.getElementById('reason')?.value.trim()||undefined,
-    paymentMethod:profile.requires_deposit?document.getElementById('payMethod').value:undefined,
+    // Sin elección de medio de pago: particular o con cobertura, se atiende y se abona en el consultorio
+    paymentMethod:profile.requires_deposit?'cash':undefined,
     source:'public_link'
   };
 
@@ -955,16 +949,15 @@ function showConfirmation(data){
   const msg=document.getElementById('statusMsg');
   const badge=document.getElementById('statusBadge');
 
-  const insVal=document.getElementById('insurance')?.value||'';
-  const isParticular=!insVal||/particular|sin obra/i.test(insVal);
-  const pagaAca=document.getElementById('payMethod')?.value==='cash'||!profile.requires_deposit;
+  const isParticular=cobertura==='particular';
+  const pagaAca=true;
 
   if(status==='confirmed'){
     icon.className='confirm-icon ok';icon.textContent='✓';
     title.textContent='¡Tu horario está confirmado!';
     msg.textContent=isParticular&&pagaAca
       ?'Recordá abonar la consulta en el consultorio el día de la atención.'
-      :'Te esperamos el día del turno. Si tenés obra social, llevá tu credencial.';
+      :'Te esperamos el día del turno. Llevá tu credencial de la obra social.';
     badge.className='badge ok';badge.textContent='Confirmado';
   } else if(status==='pending_payment'){
     icon.className='confirm-icon wait';icon.textContent='💳';
@@ -1138,7 +1131,7 @@ async function registerAccount(){
         phone:'+54'+document.getElementById('phone').value.replace(/\D/g,''),
         dni:document.getElementById('dni')?.value.trim()||undefined,
         dateOfBirth:document.getElementById('dob')?.value||undefined,
-        insuranceProvider:document.getElementById('insurance')?.value.trim()||undefined,
+        insuranceProvider:cobertura==='particular'?'Particular (sin obra social)':(document.getElementById('insurance')?.value.trim()||undefined),
         insuranceNumber:document.getElementById('insNumber')?.value.trim()||undefined,
       })
     });
