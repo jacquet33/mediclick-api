@@ -254,6 +254,11 @@ details.rec p{font-size:13px;margin-top:6px;white-space:pre-wrap}
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:45;-webkit-tap-highlight-color:transparent}
 .overlay.open{display:block}
 
+/* Crecimiento */
+.ahorro{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ahorro div{background:#FFFDF9;border:1px solid #F1E8DC;border-radius:12px;padding:10px}
+.ahorro b{display:block;font-size:20px;color:var(--deep)}.ahorro span{font-size:12px;color:var(--text-soft)}
+.ref-link{display:flex;gap:6px;margin-top:8px}.ref-link input{flex:1;min-width:0;font:inherit;font-size:12px;padding:8px;border:1.5px solid #ECE5D9;border-radius:8px;background:#FFFDF9}
 /* Portal paciente */
 .trat{padding:8px 0;border-bottom:1px solid #F4EEE6}.trat-i{display:flex;flex-direction:column;padding:6px 0;font-size:14px}.trat-i span{color:var(--text-soft);font-size:13px}
 /* Asistente IA */
@@ -786,6 +791,108 @@ const ESTADOS={
 };
 let turnosTab='pendientes', turnosRango='proximos', turnosQ='';
 
+// ─── Importar pacientes (Excel / CSV / pegar desde una planilla) ───
+const IMP_CAMPOS=[['','— No importar —'],['firstName','Nombre'],['lastName','Apellido'],['fullName','Nombre y apellido (juntos)'],['dni','DNI'],['phone','Celular / teléfono'],['email','Email'],['dateOfBirth','Fecha de nacimiento'],['gender','Sexo'],['insuranceProvider','Obra social / prepaga'],['insuranceNumber','N° de afiliado'],['address','Dirección'],['city','Ciudad'],['notes','Notas']];
+const IMP_SIN={firstName:/^(nombres?|first ?name)$/i,lastName:/^(apellidos?|last ?name)$/i,fullName:/^(paciente|nombre y apellido|apellido y nombre|nombre completo)$/i,dni:/^(dni|documento|nro\.? ?doc|n° ?doc)/i,phone:/(cel|tel|whats|m[oó]vil|phone)/i,email:/(e-?mail|correo)/i,dateOfBirth:/(nacim|fecha.*nac|f\.? ?nac|cumple|birth)/i,gender:/^(sexo|g[eé]nero)$/i,insuranceProvider:/(obra|prepaga|cobertura|os$)/i,insuranceNumber:/(afiliado|credencial|socio|n° ?os)/i,address:/(direcci|domicilio)/i,city:/(ciudad|localidad)/i,notes:/(nota|observ)/i};
+let _imp=null;
+function importarPacientes(){
+  const main=document.getElementById('mainContent');
+  main.innerHTML=`<div class="topbar"><button class="btn btn-sm btn-outline" onclick="navigateTo('pacientes')">← Volver</button><h1>Importar pacientes</h1><span></span></div>
+    <div class="card"><div class="card-title">1. Elegí el archivo</div>
+      <p class="muted" style="font-size:13px;margin-bottom:10px">Excel (.xlsx, .xls), CSV, o copiá las filas de tu planilla y pegalas acá. La primera fila tiene que tener los títulos de las columnas (Nombre, Apellido, DNI, Celular, Obra social…). Los pacientes que ya existen (mismo DNI) no se duplican: solo se completan los datos que faltan.</p>
+      <input type="file" id="impFile" accept=".xlsx,.xls,.csv,.txt,.tsv" style="margin-bottom:10px">
+      <textarea id="impPaste" rows="4" placeholder="…o pegá acá las filas copiadas de Excel o Google Sheets" style="width:100%;font:inherit;font-size:13px;border:1.5px solid #ECE5D9;border-radius:10px;padding:10px"></textarea>
+      <p id="impErr" class="error hidden"></p></div>
+    <div id="impPaso2"></div>`;
+  document.getElementById('impFile').onchange=async ev=>{const f=ev.target.files[0];if(!f)return;try{await leerArchivoImport(f)}catch(e){impError(e.message)}};
+  document.getElementById('impPaste').oninput=ev=>{const t=ev.target.value;if(t.trim().split('\n').length>=2) prepararImport(parsearTexto(t))};
+}
+function impError(m){const e=document.getElementById('impErr');e.textContent=m;e.classList.remove('hidden')}
+async function cargarXlsx(){
+  if(window.XLSX) return window.XLSX;
+  await new Promise((ok,ko)=>{const sc=document.createElement('script');sc.src='/js/xlsx.min.js';sc.onload=ok;sc.onerror=()=>ko(new Error('No se pudo cargar el lector de Excel'));document.head.appendChild(sc)});
+  return window.XLSX;
+}
+async function leerArchivoImport(f){
+  if(/\.(xlsx|xls)$/i.test(f.name)){
+    const X=await cargarXlsx();const wb=X.read(await f.arrayBuffer(),{type:'array',cellDates:false});
+    const ws=wb.Sheets[wb.SheetNames[0]];return prepararImport(X.utils.sheet_to_json(ws,{header:1,raw:false,defval:''}));
+  }
+  prepararImport(parsearTexto(await f.text()));
+}
+function parsearTexto(t){
+  t=t.replace(/^﻿/,'');const l1=t.split(/\r?\n/)[0]||'';
+  const sep=l1.includes('\t')?'\t':(l1.split(';').length>l1.split(',').length?';':',');
+  const filas=[];let fila=[],cel='',q=false;
+  for(let i=0;i<t.length;i++){const c=t[i];
+    if(q){if(c==='"'&&t[i+1]==='"'){cel+='"';i++}else if(c==='"')q=false;else cel+=c;continue}
+    if(c==='"'){q=true;continue}
+    if(c===sep){fila.push(cel);cel='';continue}
+    if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;fila.push(cel);filas.push(fila);fila=[];cel='';continue}
+    cel+=c}
+  if(cel||fila.length){fila.push(cel);filas.push(fila)}
+  return filas.filter(f=>f.some(x=>String(x).trim()));
+}
+function prepararImport(filas){
+  if(!filas||filas.length<2) return impError('No se encontraron filas (la primera tiene que ser de títulos)');
+  document.getElementById('impErr').classList.add('hidden');
+  const head=filas[0].map(x=>String(x).trim());
+  const map=head.map(h=>{for(const [k,re] of Object.entries(IMP_SIN)) if(re.test(h)) return k;return ''});
+  // Si hay "Nombre" pero no "Apellido" y parece nombre completo, tratarlo como nombre y apellido
+  if(map.includes('firstName')&&!map.includes('lastName')&&!map.includes('fullName')) map[map.indexOf('firstName')]='fullName';
+  _imp={head,map,datos:filas.slice(1)};
+  const prev=_imp.datos.slice(0,5);
+  document.getElementById('impPaso2').innerHTML=`<div class="card"><div class="card-title">2. Revisá las columnas (${_imp.datos.length} filas)</div>
+    <div class="table-wrap"><table><tr>${head.map((h,i)=>`<th><div style="font-size:11px;color:var(--text-soft);margin-bottom:4px">${esc(h||'Columna '+(i+1))}</div><select data-col="${i}" onchange="_imp.map[${i}]=this.value" style="font:inherit;font-size:12px;padding:4px;border-radius:6px;border:1px solid #E3DACC">${IMP_CAMPOS.map(([k,l])=>`<option value="${k}" ${map[i]===k?'selected':''}>${l}</option>`).join('')}</select></th>`).join('')}</tr>
+      ${prev.map(f=>`<tr>${head.map((_,i)=>`<td>${esc(f[i]??'')}</td>`).join('')}</tr>`).join('')}</table></div>
+    <p class="muted" style="font-size:12px;margin-top:8px">Mostramos las primeras 5 filas. Ajustá a qué dato corresponde cada columna.</p>
+    <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:12px 0"><input type="checkbox" id="impOk" style="width:18px;height:18px;accent-color:var(--primary);flex-shrink:0"> Confirmo que estoy autorizado/a a trasladar estos datos de mis pacientes a TuConsultorioOnline (Ley 25.326).</label>
+    <button class="btn btn-primary" style="max-width:320px" id="impGo" onclick="confirmarImport()">Importar ${_imp.datos.length} pacientes</button>
+    <div id="impRes"></div></div>`;
+}
+async function confirmarImport(){
+  if(!document.getElementById('impOk').checked) return alert('Confirmá que estás autorizado/a a trasladar los datos');
+  const m=_imp.map;
+  if(!m.includes('fullName')&&!(m.includes('firstName')&&m.includes('lastName'))) return alert('Indicá qué columnas son el nombre y el apellido');
+  const rows=_imp.datos.map(f=>{const o={};m.forEach((k,i)=>{if(k&&String(f[i]??'').trim())o[k]=String(f[i]).trim()});
+    if(o.fullName){const t=o.fullName.replace(/\s+/g,' ').trim();
+      if(t.includes(',')){const [a,n]=t.split(',');o.lastName=a.trim();o.firstName=(n||'').trim()}
+      else{const p=t.split(' ');const apPrimero=/^apellido/i.test(_imp.head[m.indexOf('fullName')]||'');
+        if(p.length===1){o.firstName=p[0];o.lastName=''}
+        else if(apPrimero){o.lastName=p[0];o.firstName=p.slice(1).join(' ')}
+        else{o.lastName=p[p.length-1];o.firstName=p.slice(0,-1).join(' ')}}
+      delete o.fullName}
+    return o});
+  const b=document.getElementById('impGo');b.disabled=true;b.textContent='Importando…';
+  try{
+    let tot={creados:0,actualizados:0,omitidos:0,errores:[]};
+    for(let i=0;i<rows.length;i+=500){const r=await apiFetch('/api/v1/patients/import',{method:'POST',body:{rows:rows.slice(i,i+500)}});
+      tot.creados+=r.creados;tot.actualizados+=r.actualizados;tot.omitidos+=r.omitidos;tot.errores.push(...r.errores.map(x=>({...x,fila:x.fila+i})));b.textContent=`Importando… ${Math.min(i+500,rows.length)}/${rows.length}`}
+    document.getElementById('impRes').innerHTML=`<div class="card" style="background:#EEFAF3;margin-top:12px"><b>✅ Listo</b><p style="font-size:14px;margin-top:6px">${tot.creados} pacientes nuevos · ${tot.actualizados} ya existían (se completaron datos) · ${tot.omitidos} filas vacías</p>
+      ${tot.errores.length?`<p class="error" style="margin-top:6px">${tot.errores.length} filas con problemas: ${tot.errores.slice(0,10).map(x=>'fila '+x.fila+' ('+esc(x.motivo)+')').join(', ')}</p>`:''}
+      <button class="btn btn-sm btn-primary" style="margin-top:8px" onclick="navigateTo('pacientes')">Ver pacientes</button></div>`;
+    b.textContent='Importado';
+  }catch(e){b.disabled=false;b.textContent='Reintentar';alert(e.message)}
+}
+
+// ─── Tiempo ahorrado y referidos (Dashboard del médico) ───
+async function renderCrecimiento(elId){
+  const el=document.getElementById(elId);if(!el||userType!=='doctor')return;
+  const [m,r]=await Promise.all([apiFetch('/api/v1/metrics/time-saved').catch(()=>null),apiFetch('/api/v1/referrals/me').catch(()=>null)]);
+  const link=r?.codigo?`${location.origin.includes("localhost")?location.origin:"https://tuconsultorio.rispy.io"}/medicos?ref=${r.codigo}`:'';
+  const msg=`Hola! Estoy usando TuConsultorioOnline para turnos, historia clínica y recetas electrónicas. Es gratis para empezar y me ahorra mucho tiempo. Registrate acá: ${link}`;
+  el.innerHTML=`${m?`<div class="card"><div class="card-title">⏱️ Este mes con TuConsultorioOnline</div>
+      <div class="ahorro"><div><b>${m.minutos_ahorrados>=60?Math.floor(m.minutos_ahorrados/60)+' h '+(m.minutos_ahorrados%60)+' min':m.minutos_ahorrados+' min'}</b><span>ahorrados (estimado)</span></div>
+      <div><b>${m.recetas_mes||0}</b><span>recetas${m.seg_promedio?' · '+m.seg_promedio+' s c/u':''}</span></div>
+      <div><b>${m.online||0}</b><span>turnos online</span></div>
+      <div><b>${m.recordatorios||0}</b><span>recordatorios</span></div></div>
+      <p class="muted" style="font-size:11px;margin-top:6px">Estimación frente a hacerlo a mano: receta ~3 min, turno por teléfono ~4 min.</p></div>`:''}
+    ${link?`<div class="card"><div class="card-title">🤝 Invitá a tus colegas</div>
+      <p class="muted" style="font-size:13px">Compartí tu link. ${r.invitados?`Ya se sumaron <b>${r.invitados}</b>${r.verificados?' ('+r.verificados+' verificados)':''}.`:'Cuando se registren con tu link lo vas a ver acá.'}</p>
+      <div class="ref-link"><input readonly value="${esc(link)}" onclick="this.select()"><button class="btn btn-sm btn-soft" onclick="navigator.clipboard.writeText('${esc(link)}');this.textContent='✓'">Copiar</button></div>
+      <a class="btn btn-sm wa-btn" style="text-decoration:none;margin-top:8px;display:inline-flex" target="_blank" href="https://wa.me/?text=${encodeURIComponent(msg)}">Compartir por WhatsApp</a></div>`:''}`;
+}
+
 // ─── Recordatorios por WhatsApp (modo manual: botón que abre WhatsApp) ───
 async function renderRecordatorios(elId,fecha){
   const el=document.getElementById(elId);if(!el)return;
@@ -828,7 +935,7 @@ async function loadDoctorDashboard(){
     const d=await apiFetch('/api/v1/dashboard'+(q?'?'+q:''));
     const t=d.today, sched=t.schedule||[];
     const max=Math.max(1,...(d.last14||[]).map(x=>x.total));
-    setTimeout(()=>renderRecordatorios('recWa'),0);
+    setTimeout(()=>{renderRecordatorios('recWa');renderCrecimiento('crecimiento')},0);
     main.innerHTML=`
       <div class="topbar"><h1>Dashboard</h1><div class="flex">${sel?`<div class="filters" style="margin:0">${sel}</div>`:''}<div class="badge">${fmtDateLong(t.date)}</div></div></div>
       <div class="stats">
@@ -845,6 +952,7 @@ async function loadDoctorDashboard(){
         </div>
         <div>
           <div id="recWa"></div>
+          <div id="crecimiento"></div>
           <div class="card"><div class="card-title">📈 Últimos 14 días</div>
             <div class="bar14">${(d.last14||[]).map(x=>`<div title="${fmtDate(x.date)}: ${x.total} turnos, ${x.completed} atendidos" style="height:${Math.round(x.total/max*100)}%"><i style="height:${x.total?Math.round(x.completed/x.total*100):0}%"></i></div>`).join('')}</div>
             <p class="muted" style="font-size:11px;margin-top:6px">Barra: turnos del día · color: atendidos</p>
@@ -1519,7 +1627,7 @@ async function loadPacientes(){
     const _pts=await apiFetch('/api/v1/patients');
     const pts=asList(_pts);if(!Array.isArray(pts)){main.innerHTML='<div class="card"><p class="error">Error cargando pacientes</p></div>';return;}
     main.innerHTML=`
-      <div class="topbar"><h1>Pacientes</h1><div class="badge">${pts.length} registrados</div></div>
+      <div class="topbar"><h1>Pacientes</h1><div class="flex"><button class="btn btn-sm btn-soft" onclick="importarPacientes()">⬆️ Importar desde Excel</button><div class="badge">${pts.length} registrados</div></div></div>
       <div class="card"><div class="table-wrap"><table>
         <tr><th>Paciente</th><th>DNI</th><th>Teléfono</th><th>Obra social</th><th>Email</th></tr>
         ${pts.map(p=>`<tr style="cursor:pointer" onclick="abrirPaciente('${p.id}')" title="Ver ficha">

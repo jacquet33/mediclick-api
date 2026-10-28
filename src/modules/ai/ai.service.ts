@@ -119,7 +119,7 @@ export class AiService {
     const { p, consultas } = d, u = consultas[0] || {};
     const f: { campo: string; texto: string }[] = [];
     if (!String(p.dni || '').replace(/\D/g, '')) f.push({ campo: 'dni', texto: 'DNI (obligatorio para la receta electrónica)' });
-    if (!p.gender || p.gender === 'unknown') f.push({ campo: 'sexo', texto: 'Sexo (para calcular el CUIL de la receta)' });
+    if (!p.gender || p.gender === 'unknown' || p.gender === 'not_specified' || p.gender === 'other') f.push({ campo: 'sexo', texto: 'Sexo (para calcular el CUIL de la receta)' });
     if (!p.date_of_birth) f.push({ campo: 'nacimiento', texto: 'Fecha de nacimiento' });
     if (!this.lista(p.allergies).length && !this.lista(u.allergies).length) f.push({ campo: 'alergias', texto: 'Alergias: no hay registro (anotar "niega alergias" si corresponde)' });
     if (!this.lista(p.current_medications).length && !this.lista(u.current_medications).length) f.push({ campo: 'medicacion', texto: 'Medicación actual' });

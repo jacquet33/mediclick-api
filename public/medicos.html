@@ -58,6 +58,19 @@ input:focus,select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 
 .done{text-align:center;padding:30px 10px}
 .store{display:inline-flex;align-items:center;gap:10px;background:#111;color:#fff;text-decoration:none;border-radius:12px;padding:10px 18px;font-weight:600}
 .store small{display:block;font-size:10px;opacity:.75;font-weight:500}
+.planes{max-width:1180px;margin:40px auto 60px;padding:0 20px}
+.planes h2{text-align:center;font-size:30px;margin-bottom:8px}
+.pl-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.pl{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;position:relative}
+.pl.dest{border:2px solid var(--primary);box-shadow:0 10px 30px rgba(154,107,63,.15)}
+.pl h3{font-size:20px}.pl-p{color:var(--text-soft,#7A6E62);font-size:13px;margin:2px 0 12px}
+.pl ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;font-size:14px}
+.pl li:before{content:'✓ ';color:var(--primary);font-weight:700}
+.pl-tag{position:absolute;top:-11px;right:14px;background:var(--primary);color:#fff;font-size:11px;font-weight:700;border-radius:20px;padding:3px 10px}
+.pl-cta{display:inline-block;margin-top:14px;font-weight:700;color:var(--primary)}
+.mig{margin-top:20px;background:#FFF8EC;border:1px solid #F1DFC0;border-radius:14px;padding:14px 18px;font-size:14px;line-height:1.5}
+@media(max-width:900px){.pl-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.pl-grid{grid-template-columns:1fr}}
 @media(max-width:900px){.hero,.wiz{grid-template-columns:1fr}.hero h1{font-size:34px}.side{position:static}.mock{display:none}}
 @media(max-width:560px){.grid,.feat{grid-template-columns:1fr}h2{font-size:24px}}
 </style>
@@ -77,7 +90,10 @@ input:focus,select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 
       <div><span>📋</span>Historia clínica con CIE-10 y signos vitales</div>
       <div><span>💊</span>Recetas electrónicas (Ley 27.553) con QR y firma digital</div>
       <div><span>✅</span>Validación de matrícula en REFEPS</div>
+      <div><span>⚡</span>Recetas en segundos: frecuentes, repetir y alertas de alergias e interacciones</div>
+      <div><span>✨</span>Asistente: resumen del paciente, dictado de la consulta e indicaciones claras</div>
       <div><span>👩‍💼</span>Acceso para tu secretaría</div>
+      <div><span>⬆️</span>Traé tus pacientes desde Excel en un minuto</div>
       <div><span>📱</span>App para iPhone</div>
     </div>
     <a class="cta" href="#alta">Crear mi consultorio gratis</a>
@@ -193,7 +209,20 @@ input:focus,select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 
   </aside>
 </section>
 
+<section class="planes" id="planes">
+  <h2>Empezá gratis. Pagá solo si te sirve.</h2>
+  <p class="muted" style="text-align:center;max-width:640px;margin:0 auto 22px">Emitir recetas válidas nunca va a ser un extra pago. Durante el lanzamiento, todo está incluido sin costo.</p>
+  <div class="pl-grid">
+    <div class="pl"><h3>Gratis</h3><p class="pl-p">Para siempre</p><ul><li>Recetas electrónicas con firma y QR</li><li>Pacientes ilimitados</li><li>Recetas frecuentes y plantillas</li><li>Link de reservas online</li><li>Importar pacientes desde Excel</li></ul></div>
+    <div class="pl dest"><span class="pl-tag">Lanzamiento: incluido</span><h3>Profesional</h3><p class="pl-p">Para tu práctica diaria</p><ul><li>Historia clínica completa con línea de tiempo</li><li>Asistente: resumen, dictado e indicaciones</li><li>Agenda, sala de espera y recordatorios por WhatsApp</li><li>Estudios y documentos compartidos con el paciente</li><li>Firma digital con certificado</li></ul></div>
+    <div class="pl"><span class="pl-tag">Lanzamiento: incluido</span><h3>Consultorio</h3><p class="pl-p">Varios profesionales</p><ul><li>Todo lo de Profesional</li><li>Secretaría con permisos</li><li>Agenda de todo el equipo</li><li>Facturación y obras sociales</li></ul></div>
+    <div class="pl"><h3>Instituciones</h3><p class="pl-p">Clínicas y centros</p><ul><li>Integraciones y HL7 FHIR</li><li>Migración asistida</li><li>Soporte con acuerdo de servicio</li></ul><a href="mailto:contact@rispy.io?subject=TuConsultorioOnline%20para%20instituciones" class="pl-cta">Hablemos</a></div>
+  </div>
+  <div class="mig"><b>¿Venís de otra plataforma?</b> Exportá tus pacientes a Excel o CSV y los importás desde <i>Pacientes → Importar desde Excel</i>: sin duplicados y sin empezar de cero. Si necesitás ayuda, escribinos a <a href="mailto:contact@rispy.io">contact@rispy.io</a> y lo hacemos con vos.</div>
+</section>
+
 <script>
+try{const rf=new URLSearchParams(location.search).get('ref');if(rf&&/^[A-Za-z0-9]{6,8}$/.test(rf))localStorage.setItem('tc_ref',rf.toUpperCase())}catch{}
 const $=id=>document.getElementById(id);
 const PROV=['Buenos Aires','Ciudad de Buenos Aires','Catamarca','Chaco','Chubut','Córdoba','Corrientes','Entre Ríos','Formosa','Jujuy','La Pampa','La Rioja','Mendoza','Misiones','Neuquén','Río Negro','Salta','San Juan','San Luis','Santa Cruz','Santa Fe','Santiago del Estero','Tierra del Fuego','Tucumán'];
 const ESP=['Clínica médica','Medicina general y familiar','Pediatría','Ginecología y obstetricia','Cardiología','Dermatología','Traumatología y ortopedia','Oftalmología','Otorrinolaringología','Neurología','Psiquiatría','Endocrinología','Gastroenterología','Neumonología','Nefrología','Urología','Reumatología','Infectología','Oncología','Hematología','Nutrición','Cirugía general','Diagnóstico por imágenes','Medicina del deporte','Geriatría','Alergia e inmunología','Kinesiología y fisiatría'];
@@ -246,6 +275,7 @@ $('crear').onclick=async()=>{
     // Sesión para el portal (mismas claves que /portal)
     try{const u={...(s.user||s.doctor||{}),first_name:$('nombre').value.trim(),last_name:$('apellido').value.trim(),full_name:`${D.prefijo} ${$('nombre').value.trim()} ${$('apellido').value.trim()}`};localStorage.setItem('mediclick_token',token);localStorage.setItem('mediclick_refreshToken',s.refreshToken||'');localStorage.setItem('mediclick_userId',u?.id||u?.user_id||'');localStorage.setItem('mediclick_userType','doctor');localStorage.setItem('mediclick_user',JSON.stringify(u));localStorage.setItem('mediclick_orgs',JSON.stringify(s.organizations||[]))}catch{}
     const avisos=[];
+    try{const rf=localStorage.getItem('tc_ref');if(rf){await api('/api/v1/referrals/claim',{method:'POST',token,org,body:{code:rf}}).catch(()=>{});localStorage.removeItem('tc_ref')}}catch{}
     await api('/api/v1/verification',{method:'POST',token,org,body:{dni:$('dni').value,licenseType:D.tipoMat,province:D.tipoMat==='MP'?$('provMat').value:undefined,medicalLicense:$('matricula').value.trim(),specialty:$('especialidad').value.trim(),dniDocument:D.dniFoto,document:D.credFoto||undefined}}).catch(e=>avisos.push('Matrícula: '+e.message));
     await api('/api/v1/profile',{method:'PUT',token,org,body:{titlePrefix:D.prefijo,avatarUrl:D.avatar||undefined}}).catch(()=>{});
     if(org) await api('/api/v1/organizations/'+org,{method:'PUT',token,org,body:{name:$('consultorio').value.trim(),phone:$('telCons').value.trim()||undefined,address:$('direccion').value.trim()||undefined,city:$('ciudad').value.trim()||undefined,province:$('provCons').value}}).catch(()=>{});
