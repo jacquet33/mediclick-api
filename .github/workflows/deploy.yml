@@ -78,6 +78,12 @@ jobs:
                   WHATSAPP_TOKEN: "${{ secrets.WHATSAPP_TOKEN }}"
                   WHATSAPP_PHONE_NUMBER_ID: "${{ vars.WHATSAPP_PHONE_NUMBER_ID }}"
                   WHATSAPP_TEMPLATE: "${{ vars.WHATSAPP_TEMPLATE }}"
+                  # Correo saliente (bienvenida, recetas por email, recordatorio de alta incompleta). Vacío = no se envían
+                  SMTP_HOST: "${{ secrets.SMTP_HOST }}"
+                  SMTP_PORT: "${{ secrets.SMTP_PORT }}"
+                  SMTP_USER: "${{ secrets.SMTP_USER }}"
+                  SMTP_PASS: "${{ secrets.SMTP_PASS }}"
+                  SMTP_FROM: "${{ secrets.SMTP_FROM }}"
                   # Asistente IA: Ollama local (el de Rispy, en este mismo servidor: los datos no salen). "none" = solo reglas
                   AI_PROVIDER: "${{ vars.AI_PROVIDER || 'ollama' }}"
                   OLLAMA_URL: "${{ vars.OLLAMA_URL || 'http://rispy-ollama:11434' }}"
