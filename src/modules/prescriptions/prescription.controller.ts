@@ -16,6 +16,24 @@ export class PrescriptionController {
     private fhir: FhirService,
   ) {}
 
+  /** GET /prescriptions/frequent — medicamentos que más receta el médico */
+  @Get('frequent')
+  frecuentes(@DoctorId() doctorId: string) {
+    return this.rxService.frecuentes(doctorId);
+  }
+
+  /** GET /prescriptions/metrics — tiempo promedio por receta */
+  @Get('metrics')
+  metricas(@DoctorId() doctorId: string) {
+    return this.rxService.metricas(doctorId);
+  }
+
+  /** GET /prescriptions/patient/:patientId/recent — últimas recetas con medicamentos (para repetir) */
+  @Get('patient/:patientId/recent')
+  recientes(@OrgId() orgId: string, @Param('patientId') patientId: string) {
+    return this.rxService.ultimasDelPaciente(orgId, patientId);
+  }
+
   /** GET /prescriptions/:id/fhir — receta en HL7 FHIR R4 */
   @Get(':id/fhir')
   async fhirBundle(@OrgId() orgId: string, @Param('id') id: string) {

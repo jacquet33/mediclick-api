@@ -178,7 +178,12 @@ export class PrescriptionService {
       return { ...rx.rows[0], items };
     });
 
-    await this.db.query(`UPDATE prescriptions SET patient_cuil = $2 WHERE id = $1`, [creada.id, cuil]);
+    const segs = Number(dto.composeSeconds);
+    const alertas = Array.isArray(dto.alertsAcknowledged) ? dto.alertsAcknowledged.slice(0, 30).map((a: any) => ({ nivel: String(a?.nivel || '').slice(0, 20), tipo: String(a?.tipo || '').slice(0, 20), texto: String(a?.texto || '').slice(0, 400) })) : null;
+    await this.db.query(
+      `UPDATE prescriptions SET patient_cuil = $2, compose_seconds = $3, alerts_acknowledged = $4 WHERE id = $1`,
+      [creada.id, cuil, Number.isFinite(segs) && segs > 0 && segs < 6 * 3600 ? Math.round(segs) : null, alertas && alertas.length ? JSON.stringify(alertas) : null],
+    );
     await this.db.query(`UPDATE patients SET cuil = $2 WHERE id = $1 AND COALESCE(cuil, '') = ''`, [patientId, cuil]).catch(() => undefined);
 
     // Firma electrónica y CUIR (después de confirmar la receta)
@@ -188,6 +193,59 @@ export class PrescriptionService {
     });
     if (firma) await this.centralRepo.encolar(creada.id);
     return { ...creada, cuir: firma?.cuir, content_hash: firma?.hash, firmada: !!firma };
+  }
+
+  /** Medicamentos que más receta el médico (con la dosis, frecuencia y duración que más usa) */
+  async frecuentes(doctorId: string, limite = 12) {
+    return this.db.queryMany(
+      `WITH it AS (
+         SELECT COALESCE(NULLIF(i.generic_name,''), i.medication_name) AS generico, i.medication_name, i.pharmaceutical_form,
+                i.presentation, i.dosage, i.frequency, i.duration, i.quantity, i.instructions, rx.issued_at
+           FROM prescription_items i JOIN prescriptions rx ON rx.id = i.prescription_id
+          WHERE rx.doctor_id = $1 AND rx.issued_at > now() - interval '18 months'
+       ), top AS (
+         SELECT lower(generico) AS k, count(*) AS usos, max(issued_at) AS ultima FROM it GROUP BY 1 ORDER BY usos DESC, ultima DESC LIMIT $2
+       )
+       SELECT t.usos, x.* FROM top t
+       JOIN LATERAL (
+         SELECT generico, medication_name, pharmaceutical_form, presentation, dosage, frequency, duration, quantity, instructions,
+                count(*) OVER (PARTITION BY dosage, frequency, duration) AS n
+           FROM it WHERE lower(it.generico) = t.k ORDER BY n DESC, issued_at DESC LIMIT 1
+       ) x ON true
+       ORDER BY t.usos DESC, t.ultima DESC`,
+      [doctorId, limite],
+    );
+  }
+
+  /** Últimas recetas del paciente con sus medicamentos (para repetirlas) */
+  async ultimasDelPaciente(orgId: string, patientId: string, limite = 6) {
+    const rxs = await this.db.queryMany(
+      `SELECT rx.id, rx.diagnosis, rx.diagnosis_code, rx.issued_at, rx.status, rx.expires_at,
+              d.first_name || ' ' || d.last_name AS doctor_name
+         FROM prescriptions rx JOIN doctors d ON d.id = rx.doctor_id
+        WHERE rx.organization_id = $1 AND rx.patient_id = $2
+        ORDER BY rx.issued_at DESC LIMIT $3`,
+      [orgId, patientId, limite],
+    );
+    if (!rxs.length) return [];
+    const items = await this.db.queryMany(
+      `SELECT prescription_id, medication_name, generic_name, pharmaceutical_form, presentation, dosage, frequency, duration, quantity, instructions
+         FROM prescription_items WHERE prescription_id = ANY($1::uuid[]) ORDER BY sort_order`,
+      [rxs.map((r: any) => r.id)],
+    );
+    return rxs.map((r: any) => ({ ...r, items: items.filter((i: any) => i.prescription_id === r.id) }));
+  }
+
+  /** Tiempo promedio que le lleva al médico emitir una receta (últimos 90 días) */
+  async metricas(doctorId: string) {
+    return this.db.queryOne(
+      `SELECT count(*)::int AS recetas,
+              count(compose_seconds)::int AS medidas,
+              round(avg(compose_seconds))::int AS segundos_promedio,
+              percentile_cont(0.5) WITHIN GROUP (ORDER BY compose_seconds)::int AS segundos_mediana
+         FROM prescriptions WHERE doctor_id = $1 AND issued_at > now() - interval '90 days'`,
+      [doctorId],
+    );
   }
 
   async cancel(orgId: string, id: string) {

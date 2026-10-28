@@ -70,10 +70,12 @@ export class PrescriptionTemplateService {
     for (let i = 0; i < dto.items.length; i++) {
       const item = dto.items[i];
       await this.db.query(
-        `INSERT INTO prescription_template_items (template_id, medication_name, dosage, frequency, duration, quantity, instructions, sort_order)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [template.id, item.medicationName, item.dosage || null, item.frequency || null,
-         item.duration || null, item.quantity || null, item.instructions || null, i],
+        `INSERT INTO prescription_template_items (template_id, medication_name, dosage, frequency, duration, quantity, instructions, sort_order,
+                                                  generic_name, pharmaceutical_form, presentation)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [template.id, item.medicationName || (item as any).genericName, item.dosage || null, item.frequency || null,
+         item.duration || null, item.quantity || null, item.instructions || null, i,
+         (item as any).genericName || null, (item as any).pharmaceuticalForm || null, (item as any).presentation || null],
       );
     }
 

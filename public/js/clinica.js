@@ -410,12 +410,43 @@
 
   window.abrirNuevaReceta = async function (opts) {
     const v = await verificacion(true);
-    R = { patientId: opts.patientId || '', patient: null, medicalRecordId: opts.medicalRecordId || null, diagnosis: opts.diagnosis || '', diagnosisCode: opts.diagnosisCode || '', expiresInDays: 30, notes: '', items: [itemVacio()], templates: [] };
-    if (R.patientId) R.patient = await apiFetch(`/api/v1/patients/${R.patientId}`).catch(() => null);
-    R.templates = asList(await apiFetch('/api/v1/prescription-templates').catch(() => []));
+    R = { patientId: opts.patientId || '', patient: null, medicalRecordId: opts.medicalRecordId || null, diagnosis: opts.diagnosis || '', diagnosisCode: opts.diagnosisCode || '', expiresInDays: 30, notes: '', items: [itemVacio()], templates: [], frecuentes: [], recientes: [], inicio: Date.now(), confirmaAlertas: false };
+    const [pac, tpls, frec] = await Promise.all([
+      R.patientId ? apiFetch(`/api/v1/patients/${R.patientId}`).catch(() => null) : null,
+      apiFetch('/api/v1/prescription-templates').catch(() => []),
+      apiFetch('/api/v1/prescriptions/frequent').catch(() => []),
+    ]);
+    R.patient = pac; R.templates = asList(tpls); R.frecuentes = asList(frec);
+    await cargarRecientes();
     await certificadoActual();
     pintarReceta(v);
   };
+
+  async function cargarRecientes() {
+    R.recientes = R.patientId ? asList(await apiFetch(`/api/v1/prescriptions/patient/${R.patientId}/recent`).catch(() => [])) : [];
+  }
+  const VD = () => window.VADEMECUM || { buscar: () => [], revisar: () => [], FRECUENCIAS: [], DURACIONES: [], lista: [] };
+  const listaP = (x) => (Array.isArray(x) ? x : String(x || '').split(/[,;\n]/)).map((y) => String(y).trim()).filter(Boolean);
+  function alertasReceta() {
+    const p = R.patient || {};
+    return VD().revisar(R.items.map((x) => x.genericName), listaP(p.current_medications), listaP(p.allergies));
+  }
+  const itemDe = (x) => ({ ...itemVacio(), genericName: x.generic_name || x.generico || x.medication_name || '', medicationName: (x.generic_name || x.generico) && x.medication_name !== (x.generic_name || x.generico) ? (x.medication_name || '') : '', pharmaceuticalForm: x.pharmaceutical_form || '', presentation: x.presentation || '', dosage: x.dosage || '', frequency: x.frequency || '', duration: x.duration || '', quantity: x.quantity ? String(x.quantity) : '', instructions: x.instructions || '' });
+  function agregarItems(nuevos) {
+    R.items = R.items.filter((x) => (x.genericName || '').trim()).concat(nuevos);
+    if (!R.items.length) R.items = [itemVacio()];
+    R.confirmaAlertas = false;
+  }
+  function pintarAlertas() {
+    const box = $('rxAlertas'); if (!box) return;
+    const al = alertasReceta();
+    box.innerHTML = !al.length ? '' : `<div class="rx-alertas">
+      <div class="rx-al-t">⚠️ Revisá antes de emitir</div>
+      ${al.map((a) => `<div class="rx-al ${a.nivel}"><b>${a.tipo === 'alergia' ? 'Alergia' : a.tipo === 'duplicado' ? 'Duplicación' : 'Interacción'}${a.nivel === 'alta' ? ' importante' : ''}:</b> ${e(a.texto)}</div>`).join('')}
+      ${al.some((a) => a.nivel === 'alta') ? `<label class="rx-al-ok"><input type="checkbox" id="rxConfAl" ${R.confirmaAlertas ? 'checked' : ''}> Revisé las alertas y confirmo la indicación bajo mi criterio profesional</label>` : ''}
+      <p class="muted" style="font-size:11px;margin-top:6px">Alertas de apoyo basadas en la ficha del paciente y una lista de interacciones conocidas. No reemplazan tu evaluación.</p></div>`;
+    const c = $('rxConfAl'); if (c) c.onchange = () => { R.confirmaAlertas = c.checked; };
+  }
 
   function pintarReceta(v) {
     const p = R.patient;
@@ -425,6 +456,7 @@
       ${bannerVerificacion(v)}
       <div class="card"><div class="card-title">👤 Paciente</div>
         ${p ? `<div class="appt-row"><div class="who"><strong>${e(p.first_name)} ${e(p.last_name)}</strong><small>${e([p.dni ? 'DNI ' + p.dni : 'Sin DNI', p.insurance_provider || 'Particular', p.insurance_number ? 'Afiliado ' + p.insurance_number : ''].filter(Boolean).join(' · '))}</small></div><button class="btn btn-sm btn-soft" id="rxCambiarPac">Cambiar</button></div>
+          ${(listaP(p.allergies).length || listaP(p.current_medications).length) ? `<div class="rx-pac-info">${listaP(p.allergies).length ? `<div><span class="chip-al">Alergias</span> ${listaP(p.allergies).map(e).join(', ')}</div>` : ''}${listaP(p.current_medications).length ? `<div><span class="chip-med">Medicación actual</span> ${listaP(p.current_medications).map(e).join(', ')}</div>` : ''}</div>` : ''}
           ${!sinDni ? `<div class="field" style="max-width:320px;margin-top:8px"><label>CUIL del paciente *</label><input id="rxCuil" value="${e(R.cuil || p.cuil || cuilDesdeDni(p.dni, p.gender) || '')}" inputmode="numeric" placeholder="Ej: 20301112223"></div>` : ''}
           ${sinDni ? `<p class="error">La receta electrónica necesita el DNI del paciente. <a href="#" onclick="abrirPaciente('${p.id}');setTimeout(()=>editarPaciente('${p.id}'),900);return false" style="color:var(--primary)">Cargarlo</a></p>` : ''}`
         : `<div class="field"><label>Buscar paciente</label><input id="rxPacQ" placeholder="Nombre, DNI o teléfono" autocomplete="off"></div><div id="rxPacRes"></div>`}
@@ -435,24 +467,30 @@
           <div class="field"><label>CIE-10</label><input id="rxCie" value="${e(R.diagnosisCode)}" placeholder="Buscar…" autocomplete="off"></div>
         </div><div id="rxCieRes"></div>
       </div>
+      ${(R.frecuentes.length || R.recientes.length) ? `<div class="card rx-atajos"><div class="card-title">⚡ Atajos</div>
+        ${R.recientes.length ? `<div class="rx-at-l">Repetir una receta anterior</div><div class="rx-rep">${R.recientes.slice(0, 4).map((r, i) => `<button class="rx-rep-b" data-rep="${i}"><b>${new Date(r.issued_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: '2-digit' })}</b> ${e(r.diagnosis || '')}<small>${e((r.items || []).map((x) => x.generic_name || x.medication_name).join(' · '))}</small></button>`).join('')}</div>` : ''}
+        ${R.frecuentes.length ? `<div class="rx-at-l">Tus medicamentos frecuentes</div><div class="rx-frec">${R.frecuentes.map((f, i) => `<button class="rx-chip" data-frec="${i}" title="${e([f.presentation, f.dosage, f.frequency, f.duration].filter(Boolean).join(' · '))}">+ ${e(f.generico)}${f.presentation ? ` <small>${e(f.presentation)}</small>` : ''}</button>`).join('')}</div>` : ''}
+      </div>` : ''}
       <div class="card"><div class="card-title" style="justify-content:space-between"><span>💊 Medicamentos</span>
         ${R.templates.length ? `<select id="rxTpl" style="padding:8px;border:1.5px solid #ECE5D9;border-radius:10px;font:inherit;font-size:13px"><option value="">Usar plantilla…</option>${R.templates.map((t) => `<option value="${t.id}">${e(t.name)}</option>`).join('')}</select>` : ''}</div>
         ${R.items.map((it, i) => `<div class="card" style="background:#FFFDF9;border:1px solid #F4EEE6;box-shadow:none">
           <div class="flex-between"><b style="font-size:13px">Medicamento ${i + 1}</b>${R.items.length > 1 ? `<button class="btn btn-sm btn-no" data-quitar="${i}">Quitar</button>` : ''}</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0 12px;margin-top:8px">
-            <div class="field"><label>Nombre genérico (DCI) *</label><input data-i="${i}" data-f="genericName" value="${e(it.genericName)}" placeholder="Ej: Ibuprofeno"></div>
+            <div class="field" style="position:relative"><label>Nombre genérico (DCI) *</label><input data-i="${i}" data-f="genericName" data-ac="${i}" value="${e(it.genericName)}" placeholder="Escribí para buscar: ibup…" autocomplete="off"><div class="rx-ac" id="rxAc${i}"></div></div>
             <div class="field"><label>Marca (opcional)</label><input data-i="${i}" data-f="medicationName" value="${e(it.medicationName)}" placeholder="Ej: Ibupirac"></div>
-            <div class="field"><label>Forma farmacéutica</label><input data-i="${i}" data-f="pharmaceuticalForm" value="${e(it.pharmaceuticalForm)}" list="rxFormas" placeholder="Comprimidos"></div>
-            <div class="field"><label>Presentación / concentración</label><input data-i="${i}" data-f="presentation" value="${e(it.presentation)}" placeholder="400 mg x 20"></div>
+            <div class="field"><label>Forma farmacéutica</label><input data-i="${i}" data-f="pharmaceuticalForm" value="${e(it.pharmaceuticalForm)}" list="rxFormas${i}" placeholder="Comprimidos"><datalist id="rxFormas${i}">${((VD().lista.find((m) => VD().norm(m[0]) === VD().norm(it.genericName)) || [])[2] || FORMAS).map((f) => `<option value="${e(f)}">`).join('')}</datalist></div>
+            <div class="field"><label>Presentación / concentración</label><input data-i="${i}" data-f="presentation" value="${e(it.presentation)}" list="rxPres${i}" placeholder="400 mg x 20"><datalist id="rxPres${i}">${(((VD().lista.find((m) => VD().norm(m[0]) === VD().norm(it.genericName)) || [])[3]) || []).map((f) => `<option value="${e(f)}">`).join('')}</datalist></div>
             <div class="field"><label>Dosis *</label><input data-i="${i}" data-f="dosage" value="${e(it.dosage)}" placeholder="1 comprimido"></div>
-            <div class="field"><label>Frecuencia *</label><input data-i="${i}" data-f="frequency" value="${e(it.frequency)}" placeholder="Cada 8 horas"></div>
-            <div class="field"><label>Duración</label><input data-i="${i}" data-f="duration" value="${e(it.duration)}" placeholder="5 días"></div>
+            <div class="field"><label>Frecuencia *</label><input data-i="${i}" data-f="frequency" value="${e(it.frequency)}" list="rxFrecs" placeholder="Cada 8 horas"></div>
+            <div class="field"><label>Duración</label><input data-i="${i}" data-f="duration" value="${e(it.duration)}" list="rxDurs" placeholder="5 días"></div>
             <div class="field"><label>Cantidad (envases)</label><input data-i="${i}" data-f="quantity" value="${e(it.quantity)}" inputmode="numeric" placeholder="1"></div>
           </div>
           <div class="field"><label>Indicaciones</label><input data-i="${i}" data-f="instructions" value="${e(it.instructions)}" placeholder="Tomar con comida"></div>
         </div>`).join('')}
-        <datalist id="rxFormas">${FORMAS.map((f) => `<option value="${f}">`).join('')}</datalist>
-        <button class="btn btn-sm btn-outline" id="rxMas">+ Agregar medicamento</button>
+        <datalist id="rxFrecs">${VD().FRECUENCIAS.map((f) => `<option value="${e(f)}">`).join('')}</datalist>
+        <datalist id="rxDurs">${VD().DURACIONES.map((f) => `<option value="${e(f)}">`).join('')}</datalist>
+        <div class="flex" style="flex-wrap:wrap;gap:8px"><button class="btn btn-sm btn-outline" id="rxMas">+ Agregar medicamento</button><button class="btn btn-sm btn-soft" id="rxGuardarTpl">💾 Guardar como plantilla</button></div>
+        <div id="rxAlertas"></div>
       </div>
       <div class="card"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px">
         <div class="field"><label>Validez</label><select id="rxVence">${[[30, '30 días'], [60, '60 días'], [90, '90 días (tratamiento prolongado)']].map(([d, l]) => `<option value="${d}" ${R.expiresInDays == d ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
@@ -485,7 +523,47 @@
 
   function enlazarReceta(v) {
     const m = main();
-    m.querySelectorAll('[data-i][data-f]').forEach((i) => i.oninput = () => { R.items[+i.dataset.i][i.dataset.f] = i.value; });
+    m.querySelectorAll('[data-i][data-f]').forEach((i) => i.oninput = () => { R.items[+i.dataset.i][i.dataset.f] = i.value; if (i.dataset.f === 'genericName') { R.confirmaAlertas = false; pintarAlertas(); } });
+    pintarAlertas();
+    // Autocompletado del genérico con el vademécum
+    m.querySelectorAll('[data-ac]').forEach((inp) => {
+      const idx = +inp.dataset.ac, box = $('rxAc' + idx);
+      const cerrar = () => { box.innerHTML = ''; box.classList.remove('open'); };
+      inp.addEventListener('input', () => {
+        const r = VD().buscar(inp.value, 7);
+        if (!r.length) return cerrar();
+        box.innerHTML = r.map((x, j) => `<div class="rx-ac-i" data-j="${j}"><b>${e(x[0])}</b><small>${e(x[1])}</small></div>`).join('');
+        box.classList.add('open');
+        box.querySelectorAll('[data-j]').forEach((d) => d.onpointerdown = (ev) => {
+          ev.preventDefault(); const x = r[+d.dataset.j];
+          leerReceta(); const it = R.items[idx];
+          it.genericName = x[0];
+          if (!it.pharmaceuticalForm && x[2].length === 1) it.pharmaceuticalForm = x[2][0];
+          // Si el médico ya lo recetó antes, se sugiere lo que suele indicar
+          const f = R.frecuentes.find((y) => VD().norm(y.generico) === VD().norm(x[0]));
+          if (f) { const d2 = itemDe(f); for (const k of ['pharmaceuticalForm', 'presentation', 'dosage', 'frequency', 'duration', 'quantity', 'instructions']) if (!it[k]) it[k] = d2[k]; }
+          R.confirmaAlertas = false; pintarReceta(v);
+          setTimeout(() => { const n = main().querySelector(`[data-i="${idx}"][data-f="${it.presentation ? 'dosage' : 'presentation'}"]`); n && n.focus(); }, 0);
+        });
+      });
+      inp.addEventListener('blur', () => setTimeout(cerrar, 150));
+      inp.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') cerrar(); if (ev.key === 'Enter') { const f = box.querySelector('[data-j]'); if (f) { ev.preventDefault(); f.dispatchEvent(new PointerEvent('pointerdown')); } } });
+    });
+    m.querySelectorAll('[data-frec]').forEach((b) => b.onclick = () => { leerReceta(); agregarItems([itemDe(R.frecuentes[+b.dataset.frec])]); pintarReceta(v); });
+    m.querySelectorAll('[data-rep]').forEach((b) => b.onclick = () => {
+      const r = R.recientes[+b.dataset.rep]; if (!r) return; leerReceta();
+      if (!R.diagnosis.trim()) { R.diagnosis = r.diagnosis || ''; R.diagnosisCode = r.diagnosis_code || ''; }
+      agregarItems((r.items || []).map(itemDe)); pintarReceta(v);
+    });
+    const gt = $('rxGuardarTpl'); if (gt) gt.onclick = async () => {
+      leerReceta(); const items = R.items.filter((x) => (x.genericName || '').trim());
+      if (!items.length) return alert('Agregá al menos un medicamento');
+      const name = prompt('Nombre de la plantilla (ej: "Faringitis adulto", "HTA inicio"):', R.diagnosis || ''); if (!name) return;
+      try {
+        const t = await apiFetch('/api/v1/prescription-templates', { method: 'POST', body: { name: name.trim(), diagnosis: R.diagnosis || undefined, diagnosisCode: R.diagnosisCode || undefined, items: items.map((x) => ({ medicationName: (x.medicationName || '').trim() || x.genericName.trim(), genericName: x.genericName.trim(), pharmaceuticalForm: x.pharmaceuticalForm || undefined, presentation: x.presentation || undefined, dosage: x.dosage || undefined, frequency: x.frequency || undefined, duration: x.duration || undefined, quantity: parseInt(x.quantity, 10) || undefined, instructions: x.instructions || undefined })) } });
+        R.templates.push(t); gt.textContent = '✓ Plantilla guardada'; gt.disabled = true;
+      } catch (ex) { alert(ex.message); }
+    };
     const mas = $('rxMas'); if (mas) mas.onclick = () => { leerReceta(); R.items.push(itemVacio()); pintarReceta(v); };
     m.querySelectorAll('[data-quitar]').forEach((b) => b.onclick = () => { leerReceta(); R.items.splice(+b.dataset.quitar, 1); pintarReceta(v); });
     const tpl = $('rxTpl'); if (tpl) tpl.onchange = () => {
@@ -493,9 +571,7 @@
       leerReceta();
       if (!R.diagnosis && t.diagnosis) R.diagnosis = t.diagnosis;
       if (!R.diagnosisCode && t.diagnosis_code) R.diagnosisCode = t.diagnosis_code;
-      const nuevos = (t.items || []).map((x) => ({ ...itemVacio(), genericName: x.generic_name || x.medication_name || '', medicationName: x.generic_name ? x.medication_name : '', dosage: x.dosage || '', frequency: x.frequency || '', duration: x.duration || '', quantity: x.quantity || '', instructions: x.instructions || '' }));
-      R.items = R.items.filter((x) => x.genericName || x.medicationName).concat(nuevos);
-      if (!R.items.length) R.items = [itemVacio()];
+      agregarItems((t.items || []).map(itemDe));
       pintarReceta(v);
     };
     const cambiar = $('rxCambiarPac'); if (cambiar) cambiar.onclick = () => { leerReceta(); R.patient = null; R.patientId = ''; pintarReceta(v); };
@@ -508,7 +584,7 @@
           const q = pq.value.trim(); if (q.length < 2) { $('rxPacRes').innerHTML = ''; return; }
           const r = asList(await apiFetch(`/api/v1/patients?search=${encodeURIComponent(q)}&limit=8`).catch(() => []));
           $('rxPacRes').innerHTML = r.map((p) => `<div class="appt-row" style="cursor:pointer;padding:8px 12px" data-pac="${p.id}"><div class="who"><strong>${e(p.first_name)} ${e(p.last_name)}</strong><small>${e([p.dni ? 'DNI ' + p.dni : '', p.insurance_provider, p.phone].filter(Boolean).join(' · '))}</small></div></div>`).join('') || '<p class="muted">Sin resultados</p>';
-          $('rxPacRes').querySelectorAll('[data-pac]').forEach((x) => x.onclick = () => { leerReceta(); R.patientId = x.dataset.pac; R.patient = r.find((p) => p.id === x.dataset.pac); pintarReceta(v); });
+          $('rxPacRes').querySelectorAll('[data-pac]').forEach((x) => x.onclick = async () => { leerReceta(); R.patientId = x.dataset.pac; R.patient = await apiFetch(`/api/v1/patients/${R.patientId}`).catch(() => r.find((p) => p.id === x.dataset.pac)); await cargarRecientes(); pintarReceta(v); });
         }, 250);
       };
     }
@@ -526,12 +602,15 @@
       const items = R.items.filter((x) => (x.genericName || '').trim());
       const sinDosis = items.findIndex((x) => !(x.dosage || '').trim() || !(x.frequency || '').trim());
       const fallo = !R.patientId ? 'Elegí el paciente' : !R.diagnosis.trim() ? 'Indicá el diagnóstico' : !items.length ? 'Agregá al menos un medicamento con su nombre genérico' : sinDosis >= 0 ? `Completá dosis y frecuencia del medicamento ${sinDosis + 1}` : '';
-      if (fallo) { err.textContent = fallo; err.classList.remove('hidden'); return; }
+      const alertas = alertasReceta();
+      const falloAl = !fallo && alertas.some((a) => a.nivel === 'alta') && !R.confirmaAlertas ? 'Hay alertas importantes: revisalas y marcá la confirmación antes de emitir' : '';
+      if (fallo || falloAl) { err.textContent = fallo || falloAl; err.classList.remove('hidden'); if (falloAl) $('rxAlertas')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
       emitir.disabled = true; emitir.textContent = 'Firmando…';
       try {
         const r = await apiFetch('/api/v1/prescriptions', { method: 'POST', body: {
           patientId: R.patientId, patientCuil: R.cuil || undefined, medicalRecordId: R.medicalRecordId || undefined, diagnosis: R.diagnosis.trim(), diagnosisCode: R.diagnosisCode || undefined,
           expiresInDays: R.expiresInDays, notes: R.notes || undefined,
+          composeSeconds: Math.round((Date.now() - R.inicio) / 1000), alertsAcknowledged: alertas.length ? alertas : undefined,
           items: items.map((x) => ({ genericName: x.genericName.trim(), medicationName: (x.medicationName || '').trim() || x.genericName.trim(), pharmaceuticalForm: x.pharmaceuticalForm || undefined, presentation: x.presentation || undefined, dosage: x.dosage || undefined, frequency: x.frequency || undefined, duration: x.duration || undefined, quantity: parseInt(x.quantity, 10) || undefined, instructions: x.instructions || undefined })),
         } });
         const p = R.patient || {};
@@ -539,6 +618,7 @@
         main().innerHTML = `<div class="card center" style="padding:30px">
           <p style="font-size:42px">✅</p><h2 style="margin:6px 0">Receta emitida y firmada</h2>
           <p class="muted">CUIR <b>${e(r.cuir || r.verification_code)}</b> · código ${e(r.verification_code)}</p>
+          <p class="muted" style="font-size:12px;margin-top:4px">⏱️ La armaste en ${(() => { const sg = Math.round((Date.now() - R.inicio) / 1000); return sg < 60 ? sg + ' segundos' : Math.floor(sg / 60) + ' min ' + (sg % 60) + ' s'; })()}</p>
           <p style="margin-top:8px;font-size:13px">${digital ? '🔐 Con firma digital de tu certificado (Ley 25.506)' : '🔏 Con firma electrónica de la plataforma'}</p>
           <div class="flex" style="justify-content:center;flex-wrap:wrap;margin-top:16px">
             ${!digital && _cert ? `<button class="btn btn-sm btn-ok" onclick="firmarYRecargar('${r.id}')">🔐 Firmar digitalmente</button>` : ''}
