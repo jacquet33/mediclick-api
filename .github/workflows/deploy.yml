@@ -65,6 +65,10 @@ jobs:
                   SISA_USUARIO: "${{ secrets.SISA_USUARIO }}"
                   SISA_CLAVE: "${{ secrets.SISA_CLAVE }}"
                   RENAPDIS_PLATFORM_ID: "${{ vars.RENAPDIS_PLATFORM_ID }}"
+                  RENAPDIS_REPOSITORY_ID: "${{ vars.RENAPDIS_REPOSITORY_ID }}"
+                  CUIR_TIPO_MEDICAMENTO: "${{ vars.CUIR_TIPO_MEDICAMENTO }}"
+                  MSAL_REPO_URL: "${{ vars.MSAL_REPO_URL }}"
+                  MSAL_REPO_TOKEN: "${{ secrets.MSAL_REPO_TOKEN }}"
                   IOS_APP_STORE_URL: "${{ vars.IOS_APP_STORE_URL }}"
                 networks:
                   - mediclick-net
@@ -100,7 +104,14 @@ jobs:
             SH
             sed -i 's/^            //' /opt/mediclick/backup-diario.sh
             chmod 700 /opt/mediclick/backup-diario.sh
-            ( crontab -l 2>/dev/null | grep -v backup-diario.sh ; echo "15 3 * * * /opt/mediclick/backup-diario.sh >> /opt/mediclick/logs/backup.log 2>&1" ) | crontab -
+            if command -v crontab >/dev/null 2>&1; then
+              ( crontab -l 2>/dev/null | grep -v backup-diario.sh ; echo "15 3 * * * /opt/mediclick/backup-diario.sh >> /opt/mediclick/logs/backup.log 2>&1" ) | crontab -
+            fi
+            if command -v systemctl >/dev/null 2>&1 && ! crontab -l 2>/dev/null | grep -q backup-diario; then
+              printf '[Unit]\nDescription=Backup diario TuConsultorio\n[Service]\nType=oneshot\nExecStart=/bin/sh -c "/opt/mediclick/backup-diario.sh >> /opt/mediclick/logs/backup.log 2>&1"\n' > /etc/systemd/system/tuconsultorio-backup.service
+              printf '[Unit]\nDescription=Backup diario TuConsultorio 03:15\n[Timer]\nOnCalendar=*-*-* 03:15:00\nPersistent=true\n[Install]\nWantedBy=timers.target\n' > /etc/systemd/system/tuconsultorio-backup.timer
+              systemctl daemon-reload && systemctl enable --now tuconsultorio-backup.timer || echo "timer backup falló"
+            fi
             ls /opt/mediclick/backups/tuconsultorio_*.sql.gz >/dev/null 2>&1 || /opt/mediclick/backup-diario.sh || echo "primer backup falló"
             BASE=$(ls docker-compose.yml compose.yaml compose.yml 2>/dev/null | head -1)
             FILES="-f $BASE"

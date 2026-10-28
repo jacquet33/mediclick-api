@@ -21,7 +21,7 @@ jobs:
             echo "LOCAL directo $(curl -s -o /dev/null -w %{http_code} http://127.0.0.1:3100/api/v1/health)"
             echo "LOCAL https $(curl -sk -o /dev/null -w %{http_code} -H "Host: tuconsultorio.rispy.io" https://127.0.0.1/api/v1/health)"
             echo "LOCAL http $(curl -s -o /dev/null -w %{http_code} -H "Host: tuconsultorio.rispy.io" http://127.0.0.1/api/v1/health)"
-            echo "BACKUP cron=$(crontab -l 2>/dev/null | grep -c backup-diario) ultimo=$(ls -t /opt/mediclick/backups/*.sql.gz 2>/dev/null | head -1 | xargs -r stat -c %y | cut -c1-16) cantidad=$(ls /opt/mediclick/backups/*.sql.gz 2>/dev/null | wc -l)"
+            echo "BACKUP cron=$(crontab -l 2>/dev/null | grep -c backup-diario) timer=$(systemctl is-active tuconsultorio-backup.timer 2>/dev/null) crontab=$(command -v crontab || echo no) ultimo=$(ls -t /opt/mediclick/backups/*.sql.gz 2>/dev/null | head -1 | xargs -r stat -c %y | cut -c1-16) cantidad=$(ls /opt/mediclick/backups/*.sql.gz 2>/dev/null | wc -l)"
             echo "SERVIDOR $(curl -s --max-time 5 ipinfo.io/country 2>/dev/null) $(curl -s --max-time 5 ipinfo.io/city 2>/dev/null)"
             echo "LOCAL api.rispy.io https $(curl -sk -o /dev/null -w %{http_code} -H "Host: api.rispy.io" https://127.0.0.1/health)"
           ' > out.txt 2>&1 || true
