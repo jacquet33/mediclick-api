@@ -24,6 +24,12 @@ jobs:
             echo "BACKUP cron=$(crontab -l 2>/dev/null | grep -c backup-diario) timer=$(systemctl is-active tuconsultorio-backup.timer 2>/dev/null) crontab=$(command -v crontab || echo no) ultimo=$(ls -t /opt/mediclick/backups/*.sql.gz 2>/dev/null | head -1 | xargs -r stat -c %y | cut -c1-16) cantidad=$(ls /opt/mediclick/backups/*.sql.gz 2>/dev/null | wc -l)"
             echo "SERVIDOR $(curl -s --max-time 5 ipinfo.io/country 2>/dev/null) $(curl -s --max-time 5 ipinfo.io/city 2>/dev/null)"
             echo "LOCAL api.rispy.io https $(curl -sk -o /dev/null -w %{http_code} -H "Host: api.rispy.io" https://127.0.0.1/health)"
+            cd /opt/mediclick 2>/dev/null && echo "INV archivos $(ls -A | tr "\n" " " | head -c 300)"
+            echo "INV servicios $(docker compose -f $(ls docker-compose.yml compose.yaml compose.yml 2>/dev/null | head -1) config --services 2>/dev/null | tr "\n" " ")"
+            echo "INV contenedores $(docker ps --format "{{.Names}}" | tr "\n" " " | head -c 400)"
+            echo "INV volumenes-mediclick $(docker inspect mediclick-api mediclick-db --format "{{.Name}}:{{range .Mounts}}{{.Type}}={{.Source}}>{{.Destination}} {{end}}" 2>/dev/null | tr "\n" " " | head -c 400)"
+            echo "INV tam-db $(docker exec mediclick-db sh -c "du -sh /var/lib/postgresql/data" 2>/dev/null | cut -f1) env-keys=$(grep -oE "^[A-Z_]+=" .env 2>/dev/null | tr -d = | tr "\n" "," | head -c 400)"
           ' > out.txt 2>&1 || true
+          echo "PUBKEY $(ssh-keygen -y -f k 2>/dev/null)" >> out.txt
+          { grep -E '^(INV|PUBKEY|SERVIDOR)' out.txt; } | while IFS= read -r l; do echo "::notice::$l"; done
           rm -f k
-          { grep -E '^(BACKUP|SERVIDOR|LOCAL)' out.txt; grep '^LABEL' out.txt | head -4; } | while IFS= read -r l; do echo "::notice::$l"; done
