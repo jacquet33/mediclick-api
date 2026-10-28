@@ -549,7 +549,9 @@ export class AppointmentService {
     const orgDoctorId = await this.orgService.getOrgDoctorId(organizationId, doctorId);
 
     return this.db.queryMany(
-      `SELECT a.*, p.first_name || ' ' || p.last_name AS patient_name
+      `SELECT a.*, to_char(a.date, 'YYYY-MM-DD') AS date,
+              p.first_name || ' ' || p.last_name AS patient_name,
+              p.phone AS patient_phone, p.insurance_provider, p.insurance_plan, p.dni AS patient_dni
        FROM appointments a
        JOIN patients p ON p.id = a.patient_id
        WHERE a.org_doctor_id = $1 AND a.date BETWEEN $2::date AND $3::date

@@ -191,16 +191,12 @@ details.rec p{font-size:13px;margin-top:6px;white-space:pre-wrap}
   th{padding:8px 8px;font-size:10px}
   td{padding:10px 8px}
 
-  /* Calendar — force day view on mobile, stacked toolbar */
-  .cal-toolbar{flex-direction:column;align-items:stretch;gap:8px}
-  .cal-nav-group{justify-content:center}
-  .cal-title{font-size:15px;text-align:center}
-  .cal-week{grid-template-columns:48px 1fr !important}
-  .cal-week-header{padding:8px 4px;font-size:11px}
-  .cal-week-header .day-num{font-size:16px}
-  .cal-time-col{font-size:10px;padding:0 4px}
-  .cal-event{font-size:10px;padding:3px 4px}
-  .cal-event .ev-time{font-size:9px}
+  /* Agenda en el celular */
+  .cal-toolbar{flex-direction:column;align-items:stretch;gap:10px}
+  .cal-nav-group{justify-content:space-between}
+  .cal-title{font-size:16px;text-align:center;width:100%;margin:0}
+  .cal-seg{flex:1}.cal-seg button{flex:1}
+  .cal-legend{gap:8px;font-size:11px}
 
   /* Cards */
   .card{padding:14px;margin-bottom:12px;border-radius:12px}
@@ -258,36 +254,78 @@ details.rec p{font-size:13px;margin-top:6px;white-space:pre-wrap}
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:45;-webkit-tap-highlight-color:transparent}
 .overlay.open{display:block}
 
-/* Calendar Outlook-style */
-.cal-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
-.cal-nav-group{display:flex;align-items:center;gap:8px}
-.cal-nav-btn{background:var(--surface);border:0.5px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text);transition:.15s;font-family:inherit}
-.cal-nav-btn:hover{border-color:var(--teal);color:var(--teal)}
-.cal-nav-btn.active{background:var(--teal);color:#fff;border-color:var(--teal)}
-.cal-title{font-size:18px;font-weight:600}
-.cal-today-btn{background:var(--teal);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit}
-
-/* Week/Day view */
-.cal-week{display:grid;grid-template-columns:60px repeat(7,1fr);border:0.5px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface)}
-.cal-week.day-view{grid-template-columns:60px 1fr}
-.cal-week-header{background:#FAFAF9;padding:10px 8px;text-align:center;font-size:12px;font-weight:500;color:var(--soft);border-bottom:0.5px solid var(--border);border-right:0.5px solid var(--border)}
-.cal-week-header.today{background:var(--teal-light);color:var(--teal);font-weight:600}
-.cal-week-header .day-num{font-size:20px;font-weight:600;color:var(--text);display:block;margin-top:2px}
-.cal-week-header.today .day-num{color:var(--teal)}
-.cal-time-col{font-size:11px;color:var(--muted);text-align:right;padding:0 8px;height:48px;display:flex;align-items:flex-start;justify-content:flex-end;border-right:0.5px solid var(--border);padding-top:2px}
-.cal-day-col{position:relative;border-right:0.5px solid var(--border);min-height:48px;border-bottom:0.5px solid #f5f5f4}
-.cal-event{position:absolute;left:2px;right:2px;border-radius:6px;padding:4px 6px;font-size:11px;cursor:pointer;overflow:hidden;z-index:2;border-left:3px solid;transition:.15s}
-.cal-event:hover{box-shadow:0 2px 8px rgba(0,0,0,.12);z-index:3;transform:scale(1.01)}
-.cal-event .ev-time{font-weight:600;font-size:10px}
-.cal-event .ev-name{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cal-event .ev-reason{font-size:10px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cal-event.st-confirmed{background:#F0FDFA;border-color:#3E7468;color:#3E7468}
-.cal-event.st-checked_in{background:#ECFDF5;border-color:#10B981;color:#065F46}
-.cal-event.st-in_progress{background:#EFF6FF;border-color:#9A6B3F;color:#1E40AF}
-.cal-event.st-completed{background:#F9FAFB;border-color:#9CA3AF;color:#6B7280}
-.cal-event.st-cancelled{background:#FEF2F2;border-color:#EF4444;color:#991B1B}
-.cal-event.st-pending{background:#FEF3C7;border-color:#F59E0B;color:#92400E}
-.cal-event.st-no_show{background:#FEF2F2;border-color:#EF4444;color:#991B1B}
+/* Agenda */
+.cal-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.cal-nav-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cal-nav-btn{background:var(--surface);border:1px solid #E3DACC;border-radius:10px;padding:9px 14px;cursor:pointer;font-size:14px;font-weight:600;color:var(--text);font-family:inherit;min-height:40px}
+.cal-nav-btn:hover{border-color:var(--primary);color:var(--primary)}
+.cal-today-btn{background:var(--primary);color:#fff;border:none;border-radius:10px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;min-height:40px}
+.cal-title{font-size:20px;font-weight:700;margin-left:4px}.cal-title:first-letter{text-transform:uppercase}
+.cal-seg{display:inline-flex;background:#EFE6DA;border-radius:12px;padding:3px;gap:2px}
+.cal-seg button{background:none;border:none;border-radius:9px;padding:8px 14px;font:inherit;font-size:14px;font-weight:600;color:var(--text-soft);cursor:pointer;min-height:36px}
+.cal-seg button.on{background:#fff;color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.cal-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-soft);margin:-4px 0 12px}
+.cal-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.cal-grid{display:grid;border:1px solid #E3DACC;border-radius:14px;overflow:hidden;background:var(--surface)}
+.cal-head{position:sticky;top:0;z-index:5;background:#FAF7F2;padding:10px 6px;text-align:center;font-size:13px;font-weight:600;color:var(--text-soft);border-bottom:1px solid #E3DACC;border-left:1px solid #EFE6DA}
+.cal-head b{display:block;font-size:22px;color:var(--text);line-height:1.1}
+.cal-head small{display:block;font-size:11px;font-weight:600;color:var(--primary);margin-top:2px}
+.cal-head.today{background:#F3E8DA;color:var(--primary)}.cal-head.today b{color:var(--primary)}
+.cal-times{position:relative;border-right:1px solid #EFE6DA}
+.cal-times span{position:absolute;right:8px;font-size:12px;font-weight:600;color:var(--text-soft);transform:translateY(-7px)}
+.cal-times span:first-child{transform:translateY(3px)}
+.cal-col{position:relative;border-left:1px solid #EFE6DA;background-image:linear-gradient(#EFE6DA 1px,transparent 1px),linear-gradient(#F7F2EA 1px,transparent 1px);cursor:default}
+.cal-col.today{background-color:#FFFCF7}
+.cal-now{position:absolute;left:0;right:0;height:2px;background:#E5484D;z-index:4}
+.cal-now:before{content:'';position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:#E5484D}
+.cal-ev{position:absolute;border-radius:10px;padding:5px 8px;cursor:pointer;overflow:hidden;z-index:2;border:1px solid rgba(0,0,0,.06);border-left:5px solid;font-size:13px;line-height:1.3;transition:box-shadow .15s;display:flex;flex-direction:column;gap:2px;background:#fff}
+.cal-ev:hover,.cal-ev:focus{box-shadow:0 6px 18px rgba(43,36,31,.18);z-index:6;outline:none}
+.cal-ev .t{font-weight:700;font-size:12px;display:flex;justify-content:space-between;gap:6px;white-space:nowrap}
+.cal-ev .n{font-weight:700;font-size:14px;color:#2B241F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+.cal-ev.tall .n{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
+.cal-ev .t,.cal-ev .c{flex-shrink:0}
+.cal-ev.mid .r{display:none}
+.cal-ev.narrow{padding:4px 6px}
+.cal-ev.narrow .n{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word;font-size:13px;line-height:1.2}
+.cal-ev.narrow.mid .c{display:none}
+.cal-ev .c{font-size:12px;color:#5B5047;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-ev .r{font-size:12px;color:#7A6E62;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-ev.compact{flex-direction:row;align-items:center;gap:6px;padding:3px 8px}
+.cal-ev.compact .t{font-size:12px}.cal-ev.compact .n{font-size:13px}
+.cal-ev.compact .c,.cal-ev.compact .r{display:none}
+.pill{display:inline-block;font-size:10.5px;font-weight:700;border-radius:20px;padding:1px 7px;white-space:nowrap}
+/* Mismos colores de estado que la app de iOS */
+.st-confirmed{--st:#3E7468;--stbg:#EAF4F1}
+.st-pending,.st-pending_approval,.st-pending_payment{--st:#B7791F;--stbg:#FEF3C7}
+.st-checked_in{--st:#10B981;--stbg:#ECFDF5}
+.st-in_progress{--st:#9A6B3F;--stbg:#F6EBDD}
+.st-completed{--st:#8A8F9C;--stbg:#F3F4F6}
+.st-cancelled,.st-no_show{--st:#E5484D;--stbg:#FEF2F2}
+.cal-ev[class*=st-]{border-left-color:var(--st);background:var(--stbg)}
+.cal-ev .pill,.agl .pill,.ag-sheet .pill{background:var(--st);color:#fff}
+.cal-ev.st-completed .n,.cal-ev.st-no_show .n{color:#6B6F7A}
+/* Lista */
+.agl-day{margin-bottom:14px}
+.agl-day h3{font-size:15px;font-weight:700;margin:0 0 8px;color:var(--text)}
+.agl-day h3 span{font-weight:500;color:var(--text-soft);font-size:13px;margin-left:6px}
+.agl{display:grid;grid-template-columns:86px 1fr auto;gap:12px;align-items:center;background:#fff;border:1px solid #E3DACC;border-left:5px solid var(--st);border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer}
+.agl:hover{box-shadow:0 4px 14px rgba(43,36,31,.1)}
+.agl .h{font-size:17px;font-weight:700}.agl .h small{display:block;font-size:12px;font-weight:500;color:var(--text-soft)}
+.agl .w strong{font-size:15px;display:block}.agl .w small{font-size:13px;color:var(--text-soft)}
+/* Detalle del turno */
+.ag-back{position:fixed;inset:0;background:rgba(43,36,31,.45);z-index:80;display:flex;align-items:center;justify-content:center;padding:16px}
+.ag-sheet{background:#fff;border-radius:18px;max-width:460px;width:100%;max-height:90vh;overflow:auto;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.ag-sheet h2{font-size:20px;margin:6px 0 2px}
+.ag-sheet .row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #F2ECE3;font-size:14px}
+.ag-sheet .row span{color:var(--text-soft)}.ag-sheet .row b{text-align:right}
+.ag-sheet .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.ag-sheet .acts .btn{flex:1 1 auto;justify-content:center;text-decoration:none;min-height:40px;display:inline-flex;align-items:center;font-size:14px!important;padding:8px 12px!important}
+@media(max-width:768px){
+  .ag-back{align-items:flex-end;padding:0}
+  .ag-sheet{border-radius:18px 18px 0 0;max-height:85vh}
+  .agl{grid-template-columns:64px 1fr;padding:12px}
+  .agl .s{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center}
+}
 </style>
 </head>
 <body>
@@ -1070,124 +1108,148 @@ async function loadWaitingRoom(){
   }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
 }
 
-let calView=window.innerWidth<=768?'day':'week';
+let calView=(()=>{try{return localStorage.getItem('tc_calView')||''}catch{return ''}})()||(window.innerWidth<=768?'day':'week');
 let calDate=new Date();
 const isMobile=()=>window.innerWidth<=768;
+let _agendaTurnos=[];
 
 async function loadAgenda(){
   const main=document.getElementById('mainContent');
   if(isMobile()&&calView==='week') calView='day';
-  main.innerHTML=buildCalToolbar()+`<div id="calBody"><div class="spinner"></div></div>`;
+  main.innerHTML=buildCalToolbar()+`<div class="cal-legend">${[['confirmed','Confirmado'],['pending','Por aprobar'],['checked_in','En sala'],['in_progress','En curso'],['completed','Atendido'],['no_show','Ausente']].map(([k,l])=>`<span class="st-${k}"><i style="background:var(--st)"></i>${l}</span>`).join('')}</div><div id="calBody"><div class="spinner"></div></div>`;
   await renderCalView();
 }
 
 function buildCalToolbar(){
   const d=calDate;
-  const title=calView==='day'
-    ? d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
-    : `Semana del ${getMonday(d).toLocaleDateString('es-AR',{day:'numeric',month:'short'})}`;
+  let title;
+  if(calView==='day') title=d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+  else{const m=getMonday(d),f=new Date(m);f.setDate(f.getDate()+6);
+    title=`${m.getDate()} ${m.getMonth()!==f.getMonth()?m.toLocaleDateString('es-AR',{month:'short'}):''} – ${f.toLocaleDateString('es-AR',{day:'numeric',month:'long'})}`}
+  const v=(id,l)=>`<button class="${calView===id?'on':''}" onclick="calSetView('${id}')">${l}</button>`;
   return `<div class="cal-toolbar">
     <div class="cal-nav-group">
-      <button class="cal-nav-btn" onclick="calPrev()">◀</button>
+      <button class="cal-nav-btn" onclick="calPrev()" aria-label="Anterior">◀</button>
       <button class="cal-today-btn" onclick="calToday()">Hoy</button>
-      <button class="cal-nav-btn" onclick="calNext()">▶</button>
+      <button class="cal-nav-btn" onclick="calNext()" aria-label="Siguiente">▶</button>
       <span class="cal-title">${title}</span>
     </div>
     <div class="cal-nav-group">
-      <button class="cal-nav-btn ${calView==='day'?'active':''}" onclick="calSetView('day')">Día</button>
-      <button class="cal-nav-btn ${calView==='week'?'active':''}" onclick="calSetView('week')">Semana</button>
+      <div class="cal-seg">${v('day','Día')}${isMobile()?'':v('week','Semana')}${v('list','Lista')}</div>
+      <button class="cal-nav-btn" onclick="loadAgenda()" title="Actualizar">↻</button>
     </div>
   </div>`;
 }
 
 function getMonday(d){const dt=new Date(d);const day=dt.getDay()||7;dt.setDate(dt.getDate()-day+1);return dt}
-function fmtISO(d){return d.toISOString().split('T')[0]}
+function fmtISO(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function calPrev(){calDate.setDate(calDate.getDate()-(calView==='day'?1:7));loadAgenda()}
 function calNext(){calDate.setDate(calDate.getDate()+(calView==='day'?1:7));loadAgenda()}
 function calToday(){calDate=new Date();loadAgenda()}
-function calSetView(v){calView=v;loadAgenda()}
-
-// Colores por paciente (hash del nombre)
-const patientColors=['#3E7468','#9A6B3F','#8B5CF6','#EC4899','#F59E0B','#10B981','#EF4444','#6366F1','#14B8A6','#F97316'];
-function patientColor(name){let h=0;for(let i=0;i<(name||'').length;i++)h=name.charCodeAt(i)+((h<<5)-h);return patientColors[Math.abs(h)%patientColors.length]}
+function calSetView(v){calView=v;try{localStorage.setItem('tc_calView',v)}catch{}loadAgenda()}
+const _min=t=>{t=String(t||'00:00');return parseInt(t.slice(0,2))*60+parseInt(t.slice(3,5))};
+function coberturaTxt(a){const o=a.insurance_provider||'';return !o?'':(/particular|sin obra/i.test(o)?'Particular':o)}
 
 async function renderCalView(){
   const body=document.getElementById('calBody');
-  const startHour=7,endHour=21;
-  
   let dates=[];
-  if(calView==='day'){
-    dates=[new Date(calDate)];
-  }else{
-    const mon=getMonday(calDate);
-    for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(d.getDate()+i);dates.push(d)}
-  }
+  if(calView==='day') dates=[new Date(calDate)];
+  else{const mon=getMonday(calDate);for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(d.getDate()+i);dates.push(d)}}
+  const from=fmtISO(dates[0]),to=fmtISO(dates[dates.length-1]);
+  let appts=[];
+  try{appts=asList(await apiFetch(`/api/v1/appointments?from=${from}&to=${to}`))}catch(e){body.innerHTML=`<div class="card"><p class="error">${esc(e.message)}</p></div>`;return}
+  appts=(Array.isArray(appts)?appts:[]).map(a=>({...a,_date:String(a.date||'').slice(0,10)})).filter(a=>a.status!=='cancelled');
+  _agendaTurnos=appts;
+  const todayISO=fmtISO(new Date());
 
-  // Fetch appointments for all dates
-  const todayISO=new Date().toISOString().split('T')[0];
-  const allAppts=[];
-  for(const d of dates){
-    try{
-      const _r=await apiFetch(`/api/v1/appointments?date=${fmtISO(d)}`);
-      const appts=asList(_r);
-      (Array.isArray(appts)?appts:[]).forEach(a=>a._date=fmtISO(d));
-      allAppts.push(...(Array.isArray(appts)?appts:[]));
-    }catch{}
-  }
-
-  const days=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  const cols=calView==='day'?'day-view':'';
-
-  let html=`<div class="cal-week ${cols}">`;
-  // Header row
-  html+=`<div class="cal-week-header" style="border-right:0.5px solid var(--border)"></div>`;
-  for(const d of dates){
-    const iso=fmtISO(d);
-    const isToday=iso===todayISO;
-    html+=`<div class="cal-week-header ${isToday?'today':''}">
-      ${days[d.getDay()]}<span class="day-num">${d.getDate()}</span>
-    </div>`;
-  }
-
-  // Time rows
-  for(let h=startHour;h<endHour;h++){
-    const hh=String(h).padStart(2,'0');
-    html+=`<div class="cal-time-col">${hh}:00</div>`;
-    for(const d of dates){
-      html+=`<div class="cal-day-col" data-date="${fmtISO(d)}" data-hour="${h}"></div>`;
+  if(calView==='list'){
+    const dias=calView==='list'&&dates.length===1?dates:(()=>{const m=getMonday(calDate);return [...Array(7)].map((_,i)=>{const d=new Date(m);d.setDate(d.getDate()+i);return d})})();
+    let h='';
+    for(const d of dias){
+      const iso=fmtISO(d),del=appts.filter(a=>a._date===iso).sort((x,y)=>_min(x.start_time)-_min(y.start_time));
+      if(!del.length&&iso!==todayISO) continue;
+      h+=`<div class="agl-day"><h3>${(t=>t.charAt(0).toUpperCase()+t.slice(1))((iso===todayISO?'hoy · ':'')+d.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}))}<span>${del.length} turno${del.length===1?'':'s'}</span></h3>
+        ${del.map(a=>`<div class="agl st-${a.status}" onclick="verTurnoAgenda('${a.id}')" tabindex="0">
+          <div class="h">${a.start_time?.slice(0,5)}<small>a ${a.end_time?.slice(0,5)||''}</small></div>
+          <div class="w"><strong>${esc(a.patient_name||'Paciente')}</strong><small>${[coberturaTxt(a),a.reason,a.doctor_name&&(_medicos||[]).length>1?'Dr/a. '+a.doctor_name:''].filter(Boolean).map(esc).join(' · ')}</small></div>
+          <div class="s"><span class="pill">${statusLabel(a.status)}</span></div></div>`).join('')||'<p class="muted" style="padding:6px 2px">Sin turnos</p>'}</div>`;
     }
+    body.innerHTML=h||'<div class="card center" style="padding:40px"><p class="muted">No hay turnos esta semana</p></div>';
+    return;
+  }
+
+  // Semana: los sábados y domingos sin turnos no ocupan lugar
+  if(calView==='week') dates=dates.filter(d=>{const w=d.getDay();return (w!==0&&w!==6)||appts.some(a=>a._date===fmtISO(d))});
+  const HORA=calView==='day'?144:136; // px por hora: un turno de 30 min mide ~68 px y se leen hora, estado, nombre y cobertura
+  let ini=8,fin=18;
+  for(const a of appts){ini=Math.min(ini,Math.floor(_min(a.start_time)/60));fin=Math.max(fin,Math.ceil(_min(a.end_time||a.start_time)/60))}
+  const alto=(fin-ini)*HORA;
+  const dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  let html=`<div class="cal-grid" style="grid-template-columns:56px repeat(${dates.length},minmax(${calView==='day'?'0':'120px'},1fr))">`;
+  html+=`<div class="cal-head" style="border-left:none"></div>`;
+  for(const d of dates){const iso=fmtISO(d),n=appts.filter(a=>a._date===iso).length;
+    html+=`<div class="cal-head ${iso===todayISO?'today':''}">${dias[d.getDay()]}<b>${d.getDate()}</b><small>${n?n+' turno'+(n===1?'':'s'):'&nbsp;'}</small></div>`}
+  html+=`<div class="cal-times" style="height:${alto}px">${[...Array(fin-ini)].map((_,i)=>`<span style="top:${i*HORA}px">${String(ini+i).padStart(2,'0')}:00</span>`).join('')}</div>`;
+  for(const d of dates){const iso=fmtISO(d);
+    html+=`<div class="cal-col ${iso===todayISO?'today':''}" data-date="${iso}" style="height:${alto}px;background-size:100% ${HORA}px,100% ${HORA/2}px">`;
+    const del=appts.filter(a=>a._date===iso).sort((x,y)=>_min(x.start_time)-_min(y.start_time)||_min(y.end_time)-_min(x.end_time));
+    // Turnos superpuestos: lado a lado
+    const grupos=[];let g=null,finG=-1;
+    for(const a of del){const s0=_min(a.start_time),e0=Math.max(_min(a.end_time||a.start_time),s0+15);
+      if(!g||s0>=finG){g=[];grupos.push(g);finG=e0}else finG=Math.max(finG,e0);
+      const carriles=g.carriles||(g.carriles=[]);let c=carriles.findIndex(f=>f<=s0);if(c<0){c=carriles.length;carriles.push(0)}carriles[c]=e0;
+      g.push({a,s0,e0,c})}
+    for(const grupo of grupos){const n=grupo.carriles.length;
+      for(const {a,s0,e0,c} of grupo){
+        const top=(s0-ini*60)/60*HORA,h=Math.max((e0-s0)/60*HORA-3,26);
+        const compact=h<44, multi=n>1&&(calView==='week'||isMobile()), angosto=multi||(calView==='week'&&window.innerWidth<1300), clase=(compact?'compact':(h<92?'mid':'tall'))+(multi?' narrow':'');
+        const cob=coberturaTxt(a);
+        html+=`<div class="cal-ev st-${a.status} ${clase}" tabindex="0" onclick="verTurnoAgenda('${a.id}')" onkeydown="if(event.key==='Enter')verTurnoAgenda('${a.id}')"
+          style="top:${top+1}px;height:${h}px;left:calc(${c*100/n}% + 3px);width:calc(${100/n}% - 6px)"
+          title="${esc(`${a.patient_name} · ${a.start_time?.slice(0,5)}–${a.end_time?.slice(0,5)} · ${statusLabel(a.status)}${cob?' · '+cob:''}`)}">
+          <div class="t"><span>${a.start_time?.slice(0,5)}${compact||angosto?'':'–'+(a.end_time?.slice(0,5)||'')}</span>${compact||angosto?'':`<span class="pill">${statusLabel(a.status)}</span>`}</div>
+          <div class="n">${a.is_first_visit?'★ ':''}${esc(a.patient_name||'Paciente')}</div>
+          ${cob?`<div class="c">🪪 ${esc(cob)}</div>`:''}
+          ${a.reason?`<div class="r">${esc(a.reason)}</div>`:''}
+        </div>`}}
+    if(iso===todayISO){const now=new Date(),m=now.getHours()*60+now.getMinutes();if(m>=ini*60&&m<=fin*60)html+=`<div class="cal-now" style="top:${(m-ini*60)/60*HORA}px"></div>`}
+    html+=`</div>`;
   }
   html+=`</div>`;
+  if(!appts.length) html=`<p class="muted" style="margin:0 0 10px">No hay turnos ${calView==='day'?'este día':'esta semana'}.</p>`+html;
   body.innerHTML=html;
+  // Llevar a la vista la hora actual o el primer turno
+  const primero=body.querySelector('.cal-now')||body.querySelector('.cal-ev');
+  if(primero&&calView==='day'&&isMobile()) primero.scrollIntoView({block:'center'});
+}
 
-  // Place events
-  for(const a of allAppts){
-    const st=a.start_time||'08:00';
-    const et=a.end_time||'08:30';
-    const startMin=parseInt(st.substring(0,2))*60+parseInt(st.substring(3,5));
-    const endMin=parseInt(et.substring(0,2))*60+parseInt(et.substring(3,5));
-    const top=((startMin-startHour*60)/60)*48;
-    const height=Math.max(((endMin-startMin)/60)*48,24);
-    const hour=parseInt(st.substring(0,2));
-
-    const col=body.querySelector(`.cal-day-col[data-date="${a._date}"][data-hour="${hour}"]`);
-    if(!col)continue;
-
-    const color=patientColor(a.patient_name);
-    const ev=document.createElement('div');
-    ev.className=`cal-event st-${a.status}`;
-    ev.style.top=((startMin%60)/60)*48+'px';
-    ev.style.height=height+'px';
-    ev.style.borderColor=color;
-    ev.innerHTML=`<div class="ev-time">${st.substring(0,5)}</div><div class="ev-name">${a.patient_name||'Paciente'}</div><div class="ev-reason">${a.reason||''}</div>`;
-    ev.onclick=()=>{
-      if(a.status==='confirmed')changeStatus(a.id,'checked_in');
-      else if(a.status==='checked_in')changeStatus(a.id,'in_progress');
-      else if(a.status==='in_progress')changeStatus(a.id,'completed');
-    };
-    ev.title=`${a.patient_name}\n${st.substring(0,5)}-${et.substring(0,5)}\n${a.reason||''}\nEstado: ${statusLabel(a.status)}\nClick para avanzar estado`;
-    col.appendChild(ev);
-  }
+function verTurnoAgenda(id){
+  const a=_agendaTurnos.find(x=>x.id===id);if(!a)return;
+  const f=new Date(a._date+'T12:00:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+  const tel=a.patient_phone||'';
+  const fila=(k,v)=>v?`<div class="row"><span>${k}</span><b>${esc(v)}</b></div>`:'';
+  const cont=document.createElement('div');cont.className='ag-back';
+  cont.onclick=e=>{if(e.target===cont)cont.remove()};
+  cont.innerHTML=`<div class="ag-sheet st-${a.status}" role="dialog" aria-modal="true">
+    <div style="display:flex;justify-content:space-between;align-items:center"><span class="pill">${statusLabel(a.status)}</span>
+      <button class="btn btn-sm btn-outline" onclick="this.closest('.ag-back').remove()" aria-label="Cerrar">✕</button></div>
+    <h2>${esc(a.patient_name||'Paciente')}</h2>
+    <p class="muted" style="margin-bottom:8px">${f.charAt(0).toUpperCase()+f.slice(1)} · ${a.start_time?.slice(0,5)} a ${a.end_time?.slice(0,5)||''} hs</p>
+    ${fila('Cobertura',coberturaTxt(a)||'Sin dato')}
+    ${fila('DNI',a.patient_dni)}
+    ${fila('Celular',tel)}
+    ${fila('Motivo',a.reason)}
+    ${fila('Médico',a.doctor_name&&(_medicos||[]).length>1?'Dr/a. '+a.doctor_name:'')}
+    ${fila('Primera vez',a.is_first_visit?'Sí':'')}
+    ${a.whatsapp_reminder?fila('Recordatorio','WhatsApp 1 día antes'+(a.whatsapp_reminder_sent_at?' · enviado':'')):''}
+    <div class="acts">
+      ${a.patient_id?`<button class="btn btn-sm btn-primary" onclick="this.closest('.ag-back').remove();abrirPaciente('${a.patient_id}')">👤 Ver ficha</button>`:''}
+      ${tel?waReminderBtn(tel,a.patient_name,f,a.start_time?.slice(0,5)):''}
+    </div>
+    <div class="acts" onclick="if(event.target.closest('button'))setTimeout(()=>{document.querySelector('.ag-back')?.remove()},0)">${accionesTurno(a)}</div>
+  </div>`;
+  document.body.appendChild(cont);
+  const esc1=e=>{if(e.key==='Escape'){cont.remove();document.removeEventListener('keydown',esc1)}};document.addEventListener('keydown',esc1);
 }
 
 async function loadPacientes(){
@@ -2045,7 +2107,7 @@ async function changeStatus(id,status){
   try{await apiFetch(`/api/v1/appointments/${id}/status`,{method:'PUT',body:{status}});navigateTo(currentSection)}catch(e){alert(e.message)}
 }
 
-function statusLabel(s){return{pending_approval:'Por aprobar',pending_payment:'Esperando pago',confirmed:'Confirmado',checked_in:'En sala',pending:'Pendiente',completed:'Atendido',cancelled:'Cancelado',in_progress:'En curso',no_show:'Ausente'}[s]||s}
+function statusLabel(s){return{pending_approval:'Por aprobar',pending_payment:'Esperando seña',confirmed:'Confirmado',checked_in:'En sala',pending:'Pendiente',completed:'Atendido',cancelled:'Cancelado',in_progress:'En curso',no_show:'Ausente'}[s]||s}
 function initials(name){return(name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}
 function fmtDate(d){if(!d)return'—';const p=(d+'').substring(0,10).split('-');return`${p[2]}/${p[1]}/${p[0]}`}
 function fmtDateLong(d){const dt=new Date(d+'T12:00:00');return dt.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'})}
