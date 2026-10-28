@@ -254,6 +254,13 @@ details.rec p{font-size:13px;margin-top:6px;white-space:pre-wrap}
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:45;-webkit-tap-highlight-color:transparent}
 .overlay.open{display:block}
 
+/* Recordatorios WhatsApp */
+.cfg-opts{display:flex;flex-direction:column;gap:10px}.cfg-opts label{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.45;cursor:pointer}.cfg-opts input{margin-top:3px;accent-color:var(--primary);width:16px;height:16px;flex-shrink:0}
+.rec-row{display:grid;grid-template-columns:48px 1fr auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #F2ECE3}
+.rec-row:last-of-type{border-bottom:none}
+.rec-row .h{font-weight:700;font-size:15px}.rec-row .w strong{display:block;font-size:14px}.rec-row .w small{font-size:12px;color:var(--text-soft)}
+.rec-row.ok{opacity:.6}
+.wa-btn{background:#25D366!important;color:#fff!important;border:none!important}
 /* Agenda */
 .cal-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
 .cal-nav-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -710,6 +717,39 @@ const ESTADOS={
 };
 let turnosTab='pendientes', turnosRango='proximos', turnosQ='';
 
+// ─── Recordatorios por WhatsApp (modo manual: botón que abre WhatsApp) ───
+async function renderRecordatorios(elId,fecha){
+  const el=document.getElementById(elId);if(!el)return;
+  const q=qMedico();
+  let l=[];
+  try{l=await apiFetch('/api/v1/reminders/whatsapp/pendientes?'+[fecha?'date='+fecha:'',q].filter(Boolean).join('&'))}catch{el.innerHTML='';return}
+  l=Array.isArray(l)?l:asList(l);
+  const pend=l.filter(a=>!a.enviado_at).length;
+  window._recWa=l;
+  const dia=l[0]?.date||addDays(todayAR(),1);
+  el.innerHTML=`<div class="card rec-wa"><div class="card-title" style="justify-content:space-between"><span>📲 Recordatorios de ${fecha?fmtDateLong(dia):'mañana'}</span><span class="badge">${pend?pend+' por enviar':'✓ Al día'}</span></div>
+    ${l.length?l.map(a=>`<div class="rec-row ${a.enviado_at?'ok':''}">
+      <div class="h">${a.start_time?.slice(0,5)}</div>
+      <div class="w"><strong>${esc(a.patient_name)}</strong><small>${a.phone?esc(a.phone):'<span style="color:#993535">Sin celular</span>'}${a.pidio?' · <b style="color:#128C4A">lo pidió</b>':''}${a.doctor_name&&(_medicos||[]).length>1?' · Dr/a. '+esc(a.doctor_name):''}</small></div>
+      ${a.enviado_at?`<button class="btn btn-sm btn-outline" title="Marcar como no enviado" onclick="marcarRecordatorio('${a.id}',false,'${elId}')">✓ Enviado</button>`
+        :a.phone?`<button class="btn btn-sm wa-btn" onclick="enviarRecordatorio('${a.id}','${elId}')">Enviar</button>`:''}
+    </div>`).join(''):'<p class="muted" style="font-size:13px">No hay turnos para recordar.</p>'}
+    <p class="muted" style="font-size:11px;margin-top:8px">Se abre WhatsApp con el mensaje listo; lo enviás vos desde tu número.</p></div>`;
+}
+function textoRecordatorio(a){
+  const f=fmtDateLong(a.date);
+  return `Hola ${a.first_name||''}! 👋 Te recordamos tu turno de mañana, ${f}, a las ${a.start_time?.slice(0,5)} hs con Dr/a. ${a.doctor_name}${a.org_name?' en '+a.org_name:''}${a.org_address?' ('+a.org_address+')':''}.\n\nPor favor, confirmá tu asistencia respondiendo este mensaje. Si no podés venir, avisanos así liberamos el horario. ¡Gracias!`;
+}
+async function enviarRecordatorio(id,elId){
+  const a=(window._recWa||[]).find(x=>x.id===id);if(!a)return;
+  window.open(waLink(a.phone,textoRecordatorio(a)),'_blank','noopener');
+  await marcarRecordatorio(id,true,elId);
+}
+async function marcarRecordatorio(id,enviado,elId){
+  try{await apiFetch(`/api/v1/reminders/whatsapp/${id}/enviado`,{method:'POST',body:{enviado}})}catch(e){alert(e.message)}
+  renderRecordatorios(elId);
+}
+
 async function loadDoctorDashboard(){
   const main=document.getElementById('mainContent');
   try{
@@ -719,6 +759,7 @@ async function loadDoctorDashboard(){
     const d=await apiFetch('/api/v1/dashboard'+(q?'?'+q:''));
     const t=d.today, sched=t.schedule||[];
     const max=Math.max(1,...(d.last14||[]).map(x=>x.total));
+    setTimeout(()=>renderRecordatorios('recWa'),0);
     main.innerHTML=`
       <div class="topbar"><h1>Dashboard</h1><div class="flex">${sel?`<div class="filters" style="margin:0">${sel}</div>`:''}<div class="badge">${fmtDateLong(t.date)}</div></div></div>
       <div class="stats">
@@ -734,6 +775,7 @@ async function loadDoctorDashboard(){
           ${sched.length?sched.map(filaTurno).join(''):'<p class="muted center" style="padding:24px">No hay turnos para hoy</p>'}
         </div>
         <div>
+          <div id="recWa"></div>
           <div class="card"><div class="card-title">📈 Últimos 14 días</div>
             <div class="bar14">${(d.last14||[]).map(x=>`<div title="${fmtDate(x.date)}: ${x.total} turnos, ${x.completed} atendidos" style="height:${Math.round(x.total/max*100)}%"><i style="height:${x.total?Math.round(x.completed/x.total*100):0}%"></i></div>`).join('')}</div>
             <p class="muted" style="font-size:11px;margin-top:6px">Barra: turnos del día · color: atendidos</p>
@@ -1430,6 +1472,7 @@ async function loadConfig(){
       apiFetch('/api/v1/booking/settings').catch(()=>null),
       apiFetch('/api/v1/reminder-settings').catch(()=>null),
     ]);
+    const waCfg=userType==='doctor'?await apiFetch('/api/v1/reminders/whatsapp/config').catch(()=>null):null;
 
     const days=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
     const dayMap={monday:0,tuesday:1,wednesday:2,thursday:3,friday:4,saturday:5,sunday:6};
@@ -1454,14 +1497,14 @@ async function loadConfig(){
         ${(bkSettings?.public_slug||bkSettings?.slug)?`<div style="margin-top:12px"><a href="/reservar/${bkSettings.public_slug||bkSettings.slug}" target="_blank" class="btn btn-sm btn-primary" style="display:inline-flex;width:auto;padding:8px 16px;text-decoration:none">🌐 Ver página de reservas</a></div>`:''}
       </div>
 
-      <div class="card">
-        <div class="card-title">🔔 Recordatorios</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px">
-          <div><span class="muted">WhatsApp</span><br><strong>${reminderSettings?.whatsapp_enabled?'✅ Activado':'❌ Desactivado'}</strong></div>
-          <div><span class="muted">Email</span><br><strong>${reminderSettings?.email_enabled?'✅ Activado':'❌ Desactivado'}</strong></div>
-          <div><span class="muted">Horas antes</span><br><strong>${reminderSettings?.hours_before||24} hs</strong></div>
-          <div><span class="muted">Recordatorio follow-up</span><br><strong>${reminderSettings?.follow_up_enabled?'Sí':'No'}</strong></div>
+      <div class="card" id="cfgRec">
+        <div class="card-title">🔔 Recordatorios por WhatsApp (1 día antes)</div>
+        <div class="cfg-opts">
+          <label><input type="radio" name="recModo" value="manual" ${waCfg?.modo!=='auto'?'checked':''}> <span><b>Manual</b> — el día antes ves la lista en el Dashboard y cada recordatorio se envía con un botón desde tu WhatsApp (web o app).</span></label>
+          <label style="${waCfg?.automaticoDisponible?'':'opacity:.55'}"><input type="radio" name="recModo" value="auto" ${waCfg?.modo==='auto'?'checked':''} ${waCfg?.automaticoDisponible?'':'disabled'}> <span><b>Automático</b> — se envía solo desde WhatsApp Business.${waCfg?.automaticoDisponible?'':' <i>Disponible cuando se conecte el número de WhatsApp Business.</i>'}</span></label>
         </div>
+        <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-top:10px"><input type="checkbox" id="recTodos" ${waCfg?.todos!==false?'checked':''} style="width:18px;height:18px;accent-color:var(--primary)"> Recordar a todos los turnos (si no, solo a quienes lo pidieron al reservar)</label>
+        <p id="recMsg" class="muted" style="font-size:12px;margin-top:8px"></p>
       </div>
 
       <div class="card">
@@ -1469,6 +1512,10 @@ async function loadConfig(){
         <p class="muted" style="font-size:13px">El chatbot está disponible en tu página de reservas. Responde preguntas frecuentes de tus pacientes automáticamente.</p>
         <a href="/reservar/${bkSettings?.public_slug||bkSettings?.slug||''}" target="_blank" class="btn btn-sm btn-outline" style="display:inline-flex;width:auto;padding:8px 16px;margin-top:8px;text-decoration:none">Ver chatbot en acción</a>
       </div>`;
+    const guardarRec=async()=>{const modo=document.querySelector('input[name=recModo]:checked')?.value,todos=document.getElementById('recTodos').checked,m=document.getElementById('recMsg');
+      try{await apiFetch('/api/v1/reminders/whatsapp/config',{method:'PUT',body:{modo,todos}});m.textContent='✅ Guardado';m.style.color='var(--success)'}catch(e){m.textContent=e.message;m.style.color='var(--danger)'}};
+    document.querySelectorAll('#cfgRec input').forEach(i=>i.onchange=guardarRec);
+    if(!waCfg) document.getElementById('cfgRec')?.remove();
   }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
 }
 

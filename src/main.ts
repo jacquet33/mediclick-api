@@ -79,6 +79,7 @@ import { OnboardingService } from './modules/onboarding/onboarding.service';
 import { ReminderCronController } from './modules/reminders/reminder-cron.controller';
 import { ReminderCronService } from './modules/reminders/reminder-cron.service';
 import { WhatsappReminderService } from './modules/reminders/whatsapp-reminder.service';
+import { WhatsappReminderController } from './modules/reminders/whatsapp-reminder.controller';
 import { DashboardController } from './modules/dashboard/dashboard.controller';
 import { DashboardService } from './modules/dashboard/dashboard.service';
 import { PaymentController } from './modules/payments/payment.controller';
@@ -177,7 +178,7 @@ class HealthController {
     AuditController,
     ConsentController,
     OnboardingController,
-    ReminderCronController,
+    WhatsappReminderController, ReminderCronController,
     DashboardController,
     PaymentController,
   ],
