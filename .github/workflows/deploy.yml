@@ -40,6 +40,9 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
+          # La conexión al VPS a veces tarda: más margen antes de dar el deploy por fallido
+          timeout: 90s
+          command_timeout: 20m
           script: |
             cd /opt/mediclick
             # Rispy Health: la API también responde en tuconsultorio.rispy.io a través del proxy de Rispy
