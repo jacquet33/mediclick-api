@@ -39,7 +39,7 @@ export class PublicRegisterPatientDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(['M', 'F', 'X', 'male', 'female', 'other'])
+  @IsIn(['M', 'F', 'X', 'male', 'female', 'other', 'masculino', 'femenino', 'otro'])
   gender?: string;
 
   @IsOptional()

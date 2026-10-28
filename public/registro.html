@@ -188,7 +188,7 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 <div id="step1">
   <div class="header">
     <h1>Datos del paciente</h1>
-    <p>Complete sus datos para sumarse a la cartilla de pacientes del <span class="doc-ref" id="docRef">Dr/a. ...</span></p>
+    <p>Completá tus datos para sumarte a la lista de pacientes de <span class="doc-ref" id="docRef">Dr/a. ...</span></p>
     <hr>
   </div>
 
@@ -207,9 +207,9 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
     </div>
     <div>
       <button class="avatar-btn" onclick="document.getElementById('avatarInput').click()">
-        Subir Imagen de Perfil
+        Subir foto
       </button>
-      <div class="avatar-hint">Se usara para reconocer al paciente mas rapidamente, aunque no es obligatorio</div>
+      <div class="avatar-hint">Ayuda a que el consultorio te reconozca. Es opcional.</div>
     </div>
     <input type="file" id="avatarInput" accept="image/*" class="hidden" onchange="previewAvatar(this)">
   </div>
@@ -218,7 +218,7 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
     <div class="field-row">
       <div class="field" id="fFirstName">
         <label>Nombre <span class="req">*</span></label>
-        <input id="firstName" placeholder="Nombre Completo" autocomplete="given-name">
+        <input id="firstName" placeholder="Nombre" autocomplete="given-name">
         <div class="error-msg">Campo obligatorio</div>
       </div>
       <div class="field" id="fLastName">
@@ -229,12 +229,12 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
     </div>
 
     <div class="field">
-      <label>E-Mail (Opcional)</label>
-      <input id="email" type="email" placeholder="E-Mail" autocomplete="email">
+      <label>Email (opcional)</label>
+      <input id="email" type="email" placeholder="tu@email.com" autocomplete="email">
     </div>
 
     <div class="field" id="fPhone">
-      <label>Telefono Movil</label>
+      <label>Celular</label>
       <div class="phone-wrap">
         <div class="phone-flag">
           <span class="flag">🇦🇷</span>
@@ -255,7 +255,7 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 <div id="step2" class="hidden">
   <div class="header">
     <h1>Datos del paciente</h1>
-    <p>Complete sus datos para sumarse a la cartilla de pacientes del <span class="doc-ref" id="docRef2">Dr/a. ...</span></p>
+    <p>Completá tus datos para sumarte a la lista de pacientes de <span class="doc-ref" id="docRef2">Dr/a. ...</span></p>
     <hr>
   </div>
 
@@ -363,7 +363,7 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
       </svg>
     </div>
     <h2>¡Registro exitoso!</h2>
-    <p id="successMsg">Ya estas en la cartilla de pacientes. El/la doctor/a puede ver tus datos.</p>
+    <p id="successMsg">Ya estás en la lista de pacientes. El consultorio ya puede ver tus datos.</p>
   </div>
   <div class="success-card" id="successCard"></div>
   <div class="btn-area" style="margin-top:20px">
@@ -579,7 +579,7 @@ function showSuccess(data, body) {
   document.getElementById('stepSuccess').classList.remove('hidden');
 
   document.getElementById('successMsg').textContent =
-    `Ya estas en la cartilla del ${data.doctor?.name ? 'Dr/a. ' + data.doctor.name : 'medico'}. Podras ser atendido/a en ${data.doctor?.orgName || 'el consultorio'}.`;
+    `Ya estás en la lista de pacientes de ${data.doctor?.name ? 'Dr/a. ' + data.doctor.name : 'tu médico'}, en ${data.doctor?.orgName || 'el consultorio'}.`;
 
   const card = document.getElementById('successCard');
   const ins = body.insuranceProvider || 'No informada';

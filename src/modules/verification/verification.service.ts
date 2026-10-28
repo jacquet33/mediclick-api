@@ -65,6 +65,11 @@ export class VerificationService implements OnModuleInit {
     if (dto.document && (!/^data:image\/(jpeg|png|webp);base64,/.test(dto.document) || dto.document.length > 2_000_000)) {
       throw new BadRequestException('La foto de la credencial no es válida o es muy grande');
     }
+    const otro = await this.db.queryOne(
+      `SELECT id FROM doctors WHERE regexp_replace(COALESCE(dni,''),'\\D','','g') = $1 AND id <> $2 AND license_status IN ('verified','pending')`,
+      [dni, doctorId],
+    );
+    if (otro) throw new BadRequestException('Ya hay otra cuenta de médico con ese DNI. Si es tuya, ingresá con esa cuenta o escribinos a contact@rispy.io');
     if (dto.dniDocument && (!/^data:image\/(jpeg|png|webp);base64,/.test(dto.dniDocument) || dto.dniDocument.length > 2_000_000)) {
       throw new BadRequestException('La foto del DNI no es válida o es muy grande');
     }

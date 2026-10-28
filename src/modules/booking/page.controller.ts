@@ -20,6 +20,12 @@ export class BookingPageController {
     res.sendFile(join(__dirname, '..', '..', '..', 'public', 'reservar.html'));
   }
 
+  /** Alta del paciente en la cartilla del médico (sin turno): /registro/:slug */
+  @Get('registro/:slug')
+  serveRegistro(@Param('slug') slug: string, @Res() res: Response) {
+    res.sendFile(join(__dirname, '..', '..', '..', 'public', 'registro.html'));
+  }
+
   /** Panel de cobertura del hub: /cobertura */
   @Get('cobertura')
   serveCoverage(@Res() res: Response) {

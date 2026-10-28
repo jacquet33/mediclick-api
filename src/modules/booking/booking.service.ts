@@ -862,7 +862,7 @@ export class BookingService {
         dto.email || null,
         dto.phone || null,
         dto.dateOfBirth || dto.date_of_birth || null,
-        dto.gender || null,
+        ({ M: 'male', masculino: 'male', male: 'male', F: 'female', femenino: 'female', female: 'female', X: 'other', otro: 'other', other: 'other' } as Record<string, string>)[dto.gender || ''] || null,
         dto.address || null,
         dto.city || null,
         dto.province || null,

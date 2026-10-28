@@ -218,11 +218,10 @@ export class AuthService {
   // ═══════════════════════════════════════════════════════════
 
   async register(dto: RegisterDto): Promise<AuthSession> {
-    const exists = await this.db.queryOne(
-      'SELECT id FROM doctors WHERE email = $1 OR medical_license = $2',
-      [dto.email.toLowerCase(), dto.medicalLicense],
-    );
-    if (exists) throw new ConflictException('Email o matrícula ya registrados');
+    // La matrícula no identifica a una persona (las MP se repiten entre provincias): solo se valida el email.
+    // El DNI se controla en la verificación profesional.
+    const exists = await this.db.queryOne('SELECT id FROM doctors WHERE lower(email) = $1', [dto.email.toLowerCase()]);
+    if (exists) throw new ConflictException('Ya existe una cuenta con ese email. Ingresá con tu contraseña o recuperala.');
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
