@@ -456,6 +456,8 @@ const pathParts = window.location.pathname.split('/').filter(Boolean);
 let slug = params.get('slug');
 let doctorSlug = null;
 let orgSlug = null;
+// Link corto: /nombre-del-medico
+if (!slug && pathParts.length === 1 && !/\./.test(pathParts[0]) && pathParts[0] !== 'reservar') { slug = pathParts[0]; doctorSlug = pathParts[0]; }
 if (!slug && pathParts[0] === 'reservar') {
   if (pathParts.length >= 3) {
     // /reservar/alejandro-jacquet/centro-medico-parana

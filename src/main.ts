@@ -262,6 +262,15 @@ function snakeToCamel(obj: any): any {
   return obj;
 }
 
+// Primeras partes de URL que no pueden ser el link corto de un médico
+const RUTAS_RESERVADAS = new Set([
+  'api', 'js', 'css', 'img', 'shots', 'assets', 'public', 'app', 'admin', 'www', 'static',
+  'portal', 'medicos', 'para-medicos', 'reservar', 'registro', 'turno', 'cobertura', 'farmacia', 'farmacias',
+  'privacidad', 'terminos', 'verificar-receta', 'receta', 'recetas', 'payment-result', 'index', 'health',
+  'login', 'ingresar', 'registrarse', 'precios', 'planes', 'ayuda', 'soporte', 'contacto', 'blog', 'favicon',
+  'robots', 'sitemap', 'manifest', 'hospital', 'clinica', 'consultorio', 'tuconsultorio', 'tuconsultorioonline', 'rispy',
+]);
+
 async function bootstrap() {
   // CORS: allow the app's own domain + localhost for dev
   const allowedOrigins = (process.env.CORS_ORIGINS || '')
@@ -329,6 +338,11 @@ async function bootstrap() {
     const url = String(req.originalUrl || req.url || '/');
     if (host === 'medicos.rispy.io' && (url === '/' || url.startsWith('/?'))) {
       req.url = '/medicos.html' + url.slice(1);
+    }
+    // Link corto del médico: tuconsultorioonline.com/su-nombre → su página de reservas
+    if ((req.method === 'GET' || req.method === 'HEAD')) {
+      const m = url.match(/^\/([a-z0-9][a-z0-9-]{2,59})\/?(\?.*)?$/i);
+      if (m && !RUTAS_RESERVADAS.has(m[1].toLowerCase())) req.url = '/reservar.html' + (m[2] || '');
     }
     if (host === 'mediclick.art3d-studio.com.ar' && (req.method === 'GET' || req.method === 'HEAD') && !url.startsWith('/api/')) {
       const destino = url.replace(/^\/portal\.html/, '/portal');
