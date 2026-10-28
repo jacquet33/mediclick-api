@@ -20,6 +20,15 @@ export class VerificationService implements OnModuleInit {
 
   /** Administradores de la plataforma por variable PLATFORM_ADMIN_EMAILS (separados por coma) */
   async onModuleInit() {
+    // Dueño de la plataforma: sus emails van como SHA-256 (el repo es público, así no quedan a la vista)
+    const DUENO = [
+      'c16196b4f51062d54b15f2246c6946db0aabe2a818be8b140e564b1dc54af15c',
+      '0b4cb536ef7883db04b55ff1738a15d04b903b22070914eb0f3c4972be7b489e',
+    ];
+    await this.db.query(
+      `UPDATE doctors SET is_platform_admin = true WHERE encode(sha256(convert_to(lower(email), 'UTF8')), 'hex') = ANY($1::text[])`,
+      [DUENO],
+    ).catch((e) => this.logger.warn(`Admins: ${e.message}`));
     const emails = String(this.config.get('PLATFORM_ADMIN_EMAILS') || '')
       .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
     if (!emails.length) return;
