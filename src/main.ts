@@ -304,6 +304,10 @@ async function bootstrap() {
           frameSrc: ["'self'", 'https://accounts.google.com/gsi/'],
         },
       },
+      // Login con Google (popup): con COOP "same-origin" la ventana de Google no puede devolver
+      // la respuesta y queda en blanco en /gsi/transform; y Google valida el origen con el Referer.
+      crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
     }),
   );
   app.useGlobalFilters(new GlobalExceptionFilter());
