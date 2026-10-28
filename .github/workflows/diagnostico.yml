@@ -26,4 +26,4 @@ jobs:
             echo "LOCAL api.rispy.io https $(curl -sk -o /dev/null -w %{http_code} -H "Host: api.rispy.io" https://127.0.0.1/health)"
           ' > out.txt 2>&1 || true
           rm -f k
-          grep -E '^(LABEL|LOCAL|BACKUP|SERVIDOR)' out.txt | head -10 | while IFS= read -r l; do echo "::notice::$l"; done
+          { grep -E '^(BACKUP|SERVIDOR|LOCAL)' out.txt; grep '^LABEL' out.txt | head -4; } | while IFS= read -r l; do echo "::notice::$l"; done
