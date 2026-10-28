@@ -56,7 +56,9 @@ jobs:
                   start_period: 40s
                 environment:
                   # ID de cliente OAuth web de Google (es público, no es secreto). Variable del repo GOOGLE_CLIENT_ID_WEB
-                  GOOGLE_CLIENT_ID_WEB: "${{ vars.GOOGLE_CLIENT_ID_WEB || '85175903902-58qlp27n6qr88t5qtmec6begnf5v9e74.apps.googleusercontent.com' }}"
+                  GOOGLE_CLIENT_ID_WEB: "${{ vars.GOOGLE_CLIENT_ID_WEB }}"
+                  # ID de cliente OAuth iOS (público) para la app
+                  GOOGLE_CLIENT_ID_IOS: "85175903902-58qlp27n6qr88t5qtmec6begnf5v9e74.apps.googleusercontent.com"
                   # Links de recetas, pagos y correos con el dominio nuevo
                   BASE_URL: "https://tuconsultorio.rispy.io"
                   API_BASE_URL: "https://tuconsultorio.rispy.io"
