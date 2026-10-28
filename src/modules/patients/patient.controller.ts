@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, Req } from '@nestjs/common';
+import { ForbiddenException, Controller, Get, Post, Put, Delete, Body, Param, Query, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { PatientService } from './patient.service';
 import { CreatePatientDto } from '../../common/dto/patient.dto';
@@ -62,6 +62,15 @@ export class PatientController {
       'patients', id, req.ip, req.headers['user-agent'] as string,
     );
     return data;
+  }
+
+  /** PUT /patients/:id/clinical-summary — alergias, problemas activos, medicación actual y antecedentes (solo el médico) */
+  @Put(':id/clinical-summary')
+  async resumenClinico(@OrgId() orgId: string, @CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: any, @Req() req: Request) {
+    if (user.userType !== 'doctor') throw new ForbiddenException('Solo el médico edita el resumen clínico');
+    const r = await this.patientService.setResumenClinico(orgId, id, user.doctorId, body || {});
+    this.auditService.logAccess(user.doctorId, 'doctor', 'UPDATE_CLINICAL_SUMMARY', 'patients', id, req.ip, req.headers['user-agent'] as string);
+    return r;
   }
 
   /** PUT /patients/:id/photo { photo: 'data:image/jpeg;base64,...' } — vacío para quitarla */

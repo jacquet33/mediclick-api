@@ -304,11 +304,28 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
-    // Buscar si ya existe como paciente (por email, DNI o teléfono — el booking lo crea con teléfono)
-    let patient = await this.db.queryOne(
-      `SELECT id FROM patients WHERE email = $1 OR ($2 != '' AND dni = $2) OR ($3 != '' AND phone LIKE '%' || $3) LIMIT 1`,
-      [email, dto.dni || '', phone.slice(-8)],
-    );
+    // Vincular con un paciente existente solo si se demuestra que es la misma persona:
+    //  - el email coincide con el cargado en su ficha, o
+    //  - acaba de reservar un turno y crea la cuenta desde la confirmación (token de esa reserva, últimas 48 h).
+    // Antes alcanzaba con conocer el DNI o el teléfono, lo que permitía ver la historia de otra persona.
+    let patient: { id: string } | null = null;
+    const token = String((dto as any).bookingToken || '').trim();
+    if (token) {
+      patient = await this.db.queryOne(
+        `SELECT COALESCE(a.patient_id, br.patient_id) AS id FROM booking_requests br LEFT JOIN appointments a ON a.id = br.appointment_id
+          WHERE br.confirmation_token = $1 AND br.created_at > now() - interval '48 hours' AND COALESCE(a.patient_id, br.patient_id) IS NOT NULL`,
+        [token],
+      );
+      if (patient && !(await this.db.queryOne(`SELECT 1 FROM patient_auth WHERE patient_id = $1`, [patient.id]))) {
+        await this.db.query(`UPDATE patients SET email = COALESCE(NULLIF(email, ''), $1) WHERE id = $2`, [email, patient.id]);
+      } else patient = null;
+    }
+    if (!patient) {
+      patient = await this.db.queryOne(
+        `SELECT p.id FROM patients p WHERE lower(p.email) = $1 AND NOT EXISTS (SELECT 1 FROM patient_auth pa WHERE pa.patient_id = p.id) LIMIT 1`,
+        [email],
+      );
+    }
 
     if (!patient) {
       // Necesitamos un organization_id — buscar la primera org activa o la del dto

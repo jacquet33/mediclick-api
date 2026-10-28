@@ -254,6 +254,39 @@ details.rec p{font-size:13px;margin-top:6px;white-space:pre-wrap}
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:45;-webkit-tap-highlight-color:transparent}
 .overlay.open{display:block}
 
+/* Portal paciente */
+.trat{padding:8px 0;border-bottom:1px solid #F4EEE6}.trat-i{display:flex;flex-direction:column;padding:6px 0;font-size:14px}.trat-i span{color:var(--text-soft);font-size:13px}
+/* Asistente IA */
+.card.dictado{background:#FBF8FF;border:1.5px dashed #D9C9EF}.card.dictado textarea{width:100%;margin-top:8px;font:inherit;font-size:13px;border:1.5px solid #ECE5D9;border-radius:10px;padding:10px;background:#fff}
+.ia-box{background:linear-gradient(135deg,#FFFBF4,#F8F1FF);border:1.5px solid #E5D8F5;border-radius:14px;padding:14px;margin:6px 0 12px}
+.ia-h{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.ia-nar{font-size:14px;line-height:1.55;margin-bottom:8px}
+.ia-pts{margin:0 0 6px 18px;font-size:13px;line-height:1.55}
+.ia-falt{background:#FFF6E5;border:1px solid #F3D9A4;border-radius:10px;padding:10px 12px;margin-top:8px;font-size:13px}
+.ia-falt ul{margin:6px 0 8px 18px}
+/* Ficha unificada */
+.rc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.rc-b{background:#FFFDF9;border:1px solid #F1E8DC;border-radius:12px;padding:10px 12px}
+.rc-t{font-size:12px;font-weight:700;color:var(--text-soft);margin-bottom:6px}
+.tag.prob{background:#EEF0FF;color:#3B3F8F}.tag.med{background:#E6F0EC;color:#2F5D52}
+.tl-filtros{display:inline-flex;gap:4px;flex-wrap:wrap}
+.tl-f{background:#F3ECE2;border:none;border-radius:16px;padding:5px 11px;font:inherit;font-size:12px;font-weight:600;color:var(--text-soft);cursor:pointer}
+.tl-f.on{background:var(--primary);color:#fff}
+.tl-anio{font-size:12px;font-weight:800;color:var(--text-muted);letter-spacing:.08em;margin:14px 0 6px 44px}
+.tl-item{display:grid;grid-template-columns:32px 46px 1fr;gap:8px;position:relative;padding:4px 0}
+.tl-item:before{content:'';position:absolute;left:15px;top:0;bottom:0;width:2px;background:#EFE6DA}
+.tl-dot{width:32px;height:32px;border-radius:50%;background:#fff;border:2px solid #EFE6DA;display:flex;align-items:center;justify-content:center;font-size:15px;position:relative;z-index:1}
+.tl-consulta .tl-dot{border-color:var(--primary)}.tl-receta .tl-dot{border-color:#3E7468}.tl-documento .tl-dot{border-color:#6366F1}
+.tl-date{font-size:12px;font-weight:700;color:var(--text-soft);padding-top:8px}
+.tl-body{min-width:0;padding-top:4px}
+.tl-body details.rec{margin:0}
+.tl-line{font-size:13px;padding:4px 0 8px}.tl-line small{display:block;color:var(--text-soft);margin-top:2px}
+.doc-row{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #F4EEE6;font-size:13px;flex-wrap:wrap}
+.doc-row small{display:block;color:var(--text-soft);font-size:12px}
+.doc-ic{font-size:20px}
+.doc-share{display:inline-flex;gap:5px;align-items:center;font-size:12px;cursor:pointer}
+.doc-share input{accent-color:var(--primary)}
+.doc-form{background:#FFFDF9;border:1px solid #F1E8DC;border-radius:12px;padding:12px;margin-bottom:10px}
 /* Receta */
 .rx-ac{position:absolute;left:0;min-width:min(340px,90vw);right:0;top:100%;z-index:30;background:#fff;border:1px solid #E3DACC;border-radius:12px;box-shadow:0 10px 30px rgba(43,36,31,.15);display:none;max-height:300px;overflow:auto;margin-top:2px}
 .rx-ac.open{display:block}
@@ -522,6 +555,16 @@ function showRegister(){document.getElementById('registerBox').classList.remove(
 function hideRegister(){document.getElementById('registerBox').classList.add('hidden')}
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('open')}
 
+// Descarga autenticada (archivos)
+async function apiBlob(path){
+  const headers={};
+  if(token) headers['Authorization']='Bearer '+token;
+  const orgs=JSON.parse(localStorage.getItem('mediclick_orgs')||'[]');
+  if(orgs[0]) headers['x-organization-id']=orgs[0].org_id||orgs[0].organization_id||'';
+  const r=await fetch(API+path,{headers});
+  if(!r.ok){let m='No se pudo abrir el archivo';try{m=(await r.json()).message||m}catch{};throw new Error(m)}
+  return r.blob();
+}
 // ─── API helper con auto-refresh ─────────────────────────
 async function apiFetch(path,opts={}){
   const headers={'Content-Type':'application/json'};
@@ -631,6 +674,7 @@ function buildNav(){
         {id:'reservar-turno',icon:'🗓️',label:'Reservar turno'},
         {id:'mi-historial',icon:'📋',label:'Mi historial'},
         {id:'mis-recetas',icon:'💊',label:'Mis recetas'},
+        {id:'mis-documentos',icon:'📎',label:'Tratamiento y estudios'},
         {id:'mensajes',icon:'💬',label:'Mensajes'},
       ]},
       {section:'Cuenta',items:[
@@ -687,6 +731,7 @@ function navigateTo(id){
     'reservar-turno':loadReservarTurno,
     'mi-historial':loadMiHistorial,
     'mis-recetas':loadMisRecetas,
+    'mis-documentos':loadMisDocumentos,
     'mensajes':loadMensajes,
     'mi-perfil':loadMiPerfil,
     'admin-dashboard':loadAdminDashboard,
@@ -897,6 +942,7 @@ async function abrirPaciente(id){
             <p class="muted" style="font-size:14px">${[edad(p.date_of_birth),p.dni?'DNI '+p.dni:'',p.insurance_provider||'Particular'].filter(Boolean).map(esc).join(' · ')}</p>
             <div class="tags" style="margin-top:8px">
               ${alergias.length?`<span class="tag alert">⚠️ Alergias: ${esc(alergias.join(', '))}</span>`:''}
+              ${cronicas.slice(0,4).map(x=>`<span class="tag prob">${esc(x)}</span>`).join('')}
               ${p.blood_type&&p.blood_type!=='unknown'?`<span class="tag">🩸 ${esc(p.blood_type)}</span>`:''}
               ${f.cuenta?`<span class="tag">✅ Tiene cuenta en el portal</span>`:''}
             </div>
@@ -928,21 +974,10 @@ async function abrirPaciente(id){
           <div class="card"><div class="card-title">🏥 Cobertura</div><div class="kv">
             ${kv('Obra social / prepaga',p.insurance_provider||'Particular')}${kv('Plan',p.insurance_plan)}${kv('N° de afiliado',p.insurance_number)}
           </div></div>
-          ${c?`<div class="card"><div class="card-title">🩺 Resumen clínico</div>
-            <div class="kv">
-              ${kv('Alergias',alergias.join(', ')||'')}${kv('Condiciones crónicas',cronicas.join(', '))}${kv('Medicación habitual',meds.join(', '))}
-              ${kv('Antecedentes personales',ult?.personal_history)}${kv('Antecedentes familiares',ult?.family_history)}${kv('Hábitos',ult?.habits)}
-            </div>
-            ${Object.keys(vit||{}).length?`<div style="margin-top:12px"><span class="muted" style="font-size:11px;text-transform:uppercase">Últimos signos vitales (${fmtDate(ult.date)})</span><div class="tags" style="margin-top:6px">
-              ${[vit.bloodPressure||vit.blood_pressure?'TA '+(vit.bloodPressure||vit.blood_pressure):'',vit.heartRate||vit.heart_rate?'FC '+(vit.heartRate||vit.heart_rate)+' lpm':'',vit.temperature?vit.temperature+' °C':'',vit.spO2||vit.spo2?'SpO₂ '+(vit.spO2||vit.spo2)+'%':'',vit.weight?vit.weight+' kg':'',vit.height?vit.height+' cm':'',vit.weight&&vit.height?'IMC '+(vit.weight/((vit.height/100)**2)).toFixed(1):''].filter(Boolean).map(x=>`<span class="tag">${esc(x)}</span>`).join('')}
-            </div></div>`:''}
-            ${!alergias.length&&!cronicas.length&&!meds.length&&!ult?'<p class="muted">Todavía no hay datos clínicos cargados.</p>':''}
-          </div>
-          <div class="card"><div class="card-title">📋 Consultas (${c.records.length})</div>
-            ${c.records.length?c.records.map(r=>`<details class="rec"><summary><span><b>${fmtDate(r.date)}</b> · ${esc(r.diagnosis||r.chief_complaint||'Consulta')}${r.diagnosis_code?` <span class="muted">(${esc(r.diagnosis_code)})</span>`:''}</span><span class="muted">${esc(r.doctor_full_name||'')}</span></summary>
-              ${r.deleted_at?`<p style="color:var(--danger);font-size:12px">Anulada${r.annulled_reason?': '+esc(r.annulled_reason):''}</p>`:''}<div class="flex" style="margin-top:8px;flex-wrap:wrap">${r.deleted_at?'':`<button class="btn btn-sm btn-soft" onclick="abrirFormularioHC('${p.id}',{recordId:'${r.id}',nombre:'${esc(nombre)}'})">✏️ Editar consulta</button>`}${(r.version||1)>1?`<button class="btn btn-sm btn-soft" onclick="verVersionesHC('${r.id}')">🕑 Versiones (${r.version})</button>`:''}${r.deleted_at?'':`<button class="btn btn-sm btn-no" onclick="anularHC('${r.id}','${p.id}')">Anular</button>`}<button class="btn btn-sm btn-soft" onclick="abrirNuevaReceta({patientId:'${p.id}',medicalRecordId:'${r.id}',diagnosis:'${esc((r.diagnosis||'').replace(/'/g,''))}',diagnosisCode:'${esc(r.diagnosis_code||'')}'})">💊 Receta</button></div>
-              ${[['Motivo',r.chief_complaint],['Enfermedad actual',r.present_illness],['Revisión por sistemas',r.systems_review],['Examen físico',r.physical_exam],['Hallazgos',r.findings],['Diagnóstico',r.diagnosis],['Plan',r.treatment_plan],['Indicaciones',r.instructions],['Seguimiento',r.follow_up]].filter(x=>x[1]).map(([k,v])=>`<p><b>${k}:</b> ${esc(String(v).replace(/; /g,'\n'))}</p>`).join('')}
-            </details>`).join(''):'<p class="muted">Sin consultas registradas.</p>'}
+          ${c?`<div class="card" id="resumenClinico">${htmlResumenClinico(p,ult,vit)}</div>
+          <div class="card"><div class="card-title" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><span>🗂️ Historia clínica</span>
+            <span class="tl-filtros">${[['todo','Todo'],['consulta','Consultas'],['receta','Recetas'],['documento','Estudios'],['turno','Turnos']].map(([k,l])=>`<button class="tl-f ${k==='todo'?'on':''}" data-tl="${k}" onclick="filtrarTimeline('${k}')">${l}</button>`).join('')}</span></div>
+            <div id="timeline">${htmlTimeline(f,'todo')}</div>
           </div>`:''}
           ${p.notes?`<div class="card"><div class="card-title">📝 Notas</div><p style="font-size:13px;white-space:pre-wrap">${esc(p.notes)}</p></div>`:''}
         </div>
@@ -950,19 +985,179 @@ async function abrirPaciente(id){
           <div class="card"><div class="card-title">📅 Próximos turnos</div>
             ${f.proximos.length?f.proximos.map(a=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #FAF6F0;font-size:13px"><span><b>${fmtDate(a.date)} ${a.start_time?.slice(0,5)||''}</b><br><small class="muted">${esc(a.reason||'')}${a.doctor_name&&(_medicos||[]).length>1?' · Dr/a. '+esc(a.doctor_name):''}</small></span><span class="badge-sm ${a.status}">${statusLabel(a.status)}</span></div>`).join(''):'<p class="muted">No tiene turnos próximos.</p>'}
           </div>
-          <div class="card"><div class="card-title">🕑 Historial de turnos (${f.appointments.length})</div>
+          ${!c?`<div class="card"><div class="card-title">🕑 Historial de turnos (${f.appointments.length})</div>
             ${f.appointments.length?f.appointments.slice(0,40).map(a=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #FAF6F0;font-size:13px"><span>${fmtDate(a.date)} ${a.start_time?.slice(0,5)||''}<br><small class="muted">${esc(a.reason||'')}${a.cancelled_reason?' · '+esc(a.cancelled_reason):''}</small></span><span class="badge-sm ${a.status}">${statusLabel(a.status)}</span></div>`).join(''):'<p class="muted">Sin turnos.</p>'}
-          </div>
-          ${c?`<div class="card"><div class="card-title">💊 Recetas (${c.prescriptions.length})</div>
-            ${c.prescriptions.length?c.prescriptions.map(r=>`<div style="padding:8px 0;border-bottom:1px solid #FAF6F0;font-size:13px"><b>${fmtDate(r.date)}</b> ${r.diagnosis?'· '+esc(r.diagnosis):''} ${r.status==='cancelled'?'<span class="badge-sm cancelled">Anulada</span>':''}<br><small class="muted">${(r.items||[]).map(i=>esc([i.name,i.dosage,i.frequency].filter(Boolean).join(' '))).join(' · ')||'—'}</small>
-              <div class="flex" style="margin-top:6px;flex-wrap:wrap"><button class="btn btn-sm btn-soft" onclick="recetaPdf('${r.id}')">🖨️ PDF</button><button class="btn btn-sm" style="background:#25D366;color:#fff" onclick="recetaWhatsApp('${esc(r.verification_code)}','${esc(p.phone||'')}','${esc(p.first_name||'')}')">WhatsApp</button><button class="btn btn-sm btn-soft" onclick="recetaEmail('${r.id}','${esc(p.email||'')}')">✉️ Email</button></div></div>`).join(''):'<p class="muted">Sin recetas.</p>'}
-          </div>
+          </div>`:''}
+          ${c?`<div class="card" id="docsCard">${htmlDocumentos(p,c.documents||[])}</div>
           ${c.consents.length?`<div class="card"><div class="card-title">✍️ Consentimientos</div>${c.consents.map(x=>`<div style="font-size:13px;padding:6px 0;border-bottom:1px solid #FAF6F0">${esc(x.consent_type)} · ${x.revoked_at?'revocado':x.accepted?'aceptado '+fmtDate(x.date):'pendiente'}</div>`).join('')}</div>`:''}`:''}
         </div>
       </div>`;
-    window._fichaPaciente=p;
+    window._fichaPaciente=p; window._ficha=f;
   }catch(e){main.innerHTML=`<div class="card"><p class="error">${esc(e.message)}</p><button class="btn btn-sm btn-outline" onclick="navigateTo(_fichaVolver||'pacientes')">← Volver</button></div>`}
 }
+// ─── Asistente IA (borradores para revisar) ─────────────
+async function resumenIA(pid){
+  const box=document.getElementById('iaResumen');if(!box)return;
+  box.innerHTML='<div class="ia-box"><div class="spinner" style="margin:6px auto"></div></div>';
+  try{
+    const r=await apiFetch(`/api/v1/ai/patients/${pid}/summary`,{method:'POST'});
+    box.innerHTML=`<div class="ia-box"><div class="ia-h"><b>✨ Resumen para leer antes de atender</b><button class="btn btn-sm btn-outline" onclick="document.getElementById('iaResumen').innerHTML=''">Cerrar</button></div>
+      ${r.narrativo?`<p class="ia-nar">${esc(r.narrativo)}</p>`:''}
+      <ul class="ia-pts">${r.puntos.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
+      ${r.faltantes.length?`<div class="ia-falt"><b>Datos que faltan en la ficha (${r.faltantes.length})</b><ul>${r.faltantes.map(f=>`<li>${esc(f.texto)}</li>`).join('')}</ul>
+        <div class="flex" style="gap:6px;flex-wrap:wrap"><button class="btn btn-sm btn-soft" onclick="editarResumenClinico('${pid}')">Completar resumen clínico</button><button class="btn btn-sm btn-soft" onclick="editarPaciente('${pid}')">Completar datos personales</button></div></div>`:'<p class="muted" style="font-size:12px">✓ La ficha tiene los datos principales.</p>'}
+      <p class="muted" style="font-size:11px;margin-top:8px">${esc(r.aviso)} · ${r.fuente==='reglas'?'Armado con los datos de la ficha':'Redactado con IA ('+esc(r.fuente)+')'}</p></div>`;
+  }catch(e){box.innerHTML=`<div class="ia-box"><p class="error">${esc(e.message)}</p></div>`}
+}
+async function indicacionesIA(pid,rid){
+  const box=document.getElementById('iaInd_'+rid);if(!box)return;
+  box.innerHTML='<div class="ia-box"><div class="spinner" style="margin:6px auto"></div></div>';
+  try{
+    const r=await apiFetch(`/api/v1/ai/records/${rid}/instructions`,{method:'POST'});
+    const p=window._fichaPaciente||{};
+    box.innerHTML=`<div class="ia-box"><div class="ia-h"><b>✨ Indicaciones para el paciente</b><span class="muted" style="font-size:11px">${esc(r.aviso)}</span></div>
+      <textarea id="iaTxt_${rid}" rows="12" style="width:100%;font:inherit;font-size:13px;border:1.5px solid #ECE5D9;border-radius:10px;padding:10px">${esc(r.texto)}</textarea>
+      <div class="flex" style="gap:6px;flex-wrap:wrap;margin-top:8px">
+        ${p.phone?`<button class="btn btn-sm wa-btn" onclick="window.open(waLink('${esc(p.phone)}',document.getElementById('iaTxt_${rid}').value),'_blank')">Enviar por WhatsApp</button>`:''}
+        <button class="btn btn-sm btn-primary" onclick="compartirIndicaciones('${pid}','${rid}')">Guardar y compartir en su portal</button>
+        <button class="btn btn-sm btn-soft" onclick="navigator.clipboard.writeText(document.getElementById('iaTxt_${rid}').value);this.textContent='✓ Copiado'">Copiar</button>
+      </div></div>`;
+  }catch(e){box.innerHTML=`<div class="ia-box"><p class="error">${esc(e.message)}</p></div>`}
+}
+async function compartirIndicaciones(pid,rid){
+  const t=document.getElementById('iaTxt_'+rid).value;
+  try{await apiFetch(`/api/v1/patients/${pid}/documents`,{method:'POST',body:{title:'Indicaciones de la consulta',kind:'indicaciones',bodyText:t,medicalRecordId:rid,shared:true,studyDate:todayAR()}});abrirPaciente(pid)}catch(e){alert(e.message)}
+}
+
+// ─── Ficha clínica unificada ─────────────────────────────
+function htmlResumenClinico(p,ult,vit){
+  const L=x=>lista(x);
+  const al=[...new Set([...L(p.allergies),...L(ult?.allergies)])], pr=L(p.chronic_conditions), me=[...new Set([...L(p.current_medications),...L(ult?.current_medications)])];
+  const ant=(k,rk)=>p[k]||ult?.[rk||k]||'';
+  vit=vit||{};
+  const vitales=[vit.bloodPressure||vit.blood_pressure?'TA '+(vit.bloodPressure||vit.blood_pressure):'',vit.heartRate||vit.heart_rate?'FC '+(vit.heartRate||vit.heart_rate)+' lpm':'',vit.temperature?vit.temperature+' °C':'',vit.spO2||vit.spo2?'SpO₂ '+(vit.spO2||vit.spo2)+'%':'',vit.weight?vit.weight+' kg':'',vit.height?vit.height+' cm':'',vit.weight&&vit.height?'IMC '+(vit.weight/((vit.height/100)**2)).toFixed(1):''].filter(Boolean);
+  const bloque=(t,items,cls)=>`<div class="rc-b"><div class="rc-t">${t}</div>${items.length?`<div class="tags">${items.map(x=>`<span class="tag ${cls||''}">${esc(x)}</span>`).join('')}</div>`:'<span class="muted" style="font-size:13px">Sin registrar</span>'}</div>`;
+  return `<div class="card-title" style="justify-content:space-between"><span>🩺 Resumen clínico</span><span class="flex" style="gap:6px">${userType==='doctor'?`<button class="btn btn-sm btn-soft" onclick="resumenIA('${p.id}')">✨ Resumir con IA</button><button class="btn btn-sm btn-outline" onclick="editarResumenClinico('${p.id}')">✏️ Editar</button>`:''}</span></div>
+    <div id="iaResumen"></div>
+    <div class="rc-grid">
+      ${bloque('⚠️ Alergias',al,'alert')}
+      ${bloque('📌 Problemas activos',pr,'prob')}
+      ${bloque('💊 Medicación actual',me,'med')}
+    </div>
+    <div class="kv" style="margin-top:10px">
+      ${kv('Antecedentes personales',ant('personal_history'))}${kv('Antecedentes quirúrgicos',p.surgical_history)}${kv('Antecedentes familiares',ant('family_history'))}${kv('Hábitos',ant('habits'))}${kv('Grupo sanguíneo',p.blood_type&&p.blood_type!=='unknown'?p.blood_type:'')}
+    </div>
+    ${vitales.length?`<div style="margin-top:10px"><span class="muted" style="font-size:11px;text-transform:uppercase">Últimos signos vitales${ult?.date?' ('+fmtDate(ult.date)+')':''}</span><div class="tags" style="margin-top:6px">${vitales.map(x=>`<span class="tag">${esc(x)}</span>`).join('')}</div></div>`:''}
+    ${p.clinical_summary_updated_at?`<p class="muted" style="font-size:11px;margin-top:8px">Actualizado el ${new Date(p.clinical_summary_updated_at).toLocaleDateString('es-AR')}</p>`:''}`;
+}
+function editarResumenClinico(pid){
+  const p=window._fichaPaciente||{}, ult=window._ficha?.clinico?.ultimaConsulta||{};
+  const L=x=>lista(x).join(', ');
+  const ta=(id,l,v,ph)=>`<div class="field"><label>${l}</label><textarea id="${id}" rows="2" placeholder="${ph||''}">${esc(v||'')}</textarea></div>`;
+  document.getElementById('resumenClinico').innerHTML=`<div class="card-title">🩺 Editar resumen clínico</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 14px">
+      ${ta('rcAl','Alergias (separadas por coma)',L(p.allergies)||L(ult.allergies),'Penicilina, AINE…')}
+      ${ta('rcPr','Problemas activos / condiciones crónicas',L(p.chronic_conditions),'HTA, DBT2, hipotiroidismo…')}
+      ${ta('rcMe','Medicación actual',L(p.current_medications)||L(ult.current_medications),'Losartán 50 mg, Metformina 850 mg…')}
+      <div class="field"><label>Grupo sanguíneo</label><select id="rcGs">${['unknown','A+','A-','B+','B-','AB+','AB-','O+','O-'].map(g=>`<option value="${g}" ${p.blood_type===g?'selected':''}>${g==='unknown'?'Sin dato':g}</option>`).join('')}</select></div>
+    </div>
+    ${ta('rcAp','Antecedentes personales',p.personal_history||ult.personal_history)}
+    ${ta('rcAq','Antecedentes quirúrgicos',p.surgical_history)}
+    ${ta('rcAf','Antecedentes familiares',p.family_history||ult.family_history)}
+    ${ta('rcHa','Hábitos (tabaco, alcohol, actividad física…)',p.habits||ult.habits)}
+    <p id="rcErr" class="error hidden"></p>
+    <div class="flex"><button class="btn btn-sm btn-primary" onclick="guardarResumenClinico('${pid}')">Guardar</button><button class="btn btn-sm btn-outline" onclick="abrirPaciente('${pid}')">Cancelar</button></div>`;
+}
+async function guardarResumenClinico(pid){
+  const v=id=>document.getElementById(id).value;
+  try{
+    await apiFetch(`/api/v1/patients/${pid}/clinical-summary`,{method:'PUT',body:{allergies:v('rcAl'),chronicConditions:v('rcPr'),currentMedications:v('rcMe'),personalHistory:v('rcAp'),surgicalHistory:v('rcAq'),familyHistory:v('rcAf'),habits:v('rcHa'),bloodType:v('rcGs')}});
+    abrirPaciente(pid);
+  }catch(e){const er=document.getElementById('rcErr');er.textContent=e.message;er.classList.remove('hidden')}
+}
+const TL_ICON={consulta:'🩺',receta:'💊',documento:'📎',turno:'📅'};
+function htmlTimeline(f,filtro){
+  const c=f.clinico||{}, p=f.patient, nombre=`${p.first_name||''} ${p.last_name||''}`.trim();
+  const ev=[];
+  (c.records||[]).forEach(r=>ev.push({t:'consulta',d:r.date,r}));
+  (c.prescriptions||[]).forEach(r=>ev.push({t:'receta',d:r.date,r}));
+  (c.documents||[]).forEach(r=>ev.push({t:'documento',d:r.date,r}));
+  (f.appointments||[]).filter(a=>['completed','no_show','cancelled'].includes(a.status)).forEach(r=>ev.push({t:'turno',d:r.date,r}));
+  const l=ev.filter(x=>filtro==='todo'||x.t===filtro).sort((a,b)=>String(b.d).localeCompare(String(a.d))||['consulta','receta','documento','turno'].indexOf(a.t)-['consulta','receta','documento','turno'].indexOf(b.t));
+  if(!l.length) return '<p class="muted">Todavía no hay registros.</p>';
+  let anio='';
+  return l.map(x=>{
+    const y=String(x.d).slice(0,4);const sep=y!==anio?(anio=y,`<div class="tl-anio">${y}</div>`):'';
+    const r=x.r;let body='';
+    if(x.t==='consulta') body=`<details class="rec"><summary><span><b>${esc(r.diagnosis||r.chief_complaint||'Consulta')}</b>${r.diagnosis_code?` <span class="muted">(${esc(r.diagnosis_code)})</span>`:''}${r.deleted_at?' <span class="badge-sm cancelled">Anulada</span>':''}</span><span class="muted">${esc(r.doctor_full_name||'')}</span></summary>
+      ${r.deleted_at?`<p style="color:var(--danger);font-size:12px">Anulada${r.annulled_reason?': '+esc(r.annulled_reason):''}</p>`:''}
+      <div class="flex" style="margin-top:8px;flex-wrap:wrap">${r.deleted_at?'':`<button class="btn btn-sm btn-soft" onclick="abrirFormularioHC('${p.id}',{recordId:'${r.id}',nombre:'${esc(nombre)}'})">✏️ Editar</button>`}${(r.version||1)>1?`<button class="btn btn-sm btn-soft" onclick="verVersionesHC('${r.id}')">🕑 Versiones (${r.version})</button>`:''}${r.deleted_at?'':`<button class="btn btn-sm btn-soft" onclick="indicacionesIA('${p.id}','${r.id}')">✨ Indicaciones para el paciente</button><button class="btn btn-sm btn-soft" onclick="abrirNuevaReceta({patientId:'${p.id}',medicalRecordId:'${r.id}',diagnosis:'${esc((r.diagnosis||'').replace(/'/g,''))}',diagnosisCode:'${esc(r.diagnosis_code||'')}'})">💊 Receta</button><button class="btn btn-sm btn-no" onclick="anularHC('${r.id}','${p.id}')">Anular</button>`}</div>
+      ${[['Motivo',r.chief_complaint],['Enfermedad actual',r.present_illness],['Revisión por sistemas',r.systems_review],['Examen físico',r.physical_exam],['Hallazgos',r.findings],['Diagnóstico',r.diagnosis],['Plan',r.treatment_plan],['Indicaciones',r.instructions],['Seguimiento',r.follow_up]].filter(z=>z[1]).map(([k,v])=>`<p><b>${k}:</b> ${esc(String(v).replace(/; /g,'\n'))}</p>`).join('')}
+      <div id="iaInd_${r.id}"></div></details>`;
+    else if(x.t==='receta') body=`<div class="tl-line"><b>Receta${r.diagnosis?' · '+esc(r.diagnosis):''}</b> ${r.status==='cancelled'?'<span class="badge-sm cancelled">Anulada</span>':''}<small>${(r.items||[]).map(i=>esc([i.name,i.dosage,i.frequency].filter(Boolean).join(' '))).join(' · ')||'—'}</small>
+      <div class="flex" style="margin-top:6px;flex-wrap:wrap"><button class="btn btn-sm btn-soft" onclick="recetaPdf('${r.id}')">🖨️ PDF</button><button class="btn btn-sm" style="background:#25D366;color:#fff" onclick="recetaWhatsApp('${esc(r.verification_code)}','${esc(p.phone||'')}','${esc(p.first_name||'')}')">WhatsApp</button><button class="btn btn-sm btn-soft" onclick="abrirNuevaReceta({patientId:'${p.id}'})">↻ Repetir</button></div></div>`;
+    else if(x.t==='documento') body=`<div class="tl-line"><b>${esc(r.title)}</b> <span class="muted">${esc(DOC_TIPOS[r.kind]||r.kind)}</span>${r.shared_with_patient?' <span class="badge-sm confirmed">Compartido</span>':''}<small>${esc(r.description||'')}</small>
+      <div class="flex" style="margin-top:6px"><button class="btn btn-sm btn-soft" onclick="verDocumento('${p.id}','${r.id}')">Ver</button></div></div>`;
+    else body=`<div class="tl-line"><b>Turno ${r.start_time?.slice(0,5)||''}</b> <span class="badge-sm ${r.status}">${statusLabel(r.status)}</span><small>${esc([r.reason,r.cancelled_reason,r.doctor_name&&(_medicos||[]).length>1?'Dr/a. '+r.doctor_name:''].filter(Boolean).join(' · '))}</small></div>`;
+    return `${sep}<div class="tl-item tl-${x.t}"><div class="tl-dot">${TL_ICON[x.t]}</div><div class="tl-date">${fmtDate(x.d).slice(0,5)}</div><div class="tl-body">${body}</div></div>`;
+  }).join('');
+}
+function filtrarTimeline(k){
+  document.querySelectorAll('.tl-f').forEach(b=>b.classList.toggle('on',b.dataset.tl===k));
+  document.getElementById('timeline').innerHTML=htmlTimeline(window._ficha,k);
+}
+const DOC_TIPOS={estudio:'Estudio / laboratorio',imagen:'Imagen',informe:'Informe',indicaciones:'Indicaciones',certificado:'Certificado',otro:'Otro'};
+function htmlDocumentos(p,docs){
+  return `<div class="card-title" style="justify-content:space-between"><span>📎 Estudios y documentos (${docs.length})</span><button class="btn btn-sm btn-primary" onclick="formDocumento('${p.id}')">+ Agregar</button></div>
+    <div id="docForm"></div>
+    ${docs.length?docs.map(d=>`<div class="doc-row"><div class="doc-ic">${d.mime_type==='application/pdf'?'📄':(d.mime_type||'').startsWith('image/')?'🖼️':'📝'}</div>
+      <div style="flex:1;min-width:0"><b>${esc(d.title)}</b><small>${fmtDate(d.date)} · ${esc(DOC_TIPOS[d.kind]||d.kind)}${d.size_bytes?' · '+Math.max(1,Math.round(d.size_bytes/1024))+' KB':''}</small></div>
+      <div class="flex" style="gap:6px;flex-wrap:wrap;justify-content:flex-end">
+        <button class="btn btn-sm btn-soft" onclick="verDocumento('${p.id}','${d.id}')">Ver</button>
+        <label class="doc-share" title="El paciente lo ve en su portal"><input type="checkbox" ${d.shared_with_patient?'checked':''} onchange="compartirDocumento('${p.id}','${d.id}',this.checked)"> Compartir</label>
+        <button class="btn btn-sm btn-no" onclick="anularDocumento('${p.id}','${d.id}')" title="Anular">✕</button>
+      </div></div>`).join(''):'<p class="muted" style="font-size:13px">Subí laboratorios, imágenes, informes o escribí indicaciones. Lo que marques como compartido lo ve el paciente en su portal.</p>'}`;
+}
+function formDocumento(pid){
+  document.getElementById('docForm').innerHTML=`<div class="doc-form">
+    <div class="field"><label>Título *</label><input id="dTit" placeholder="Hemograma, Rx de tórax, Indicaciones post consulta…"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 10px">
+      <div class="field"><label>Tipo</label><select id="dTipo">${Object.entries(DOC_TIPOS).map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select></div>
+      <div class="field"><label>Fecha</label><input id="dFecha" type="date" value="${todayAR()}"></div>
+    </div>
+    <div class="field"><label>Archivo (PDF o imagen, hasta 7 MB)</label><input id="dFile" type="file" accept="application/pdf,image/*"></div>
+    <div class="field"><label>…o texto (indicaciones, resultado transcripto)</label><textarea id="dTxt" rows="3"></textarea></div>
+    <div class="field"><label>Descripción (opcional)</label><input id="dDesc"></div>
+    <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-bottom:10px"><input type="checkbox" id="dShare" style="width:18px;height:18px;accent-color:var(--primary)"> Compartir con el paciente (lo ve en su portal)</label>
+    <p id="dErr" class="error hidden"></p>
+    <div class="flex"><button class="btn btn-sm btn-primary" id="dGuardar" onclick="subirDocumento('${pid}')">Guardar</button><button class="btn btn-sm btn-outline" onclick="document.getElementById('docForm').innerHTML=''">Cancelar</button></div></div>`;
+  document.getElementById('dTit').focus();
+}
+async function subirDocumento(pid){
+  const f=document.getElementById('dFile').files[0], err=document.getElementById('dErr'), btn=document.getElementById('dGuardar');
+  const body={title:document.getElementById('dTit').value,kind:document.getElementById('dTipo').value,studyDate:document.getElementById('dFecha').value,description:document.getElementById('dDesc').value||undefined,bodyText:document.getElementById('dTxt').value||undefined,shared:document.getElementById('dShare').checked};
+  try{
+    if(f){if(f.size>7*1024*1024) throw new Error('El archivo supera 7 MB');
+      body.dataUrl=await new Promise((ok,ko)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=()=>ko(new Error('No se pudo leer el archivo'));r.readAsDataURL(f)});body.fileName=f.name}
+    btn.disabled=true;btn.textContent='Subiendo…';
+    await apiFetch(`/api/v1/patients/${pid}/documents`,{method:'POST',body});
+    abrirPaciente(pid);
+  }catch(e){err.textContent=e.message;err.classList.remove('hidden');btn.disabled=false;btn.textContent='Guardar'}
+}
+async function verDocumento(pid,id){
+  try{
+    const w=window.open('','_blank');
+    const url=URL.createObjectURL(await apiBlob(`/api/v1/patients/${pid}/documents/${id}/file`));
+    if(w) w.location=url; else window.open(url,'_blank');
+    setTimeout(()=>URL.revokeObjectURL(url),120000);
+  }catch(e){alert(e.message)}
+}
+async function compartirDocumento(pid,id,on){try{await apiFetch(`/api/v1/patients/${pid}/documents/${id}`,{method:'PATCH',body:{shared:on}})}catch(e){alert(e.message)}}
+async function anularDocumento(pid,id){
+  const m=prompt('Motivo de la anulación (el documento no se borra, queda anulado):','');if(m===null)return;if(!m.trim())return alert('Indicá el motivo');
+  try{await apiFetch(`/api/v1/patients/${pid}/documents/${id}`,{method:'DELETE',body:{reason:m}});abrirPaciente(pid)}catch(e){alert(e.message)}
+}
+
 async function anularHC(id,pid){
   const m=prompt('Motivo de la anulación (la consulta no se borra: queda anulada con este motivo):','');
   if(m===null)return; if(!m.trim()){alert('Indicá el motivo');return}
@@ -2083,6 +2278,28 @@ async function loadMiHistorial(){
           </div>`).join('')}
       </div>`:''}`;
   }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
+}
+
+async function loadMisDocumentos(){
+  const main=document.getElementById('mainContent');
+  try{
+    const [docs,rx]=await Promise.all([apiFetch('/api/v1/me/documents').then(asList).catch(()=>[]),apiFetch('/api/v1/me/prescriptions').then(asList).catch(()=>[])]);
+    const vig=rx.filter(r=>r.status!=='cancelled'&&!(r.expires_at&&new Date(r.expires_at)<new Date()));
+    const ind=docs.filter(d=>d.kind==='indicaciones'), otros=docs.filter(d=>d.kind!=='indicaciones');
+    window._misDocs=docs;
+    main.innerHTML=`<div class="topbar"><h1>Tratamiento y estudios</h1></div>
+      <div class="card"><div class="card-title">💊 Tratamiento actual</div>
+        ${vig.length?vig.map(r=>`<div class="trat"><div class="muted" style="font-size:12px">Receta del ${fmtDate(r.issued_at)} · Dr/a. ${esc(r.doctor_name)}${r.expires_at?' · vigente hasta '+fmtDate(r.expires_at):''}</div>
+          ${(r.items||[]).map(i=>`<div class="trat-i"><b>${esc(i.generico)}</b> ${esc(i.presentacion||'')}<span>${esc([i.dosis,i.frecuencia].filter(Boolean).join(' · '))}</span></div>`).join('')}</div>`).join(''):'<p class="muted">No tenés recetas vigentes.</p>'}
+      </div>
+      ${ind.length?`<div class="card"><div class="card-title">📋 Indicaciones de tu médico</div>${ind.map(d=>`<details class="rec" ${d===ind[0]?'open':''}><summary><span><b>${fmtDate(d.study_date||d.created_at)}</b> · ${esc(d.title)}</span><span class="muted">${esc(d.autor?'Dr/a. '+d.autor:d.consultorio||'')}</span></summary><p style="white-space:pre-wrap;font-size:14px;line-height:1.55">${esc(d.body_text||'')}</p></details>`).join('')}</div>`:''}
+      <div class="card"><div class="card-title">📎 Estudios y documentos</div>
+        ${otros.length?otros.map(d=>`<div class="doc-row"><div class="doc-ic">${d.mime_type==='application/pdf'?'📄':(d.mime_type||'').startsWith('image/')?'🖼️':'📝'}</div><div style="flex:1;min-width:0"><b>${esc(d.title)}</b><small>${fmtDate(d.study_date||d.created_at)} · ${esc(d.consultorio||'')}</small>${d.body_text?`<p style="font-size:13px;white-space:pre-wrap;margin-top:4px">${esc(d.body_text)}</p>`:''}</div>${d.mime_type?`<button class="btn btn-sm btn-primary" onclick="verMiDocumento('${d.id}')">Ver</button>`:''}</div>`).join(''):'<p class="muted">Cuando tu médico comparta estudios, informes o imágenes, los vas a ver acá.</p>'}
+      </div>`;
+  }catch(e){main.innerHTML=`<div class="card"><p class="error">${esc(e.message)}</p></div>`}
+}
+async function verMiDocumento(id){
+  try{const w=window.open('','_blank');const url=URL.createObjectURL(await apiBlob(`/api/v1/me/documents/${id}/file`));if(w)w.location=url;else window.open(url,'_blank');setTimeout(()=>URL.revokeObjectURL(url),120000)}catch(e){alert(e.message)}
 }
 
 async function loadMisRecetas(){

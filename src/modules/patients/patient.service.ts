@@ -259,6 +259,10 @@ export class PatientService {
       clinico ? q(`SELECT id, consent_type, accepted, to_char(accepted_at, 'YYYY-MM-DD') AS date, revoked_at
                    FROM informed_consents WHERE patient_id = $1 AND organization_id = $2 ORDER BY created_at DESC LIMIT 20`) : Promise.resolve([]),
     ]);
+    const documents = clinico ? await q(`SELECT id, kind, title, description, to_char(COALESCE(study_date, created_at::date),'YYYY-MM-DD') AS date, mime_type, file_name,
+                          size_bytes, (body_text IS NOT NULL) AS es_texto, shared_with_patient, created_at
+                     FROM patient_documents WHERE patient_id = $1 AND organization_id = $2 AND deleted_at IS NULL
+                     ORDER BY COALESCE(study_date, created_at::date) DESC, created_at DESC LIMIT 100`) : [];
     const hoy = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
     const proximos = appointments.filter((a: any) => a.date >= hoy && !['cancelled', 'no_show', 'completed'].includes(a.status)).reverse();
     // Último dato clínico cargado (lo más reciente de la historia)
@@ -274,8 +278,25 @@ export class PatientService {
         records,
         prescriptions,
         consents,
+        documents,
       } : null,
     };
+  }
+
+  /** Resumen clínico del paciente: alergias, problemas activos, medicación y antecedentes (lo edita el médico) */
+  async setResumenClinico(orgId: string, patientId: string, doctorId: string, b: any) {
+    await this.findById(orgId, patientId);
+    const arr = (x: any) => (Array.isArray(x) ? x : String(x ?? '').split(/[,;\n]/)).map((y: any) => String(y).trim()).filter(Boolean).slice(0, 50);
+    const txt = (x: any) => (x == null ? null : String(x).trim().slice(0, 5000) || null);
+    return this.db.queryOne(
+      `UPDATE patients SET allergies = $3, chronic_conditions = $4, current_medications = $5,
+              personal_history = $6, surgical_history = $7, family_history = $8, habits = $9, blood_type = COALESCE($10::blood_type, blood_type),
+              clinical_summary_updated_at = now(), clinical_summary_updated_by = $11
+        WHERE id = $1 AND organization_id = $2
+        RETURNING allergies, chronic_conditions, current_medications, personal_history, surgical_history, family_history, habits, blood_type, clinical_summary_updated_at`,
+      [patientId, orgId, arr(b.allergies), arr(b.chronicConditions), arr(b.currentMedications),
+       txt(b.personalHistory), txt(b.surgicalHistory), txt(b.familyHistory), txt(b.habits), b.bloodType || null, doctorId],
+    );
   }
 
   /** Foto del paciente como data URL (jpeg/png/webp, hasta ~400 KB) */

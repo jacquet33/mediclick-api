@@ -75,6 +75,11 @@ jobs:
                   WHATSAPP_TOKEN: "${{ secrets.WHATSAPP_TOKEN }}"
                   WHATSAPP_PHONE_NUMBER_ID: "${{ vars.WHATSAPP_PHONE_NUMBER_ID }}"
                   WHATSAPP_TEMPLATE: "${{ vars.WHATSAPP_TEMPLATE }}"
+                  # Asistente IA (opcional): AI_PROVIDER=ollama (local) o anthropic. Vacío = solo reglas
+                  AI_PROVIDER: "${{ vars.AI_PROVIDER }}"
+                  OLLAMA_URL: "${{ vars.OLLAMA_URL }}"
+                  OLLAMA_MODEL: "${{ vars.OLLAMA_MODEL }}"
+                  ANTHROPIC_API_KEY: "${{ secrets.ANTHROPIC_API_KEY }}"
                   IOS_APP_STORE_URL: "${{ vars.IOS_APP_STORE_URL }}"
                 networks:
                   - mediclick-net

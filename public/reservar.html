@@ -1190,6 +1190,7 @@ async function registerAccount(){
         dateOfBirth:document.getElementById('dob')?.value||undefined,
         insuranceProvider:cobertura==='particular'?'Particular (sin obra social)':(document.getElementById('insurance')?.value.trim()||undefined),
         insuranceNumber:document.getElementById('insNumber')?.value.trim()||undefined,
+        bookingToken:_bookingToken||undefined,
       })
     });
     const data=await r.json();

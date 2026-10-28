@@ -104,6 +104,12 @@ export class RegisterPatientDto {
   @IsOptional()
   @IsUUID('4', { message: 'organizationId debe ser UUID válido' })
   organizationId?: string;
+
+  /** Token de la reserva recién hecha: vincula la cuenta con ese paciente */
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  bookingToken?: string;
 }
 
 // ─── Register staff ─────────────────────────────────────

@@ -155,6 +155,49 @@
     }
   }
 
+  const hayVoz = () => !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  let _rec = null;
+  function enlazarDictado() {
+    const ta = $('dicTxt'); if (!ta) return;
+    ta.oninput = () => { F.dictado = ta.value; const b = $('dicOrdenar'); if (b) b.disabled = ta.value.trim().length < 10; };
+    const mic = $('dicMic');
+    if (mic) mic.onclick = () => {
+      if (F.grabando) { try { _rec && _rec.stop(); } catch {} F.grabando = false; pintar(); return; }
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      _rec = new SR(); _rec.lang = 'es-AR'; _rec.continuous = true; _rec.interimResults = true;
+      const base = (F.dictado || '').trim();
+      let final = '';
+      _rec.onresult = (ev) => {
+        let interim = '';
+        for (let k = ev.resultIndex; k < ev.results.length; k++) { const t = ev.results[k][0].transcript; if (ev.results[k].isFinal) final += t + ' '; else interim += t; }
+        F.dictado = (base ? base + ' ' : '') + final + interim;
+        const t2 = $('dicTxt'); if (t2) { t2.value = F.dictado; t2.scrollTop = t2.scrollHeight; }
+        const b = $('dicOrdenar'); if (b) b.disabled = F.dictado.trim().length < 10;
+      };
+      _rec.onerror = (ev) => { F.grabando = false; F.dicMsg = ev.error === 'not-allowed' ? 'Permití el micrófono en el navegador para dictar.' : 'Se cortó el dictado: ' + ev.error; pintar(); };
+      _rec.onend = () => { if (F.grabando) { F.grabando = false; pintar(); } };
+      try { _rec.start(); F.grabando = true; F.dicMsg = 'Escuchando… El navegador transcribe la voz (Chrome usa el servicio de Google).'; pintar(); } catch (err) { F.dicMsg = err.message; pintar(); }
+    };
+    const ord = $('dicOrdenar');
+    if (ord) ord.onclick = async () => {
+      if (F.grabando) { try { _rec && _rec.stop(); } catch {} F.grabando = false; }
+      ord.disabled = true; ord.textContent = 'Ordenando…';
+      try {
+        const r = await apiFetch('/api/v1/ai/dictation', { method: 'POST', body: { text: F.dictado, patientId: F.patientId } });
+        const n = [];
+        for (const [k, v] of Object.entries(r.campos || {})) {
+          if (!v) continue;
+          const actual = String(F[k] || '').trim();
+          if (!actual) F[k] = v; else if (!actual.includes(v)) F[k] = actual + (['bloodPressure', 'heartRate', 'temperature', 'respiratoryRate', 'spO2', 'weight', 'height'].includes(k) ? '' : '. ' + v);
+          n.push(k);
+        }
+        F.dicMsg = n.length ? `Se completaron ${n.length} campos (${n.map((k) => ETIQ[k] || k).join(', ')}). ${r.aviso}` : 'No se reconocieron campos: revisá el texto.';
+      } catch (err) { F.dicMsg = err.message; }
+      pintar();
+    };
+  }
+  const ETIQ = { chiefComplaint: 'motivo', presentIllness: 'enfermedad actual', personalHistory: 'antecedentes', familyHistory: 'ant. familiares', currentMedications: 'medicación', allergies: 'alergias', habits: 'hábitos', physicalExamExtra: 'examen físico', findings: 'hallazgos', diagnosis: 'diagnóstico', treatmentPlan: 'plan', instructions: 'indicaciones', followUp: 'seguimiento', labOrders: 'laboratorio', imagingOrders: 'imágenes', referrals: 'derivaciones', bloodPressure: 'TA', heartRate: 'FC', temperature: 'temperatura', respiratoryRate: 'FR', spO2: 'SpO₂', weight: 'peso', height: 'talla' };
+
   function pintar() {
     const puede = (F.chiefComplaint || '').trim() && (F.diagnosis || '').trim();
     main().innerHTML = `
@@ -163,12 +206,19 @@
         <button class="btn btn-sm btn-primary" id="hcGuardar" onclick="hcGuardar()" ${puede && !F.saving ? '' : 'disabled style="opacity:.5"'}>${F.saving ? 'Guardando…' : 'Guardar'}</button></div>
       <div class="chips" style="overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px">${SECCIONES.map((s, i) => `<button type="button" class="chip ${F.section === i ? 'active' : ''}" data-sec="${i}">${s}</button>`).join('')}</div>
       ${F.error ? `<div class="card" style="color:var(--danger)">${e(F.error)}</div>` : ''}
+      <div class="card dictado">
+        <div class="flex-between" style="flex-wrap:wrap;gap:8px"><b>🎙️ Dictado de la consulta</b>
+          <span class="flex" style="gap:6px;flex-wrap:wrap">${hayVoz() ? `<button type="button" class="btn btn-sm ${F.grabando ? 'btn-no' : 'btn-soft'}" id="dicMic">${F.grabando ? '⏹ Detener' : '🎙️ Dictar'}</button>` : ''}<button type="button" class="btn btn-sm btn-primary" id="dicOrdenar" ${(F.dictado || '').trim().length > 9 ? '' : 'disabled'}>✨ Ordenar en la historia</button></span></div>
+        <textarea id="dicTxt" rows="${F.dictado ? 4 : 2}" placeholder="${hayVoz() ? 'Tocá Dictar y hablá: «Motivo de consulta… Enfermedad actual… Examen físico… Diagnóstico… Plan… Indicaciones…». También podés pegar o escribir el texto.' : 'Pegá o escribí la nota libre: «Motivo de consulta… Examen físico… Diagnóstico… Plan…»'}">${e(F.dictado || '')}</textarea>
+        ${F.dicMsg ? `<p class="muted" style="font-size:12px;margin-top:6px">${e(F.dicMsg)}</p>` : ''}
+      </div>
       <div id="hcBody">${seccion()}</div>
       <div class="flex-between" style="margin:8px 0 30px">
         <button class="btn btn-sm btn-outline" ${F.section === 0 ? 'disabled style="opacity:.4"' : ''} data-sec="${F.section - 1}">← ${SECCIONES[F.section - 1] || ''}</button>
         ${F.section < SECCIONES.length - 1 ? `<button class="btn btn-sm btn-primary" data-sec="${F.section + 1}">${SECCIONES[F.section + 1]} →</button>` : ''}
       </div>`;
     enlazar();
+    enlazarDictado();
   }
 
   function actualizarBoton() {
@@ -282,6 +332,16 @@
           recordType: 'seguimiento', occupation: u.occupation || '', personalHistory: u.personal_history || '', familyHistory: u.family_history || '',
           currentMedications: u.current_medications || '', allergies: u.allergies || '', habits: u.habits || '',
         });
+        // Resumen clínico de la ficha (alergias, medicación y antecedentes cargados a nivel paciente)
+        const pp = await apiFetch(`/api/v1/patients/${patientId}`).catch(() => null);
+        if (pp) {
+          const j = (x) => (Array.isArray(x) ? x.join(', ') : x || '');
+          if (!F.allergies) F.allergies = j(pp.allergies);
+          if (!F.currentMedications) F.currentMedications = j(pp.current_medications);
+          if (!F.personalHistory) F.personalHistory = [pp.personal_history, pp.surgical_history ? 'Quirúrgicos: ' + pp.surgical_history : ''].filter(Boolean).join('. ');
+          if (!F.familyHistory) F.familyHistory = pp.family_history || '';
+          if (!F.habits) F.habits = pp.habits || '';
+        }
       }
     } catch (err) { F.error = err.message; }
     pintar();
