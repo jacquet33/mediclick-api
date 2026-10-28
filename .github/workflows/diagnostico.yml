@@ -29,7 +29,8 @@ jobs:
             echo "INV contenedores $(docker ps --format "{{.Names}}" | tr "\n" " " | head -c 400)"
             echo "INV volumenes-mediclick $(docker inspect mediclick-api mediclick-db --format "{{.Name}}:{{range .Mounts}}{{.Type}}={{.Source}}>{{.Destination}} {{end}}" 2>/dev/null | tr "\n" " " | head -c 400)"
             echo "INV tam-db $(docker exec mediclick-db sh -c "du -sh /var/lib/postgresql/data" 2>/dev/null | cut -f1) env-keys=$(grep -oE "^[A-Z_]+=" .env 2>/dev/null | tr -d = | tr "\n" "," | head -c 400)"
+            echo "INV google $(curl -s http://127.0.0.1:3100/api/v1/public/config | grep -o "googleClientId[^,]*")"
           ' > out.txt 2>&1 || true
           echo "PUBKEY $(ssh-keygen -y -f k 2>/dev/null)" >> out.txt
-          { grep -E '^(INV|PUBKEY|SERVIDOR)' out.txt; } | while IFS= read -r l; do echo "::notice::$l"; done
+          { grep -E '^(INV google|LOCAL directo)' out.txt; } | while IFS= read -r l; do echo "::notice::$l"; done
           rm -f k

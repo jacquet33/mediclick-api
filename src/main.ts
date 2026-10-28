@@ -122,7 +122,7 @@ class HealthController {
   @Get('public/config')
   publicConfig() {
     return {
-      googleClientId: this.config.get('GOOGLE_CLIENT_ID') || this.config.get('GOOGLE_CLIENT_ID_WEB') || '',
+      googleClientId: this.config.get('GOOGLE_CLIENT_ID_WEB') || this.config.get('GOOGLE_CLIENT_ID') || '',
       appleSignInEnabled: !!this.config.get('APPLE_CLIENT_ID'),
       // Link de la app para médicos (App Store). Variable IOS_APP_STORE_URL (vacío = "próximamente")
       iosAppUrl: this.config.get('IOS_APP_STORE_URL') || '',
