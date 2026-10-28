@@ -668,7 +668,7 @@ function buildNav(){
         {id:'obras-sociales',icon:'🏛️',label:'Obras sociales'},
         {id:'equipo',icon:'👔',label:'Equipo y roles'},
         {id:'facturacion',icon:'💰',label:'Facturación'},
-        {id:'matricula',icon:'🪪',label:'Matrícula y firma'},
+        {id:'matricula',icon:'📇',label:'Matrícula y firma'},
         {id:'config',icon:'⚙️',label:'Configuración'},
       ]},
     ];
@@ -1594,7 +1594,7 @@ async function renderCalView(){
           title="${esc(`${a.patient_name} · ${a.start_time?.slice(0,5)}–${a.end_time?.slice(0,5)} · ${statusLabel(a.status)}${cob?' · '+cob:''}`)}">
           <div class="t"><span>${a.start_time?.slice(0,5)}${compact||angosto?'':'–'+(a.end_time?.slice(0,5)||'')}</span>${compact||angosto?'':`<span class="pill">${statusLabel(a.status)}</span>`}</div>
           <div class="n">${a.is_first_visit?'★ ':''}${esc(a.patient_name||'Paciente')}</div>
-          ${cob?`<div class="c">🪪 ${esc(cob)}</div>`:''}
+          ${cob?`<div class="c">📇 ${esc(cob)}</div>`:''}
           ${a.reason?`<div class="r">${esc(a.reason)}</div>`:''}
         </div>`}}
     if(iso===todayISO){const now=new Date(),m=now.getHours()*60+now.getMinutes();if(m>=ini*60&&m<=fin*60)html+=`<div class="cal-now" style="top:${(m-ini*60)/60*HORA}px"></div>`}

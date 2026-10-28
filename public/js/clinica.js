@@ -399,7 +399,7 @@
         ? `No pudimos verificar tu matrícula${v.license_verification_note ? ': ' + e(v.license_verification_note) : ''}. Revisá los datos y volvé a enviarlos.`
         : 'Para emitir recetas electrónicas válidas primero tenemos que verificar que sos médico/a (matrícula vigente).';
     return `<div class="card" style="border:1.5px solid #E9C27A;background:#FFF6E5;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-      <span style="font-size:22px">🪪</span><div style="flex:1;min-width:220px;font-size:13px;color:#7A5300">${txt}</div>
+      <span style="font-size:22px">📇</span><div style="flex:1;min-width:220px;font-size:13px;color:#7A5300">${txt}</div>
       <button class="btn btn-sm btn-primary" onclick="abrirMatricula()">${v.license_status === 'pending' ? 'Ver estado' : 'Verificar matrícula'}</button></div>`;
   }
 
@@ -706,7 +706,7 @@
     const [lbl, cls] = ESTADOS_M[v.license_status] || ESTADOS_M.unverified;
     const bloqueado = v.license_status === 'verified';
     m.innerHTML = `<div class="topbar"><h1>Matrícula y firma</h1><span class="badge-sm ${cls}" style="font-size:13px;padding:6px 14px">${lbl}</span></div>
-      <div class="card"><div class="card-title">🪪 Verificación profesional</div>
+      <div class="card"><div class="card-title">📇 Verificación profesional</div>
         <p class="muted" style="margin-bottom:12px">Para emitir recetas electrónicas verificamos que tu matrícula esté vigente en la Red Federal de Registros de Profesionales de la Salud (REFEPS) del Ministerio de Salud. ${v.refepsAutomatico ? 'La consulta es automática.' : 'La revisión la hace nuestro equipo con tu DNI, matrícula y la foto de la credencial (suele tardar menos de 24 h hábiles).'}</p>
         ${v.license_verification_note ? `<p style="font-size:13px;margin-bottom:10px"><b>Detalle:</b> ${e(v.license_verification_note)}</p>` : ''}
         ${bloqueado ? `<div class="kv"><div><span>Profesional</span><b>${e(v.first_name)} ${e(v.last_name)}</b></div><div><span>DNI</span><b>${e(v.dni)}</b></div><div><span>Matrícula</span><b>${v.license_type === 'MN' ? 'M.N.' : 'M.P.'} ${e(v.medical_license)}${v.license_type === 'MP' && v.medical_license_province ? ' (' + e(v.medical_license_province) + ')' : ''}</b></div><div><span>Especialidad</span><b>${e(v.specialty || '—')}</b></div><div><span>Verificada</span><b>${v.license_verified_at ? fmtDate(v.license_verified_at) : ''}</b></div></div>

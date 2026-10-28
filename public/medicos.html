@@ -58,6 +58,16 @@ input:focus,select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 
 .done{text-align:center;padding:30px 10px}
 .store{display:inline-flex;align-items:center;gap:10px;background:#111;color:#fff;text-decoration:none;border-radius:12px;padding:10px 18px;font-weight:600}
 .store small{display:block;font-size:10px;opacity:.75;font-weight:500}
+.lanz{max-width:760px;margin:8px auto 16px;text-align:center;background:#EEF7F2;border:1px solid #CFE6DA;color:#245A4C;border-radius:12px;padding:10px 14px;font-size:14px}
+.per{display:flex;justify-content:center;gap:4px;margin:0 auto 22px;background:#EFE6DA;border-radius:12px;padding:4px;width:max-content}
+.per button{border:none;background:none;font:inherit;font-weight:700;font-size:14px;padding:8px 16px;border-radius:9px;cursor:pointer;color:#7A6E62}
+.per button.on{background:#fff;color:#2B241F;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.per small{color:#3E7468;font-weight:700}
+.precio{margin:4px 0 14px}.precio b{display:block;font-size:30px;letter-spacing:-.8px;color:#2B241F}.precio span{font-size:12px;color:#7A6E62}
+.pl{display:flex;flex-direction:column}.pl ul{flex:1}
+.pl-btn{display:block;text-align:center;margin-top:16px;padding:11px;border-radius:12px;border:1.5px solid var(--primary);color:var(--primary);font-weight:700;text-decoration:none}
+.pl-mas{font-size:13px;color:#5B5047;margin-top:12px;padding-top:10px;border-top:1px dashed #E6DDD0}.pl-mas b{color:#2B241F}
+.pl-btn.on{background:var(--primary);color:#fff}
 .planes{max-width:1180px;margin:40px auto 60px;padding:0 20px}
 .planes h2{text-align:center;font-size:30px;margin-bottom:8px}
 .pl-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
@@ -129,7 +139,7 @@ input:focus,select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 
           <div class="f"><label>Tipo de identificación <i>*</i></label><select id="tipoDoc"><option>DNI</option></select></div>
           <div class="f"><label>N° de documento <i>*</i></label><input id="dni" inputmode="numeric" placeholder="Sin puntos"><p class="hint hidden" id="refepsHint"></p></div>
           <div class="f full"><label>Foto del documento <i>*</i></label>
-            <label class="drop" id="dniDrop"><span style="font-size:26px">🪪</span><span>Subir imagen</span><input type="file" accept="image/*" id="dniFoto" hidden></label>
+            <label class="drop" id="dniDrop"><span style="font-size:26px">📇</span><span>Subir imagen</span><input type="file" accept="image/*" id="dniFoto" hidden></label>
             <p class="muted" style="margin-top:6px">Subí una imagen de tu documento de identidad. Nos permite reforzar la seguridad y evitar la posible suspensión de tu cuenta.</p>
             <p class="hint e hidden" id="dniFotoErr">El campo es obligatorio</p></div>
         </div>
@@ -200,7 +210,7 @@ input:focus,select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 
     <div class="card">
       <h3>¿Por qué pedimos estos datos?</h3>
       <ul>
-        <li><span>🪪</span>Tu DNI y matrícula se validan en REFEPS (Ministerio de Salud) para que puedas emitir recetas electrónicas.</li>
+        <li><span>📇</span>Tu DNI y matrícula se validan en REFEPS (Ministerio de Salud) para que puedas emitir recetas electrónicas.</li>
         <li><span>🔒</span>Las fotos de tus documentos solo las ve el equipo de verificación.</li>
         <li><span>✍️</span>Después cargás tu firma y, si tenés, tu certificado de firma digital.</li>
         <li><span>💬</span>¿Dudas? <a href="mailto:contact@rispy.io">contact@rispy.io</a></li>
@@ -210,16 +220,35 @@ input:focus,select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 
 </section>
 
 <section class="planes" id="planes">
-  <h2>Empezá gratis. Pagá solo si te sirve.</h2>
-  <p class="muted" style="text-align:center;max-width:640px;margin:0 auto 22px">Emitir recetas válidas nunca va a ser un extra pago. Durante el lanzamiento, todo está incluido sin costo.</p>
+  <h2>Precios claros, en pesos</h2>
+  <p class="muted" style="text-align:center;max-width:680px;margin:0 auto 6px">Emitir recetas nunca va a ser un extra pago. Precio final por mes, sin permanencia: cancelás cuando quieras.</p>
+  <p class="lanz">🚀 <b>Lanzamiento:</b> todo el plan Profesional incluido sin costo hasta el 31 de marzo de 2027. Los primeros 200 médicos mantienen el precio de lanzamiento por 12 meses.</p>
+  <div class="per"><button class="on" data-per="m">Mensual</button><button data-per="a">Anual <small>2 meses gratis</small></button></div>
   <div class="pl-grid">
-    <div class="pl"><h3>Gratis</h3><p class="pl-p">Para siempre</p><ul><li>Recetas electrónicas con firma y QR</li><li>Pacientes ilimitados</li><li>Recetas frecuentes y plantillas</li><li>Link de reservas online</li><li>Importar pacientes desde Excel</li></ul></div>
-    <div class="pl dest"><span class="pl-tag">Lanzamiento: incluido</span><h3>Profesional</h3><p class="pl-p">Para tu práctica diaria</p><ul><li>Historia clínica completa con línea de tiempo</li><li>Asistente: resumen, dictado e indicaciones</li><li>Agenda, sala de espera y recordatorios por WhatsApp</li><li>Estudios y documentos compartidos con el paciente</li><li>Firma digital con certificado</li></ul></div>
-    <div class="pl"><span class="pl-tag">Lanzamiento: incluido</span><h3>Consultorio</h3><p class="pl-p">Varios profesionales</p><ul><li>Todo lo de Profesional</li><li>Secretaría con permisos</li><li>Agenda de todo el equipo</li><li>Facturación y obras sociales</li></ul></div>
-    <div class="pl"><h3>Instituciones</h3><p class="pl-p">Clínicas y centros</p><ul><li>Integraciones y HL7 FHIR</li><li>Migración asistida</li><li>Soporte con acuerdo de servicio</li></ul><a href="mailto:contact@rispy.io?subject=TuConsultorioOnline%20para%20instituciones" class="pl-cta">Hablemos</a></div>
+    <div class="pl"><h3>Gratis</h3><p class="pl-p">Para empezar hoy</p>
+      <div class="precio"><b>$0</b><span>para siempre</span></div>
+      <ul><li>Recetas electrónicas con firma y QR, ilimitadas</li><li>Pacientes ilimitados</li><li>Agenda y link de reservas online</li><li>Recetas frecuentes y plantillas</li><li>Importar pacientes desde Excel</li></ul>
+      <a href="#alta" class="pl-btn">Crear mi cuenta</a></div>
+    <div class="pl dest"><span class="pl-tag">El más elegido</span><h3>Profesional</h3><p class="pl-p">Para tu práctica diaria</p>
+      <div class="precio"><b data-m="$9.000" data-a="$7.500">$9.000</b><span data-m="por mes" data-a="por mes · $90.000 al año">por mes</span></div>
+      <ul><li>Todo lo de Gratis</li><li>Historia clínica completa con línea de tiempo</li><li>Asistente: resumen, dictado e indicaciones</li><li>Sala de espera y recordatorios por WhatsApp</li><li>Estudios y documentos compartidos con el paciente</li><li>Firma digital con certificado</li></ul>
+      <a href="#alta" class="pl-btn on">Empezar gratis</a></div>
+    <div class="pl"><h3>Consultorio</h3><p class="pl-p">Hasta 5 profesionales</p>
+      <div class="precio"><b data-m="$19.000" data-a="$15.833">$19.000</b><span data-m="por mes, todo el equipo" data-a="por mes · $190.000 al año">por mes, todo el equipo</span></div>
+      <ul><li>Todo lo de Profesional, para cada médico</li><li>Secretarías sin costo adicional</li><li>Agenda de todo el equipo y permisos</li><li>Facturación y obras sociales</li></ul>
+      <p class="pl-mas">De 6 a 10 profesionales: <b data-m="$34.000" data-a="$28.333">$34.000</b> por mes</p>
+      <a href="#alta" class="pl-btn">Empezar gratis</a></div>
+    <div class="pl"><h3>Instituciones</h3><p class="pl-p">Más de 10 profesionales</p>
+      <div class="precio"><b>A medida</b><span>según profesionales e integraciones</span></div>
+      <ul><li>Integraciones y HL7 FHIR</li><li>Migración asistida</li><li>Soporte con acuerdo de servicio</li></ul>
+      <a href="mailto:contact@rispy.io?subject=TuConsultorioOnline%20para%20instituciones" class="pl-btn">Hablemos</a></div>
   </div>
-  <div class="mig"><b>¿Venís de otra plataforma?</b> Exportá tus pacientes a Excel o CSV y los importás desde <i>Pacientes → Importar desde Excel</i>: sin duplicados y sin empezar de cero. Si necesitás ayuda, escribinos a <a href="mailto:contact@rispy.io">contact@rispy.io</a> y lo hacemos con vos.</div>
+  <p class="muted" style="text-align:center;font-size:12px;margin-top:12px">Precios finales en pesos argentinos. Se actualizan como máximo una vez por trimestre, con aviso de 30 días.</p>
+  <div class="mig"><b>¿Venís de otra plataforma?</b> Exportá tus pacientes a Excel o CSV y los importás desde <i>Pacientes → Importar desde Excel</i>: sin duplicados y sin empezar de cero. Si necesitás ayuda, escribinos a <a href="mailto:contact@rispy.io">contact@rispy.io</a> y lo hacemos con vos, sin costo.</div>
 </section>
+<script>
+document.querySelectorAll('.per button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.per button').forEach(x=>x.classList.toggle('on',x===b));const k=b.dataset.per;document.querySelectorAll('.precio [data-m], .pl-mas [data-m]').forEach(el=>el.textContent=el.dataset[k])});
+</script>
 
 <script>
 try{const rf=new URLSearchParams(location.search).get('ref');if(rf&&/^[A-Za-z0-9]{6,8}$/.test(rf))localStorage.setItem('tc_ref',rf.toUpperCase())}catch{}
