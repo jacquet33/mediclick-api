@@ -29,6 +29,9 @@ jobs:
             echo "INV contenedores $(docker ps --format "{{.Names}}" | tr "\n" " " | head -c 400)"
             echo "INV volumenes-mediclick $(docker inspect mediclick-api mediclick-db --format "{{.Name}}:{{range .Mounts}}{{.Type}}={{.Source}}>{{.Destination}} {{end}}" 2>/dev/null | tr "\n" " " | head -c 400)"
             echo "INV tam-db $(docker exec mediclick-db sh -c "du -sh /var/lib/postgresql/data" 2>/dev/null | cut -f1) env-keys=$(grep -oE "^[A-Z_]+=" .env 2>/dev/null | tr -d = | tr "\n" "," | head -c 400)"
+            echo "ACT $(docker exec mediclick-db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "select '"'"'medicos='"'"'||count(*)||'"'"' ult7d='"'"'||count(*) filter (where created_at>now()-interval '"'"'7 days'"'"')||'"'"' ult24h='"'"'||count(*) filter (where created_at>now()-interval '"'"'24 hours'"'"')||'"'"' verificados='"'"'||count(*) filter (where license_status='"'"'verified'"'"')||'"'"' revision='"'"'||count(*) filter (where license_status='"'"'pending'"'"')||'"'"' incompletos='"'"'||count(*) filter (where coalesce(license_status,'"'"'unverified'"'"') in ('"'"'unverified'"'"','"'"'rejected'"'"'))||'"'"' ingresaron24h='"'"'||count(*) filter (where last_login_at>now()-interval '"'"'24 hours'"'"') from doctors"' 2>&1 | head -c 300)"
+            echo "ACT $(docker exec mediclick-db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "select '"'"'pacientes_cuenta='"'"'||count(*)||'"'"' ult7d='"'"'||count(*) filter (where created_at>now()-interval '"'"'7 days'"'"')||'"'"' ingresaron24h='"'"'||count(*) filter (where last_login_at>now()-interval '"'"'24 hours'"'"') from patient_auth"' 2>&1 | head -c 300)"
+            echo "ACT smtp=$(docker exec mediclick-api printenv SMTP_HOST >/dev/null 2>&1 && echo si || echo no) eventos=$(docker exec mediclick-db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "select count(*) from auth_events"' 2>&1 | head -c 40)"
             echo "OLL desde-api $(docker exec mediclick-api node -e "fetch(\"http://rispy-ollama:11434/api/tags\").then(r=>r.json()).then(j=>console.log(\"ok\",j.models.map(m=>m.name).join(\",\"))).catch(e=>console.log(\"error\",e.message))" 2>&1 | head -c 200)"
             echo "OLL redes $(docker inspect rispy-ollama --format "{{range \$k,\$v := .NetworkSettings.Networks}}{{\$k}} {{end}}" 2>/dev/null)"
             echo "OLL modelos $(docker exec rispy-ollama ollama list 2>/dev/null | tail -n +2 | awk "{print \$1, \$3\$4}" | tr "\n" ";")"
@@ -36,5 +39,5 @@ jobs:
             echo "INV google $(curl -s http://127.0.0.1:3100/api/v1/public/config | grep -o "googleClientId[^,]*")"
           ' > out.txt 2>&1 || true
           echo "PUBKEY $(ssh-keygen -y -f k 2>/dev/null)" >> out.txt
-          { grep -E '^(OLL|LOCAL directo)' out.txt; } | while IFS= read -r l; do echo "::notice::$l"; done
+          { grep -E '^(ACT|LOCAL directo)' out.txt; } | while IFS= read -r l; do echo "::notice::$l"; done
           rm -f k
