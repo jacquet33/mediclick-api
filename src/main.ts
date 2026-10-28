@@ -82,6 +82,8 @@ import { WhatsappReminderService } from './modules/reminders/whatsapp-reminder.s
 import { DocumentsService } from './modules/documents/documents.service';
 import { AiService } from './modules/ai/ai.service';
 import { GrowthService } from './modules/growth/growth.service';
+import { ActivityService } from './modules/activity/activity.service';
+import { AdminActivityController, OnboardingPublicController } from './modules/activity/activity.controller';
 import { GrowthController } from './modules/growth/growth.controller';
 import { AiController } from './modules/ai/ai.controller';
 import { PatientDocumentsController, MyDocumentsController } from './modules/documents/documents.controller';
@@ -184,7 +186,7 @@ class HealthController {
     AuditController,
     ConsentController,
     OnboardingController,
-    PatientDocumentsController, MyDocumentsController, AiController, GrowthController, WhatsappReminderController, ReminderCronController,
+    PatientDocumentsController, MyDocumentsController, AiController, GrowthController, AdminActivityController, OnboardingPublicController, WhatsappReminderController, ReminderCronController,
     DashboardController,
     PaymentController,
   ],
@@ -232,7 +234,7 @@ class HealthController {
     AuditService,
     ConsentService,
     OnboardingService,
-    ReminderCronService, WhatsappReminderService, DocumentsService, AiService, GrowthService,
+    ReminderCronService, WhatsappReminderService, DocumentsService, AiService, GrowthService, ActivityService,
     DashboardService,
     MercadoPagoService,
     EmailService,

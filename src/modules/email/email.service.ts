@@ -59,6 +59,9 @@ export class EmailService {
     }
   }
 
+  /** true si hay un servidor SMTP configurado (sin él, los envíos solo se registran en el log) */
+  get configurado(): boolean { return !!this.transporter; }
+
   // ─── ENVIAR ──────────────────────────────────────────────
 
   async send(options: EmailOptions): Promise<boolean> {

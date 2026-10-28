@@ -737,7 +737,7 @@
         <p class="muted" style="margin-bottom:10px">Con tu certificado de firma digital (archivo .p12 / .pfx emitido por un certificador licenciado: AC ONTI, AC Modernización, etc.) cada receta queda firmada digitalmente dentro del PDF y cualquier lector (Adobe, la farmacia) puede validarla. La clave privada y la contraseña <b>nunca salen de tu equipo</b>.</p>
         <div id="certBox"><div class="spinner" style="margin:10px 0"></div></div>
       </div>
-      ${v.is_platform_admin ? `<div class="card"><div class="card-title">🛡️ Administración</div><div class="flex" style="flex-wrap:wrap"><button class="btn btn-sm btn-outline" onclick="abrirVerificaciones()">Revisar matrículas pendientes</button><button class="btn btn-sm btn-outline" onclick="abrirFarmaciasAdmin()">Farmacias habilitadas</button><button class="btn btn-sm btn-outline" onclick="abrirPedidosDatos()">Pedidos de datos personales</button></div></div>` : ''}`;
+      ${v.is_platform_admin ? `<div class="card"><div class="card-title">🛡️ Administración</div><div class="flex" style="flex-wrap:wrap"><button class="btn btn-sm btn-primary" onclick="abrirActividad()">📈 Altas y accesos</button><button class="btn btn-sm btn-outline" onclick="abrirVerificaciones()">Revisar matrículas pendientes</button><button class="btn btn-sm btn-outline" onclick="abrirFarmaciasAdmin()">Farmacias habilitadas</button><button class="btn btn-sm btn-outline" onclick="abrirPedidosDatos()">Pedidos de datos personales</button></div></div>` : ''}`;
     enlazarMatricula();
     const c = await certificadoActual();
     const box = $('certBox');

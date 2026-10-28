@@ -254,6 +254,12 @@ details.rec p{font-size:13px;margin-top:6px;white-space:pre-wrap}
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:45;-webkit-tap-highlight-color:transparent}
 .overlay.open{display:block}
 
+/* Actividad admin */
+.act-bars{display:flex;gap:6px;align-items:flex-end;height:120px}
+.act-bars div{flex:1;display:flex;gap:2px;align-items:flex-end;height:100%;position:relative;padding-bottom:16px}
+.act-bars span{flex:1;border-radius:4px 4px 0 0;min-height:2px}.act-bars .b1,.lg.b1{background:#9A6B3F}.act-bars .b2,.lg.b2{background:#3E7468}
+.act-bars small{position:absolute;bottom:0;left:0;right:0;text-align:center;font-size:10px;color:var(--text-muted)}
+.lg{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:-1px}
 /* Crecimiento */
 .ahorro{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .ahorro div{background:#FFFDF9;border:1px solid #F1E8DC;border-radius:12px;padding:10px}
@@ -621,7 +627,10 @@ function initApp(){
   document.getElementById('userRole').textContent=roleLabels[userType]||userType;
 
   buildNav();
-  navigateTo(getDefaultSection());
+  // Enlaces directos desde emails (ej. /portal#matricula)
+  const _h=(location.hash||'').slice(1);
+  navigateTo(_h&&/^[a-z-]+$/.test(_h)&&document.querySelector(`.nav-item[data-id="${_h}"]`)?_h:getDefaultSection());
+  if(_h) history.replaceState(null,'',location.pathname);
   bannerApp();
 }
 
@@ -891,6 +900,44 @@ async function renderCrecimiento(elId){
       <p class="muted" style="font-size:13px">Compartí tu link. ${r.invitados?`Ya se sumaron <b>${r.invitados}</b>${r.verificados?' ('+r.verificados+' verificados)':''}.`:'Cuando se registren con tu link lo vas a ver acá.'}</p>
       <div class="ref-link"><input readonly value="${esc(link)}" onclick="this.select()"><button class="btn btn-sm btn-soft" onclick="navigator.clipboard.writeText('${esc(link)}');this.textContent='✓'">Copiar</button></div>
       <a class="btn btn-sm wa-btn" style="text-decoration:none;margin-top:8px;display:inline-flex" target="_blank" href="https://wa.me/?text=${encodeURIComponent(msg)}">Compartir por WhatsApp</a></div>`:''}`;
+}
+
+// ─── Administración: altas y accesos ─────────────────────
+const EV_TXT={login_ok:['Ingresó','confirmed'],login_fail:['Login fallido','cancelled'],google_ok:['Ingresó con Google','confirmed'],google_signup:['Alta con Google','in_progress'],google_fail:['Google falló','cancelled'],register_doctor:['Alta de médico','in_progress'],register_patient:['Alta de paciente','in_progress'],register_fail:['Alta fallida','cancelled']};
+const EST_MED={verified:['Verificado','confirmed'],pending:['En revisión','pending'],unverified:['Alta incompleta','no_show'],rejected:['Rechazado','cancelled']};
+async function abrirActividad(){
+  const main=document.getElementById('mainContent');main.innerHTML='<div class="spinner"></div>';
+  try{
+    const d=await apiFetch('/api/v1/admin/activity');const r=d.resumen||{};
+    const hace=t=>{if(!t)return '—';const m=Math.round((Date.now()-new Date(t))/60000);return m<60?`hace ${m} min`:m<1440?`hace ${Math.round(m/60)} h`:new Date(t).toLocaleDateString('es-AR',{day:'numeric',month:'short'})};
+    const max=Math.max(1,...d.porDia.map(x=>x.logins+x.medicos+x.pacientes));
+    const falta=m=>[!m.tiene_dni&&'DNI',!m.tiene_foto_dni&&'foto DNI',!m.tiene_matricula&&'matrícula'].filter(Boolean);
+    const msgWa=m=>`Hola ${m.first_name||''}! Te escribo de TuConsultorioOnline. Vi que empezaste el alta y te falta ${falta(m).join(', ')||'confirmar tus datos'} para que podamos validar tu matrícula y puedas emitir recetas. ¿Te ayudo a terminarla? Podés hacerlo acá: https://tuconsultorio.rispy.io/portal#matricula`;
+    main.innerHTML=`<div class="topbar"><button class="btn btn-sm btn-outline" onclick="abrirMatricula()">← Volver</button><h1>Altas y accesos</h1><button class="btn btn-sm btn-soft" onclick="abrirActividad()">↻</button></div>
+      <div class="stats">
+        <div class="stat-card primary"><div class="stat-value">${r.medicos}</div><div class="stat-label">Médicos (${r.medicos_7d} esta semana)</div></div>
+        <div class="stat-card success"><div class="stat-value">${r.verificados}</div><div class="stat-label">Verificados</div></div>
+        <div class="stat-card warning" style="cursor:pointer" onclick="abrirVerificaciones()"><div class="stat-value">${r.en_revision}</div><div class="stat-label">En revisión</div></div>
+        <div class="stat-card danger"><div class="stat-value">${r.incompletos}</div><div class="stat-label">Alta incompleta</div></div>
+        <div class="stat-card cyan"><div class="stat-value">${r.pacientes_con_cuenta}</div><div class="stat-label">Pacientes con cuenta (${r.pacientes_7d} esta semana)</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--deep)">${r.activos_24h}</div><div class="stat-label">Ingresaron en 24 h · ${r.fallidos_24h} intentos fallidos</div></div>
+      </div>
+      <div class="card"><div class="card-title">📊 Últimos 14 días</div>
+        <div class="act-bars">${d.porDia.map(x=>`<div title="${fmtDate(x.dia)}: ${x.logins} ingresos, ${x.medicos} médicos nuevos, ${x.pacientes} pacientes nuevos, ${x.fallidos} fallidos"><span style="height:${Math.round((x.logins)/max*100)}%" class="b1"></span><span style="height:${Math.round((x.medicos+x.pacientes)/max*100)}%" class="b2"></span><small>${x.dia.slice(8)}</small></div>`).join('')}</div>
+        <p class="muted" style="font-size:11px;margin-top:6px"><i class="lg b1"></i> ingresos · <i class="lg b2"></i> altas nuevas. Los ingresos se registran desde hoy.</p></div>
+      <div class="card"><div class="card-title" style="justify-content:space-between"><span>🩺 Médicos (${d.medicos.length})</span><span class="muted" style="font-size:12px">${r.recordatorios_enviados} recordatorios de alta enviados por email</span></div>
+        <div class="table-wrap"><table><tr><th>Médico</th><th>Estado</th><th>Le falta</th><th>Alta</th><th>Último ingreso</th><th>Uso</th><th></th></tr>
+        ${d.medicos.map(m=>{const e=EST_MED[m.estado]||[m.estado,''];const f=falta(m);return `<tr><td><b>${esc([m.first_name,m.last_name].filter(Boolean).join(' ')||'(sin nombre)')}</b><br><small class="muted">${esc(m.email||'')}${m.specialty?' · '+esc(m.specialty):''}</small></td>
+          <td><span class="badge-sm ${e[1]}">${e[0]}</span>${m.nota?`<br><small class="muted">${esc(m.nota)}</small>`:''}</td>
+          <td style="font-size:12px">${m.estado==='verified'?'—':(f.join(', ')||'revisión')}${m.recordatorios?`<br><small class="muted">📧 ${m.recordatorios} recordatorio${m.recordatorios>1?'s':''}</small>`:''}${m.desuscripto?'<br><small class="muted">no quiere emails</small>':''}</td>
+          <td style="font-size:12px">${hace(m.created_at)}</td><td style="font-size:12px">${hace(m.last_login_at)}</td>
+          <td style="font-size:12px">${m.turnos} turnos · ${m.recetas} recetas</td>
+          <td>${m.estado!=='verified'&&m.phone?`<a class="btn btn-sm wa-btn" style="text-decoration:none" target="_blank" href="${waLink(m.phone,msgWa(m))}">WhatsApp</a>`:''}${m.estado!=='verified'&&m.email?`<a class="btn btn-sm btn-soft" style="text-decoration:none" href="mailto:${esc(m.email)}?subject=${encodeURIComponent('Tu alta en TuConsultorioOnline')}&body=${encodeURIComponent(msgWa(m))}">Email</a>`:''}</td></tr>`}).join('')}</table></div></div>
+      <div class="card"><div class="card-title">🔐 Accesos recientes</div>
+        ${d.eventos.length?`<div class="table-wrap"><table><tr><th>Cuándo</th><th>Qué</th><th>Cuenta</th><th>Detalle</th></tr>${d.eventos.map(x=>{const t=EV_TXT[x.kind]||[x.kind,''];return `<tr><td style="font-size:12px;white-space:nowrap">${new Date(x.created_at).toLocaleString('es-AR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</td><td><span class="badge-sm ${t[1]}">${t[0]}</span></td><td style="font-size:12px">${esc(x.email||'—')}${x.user_type?` <small class="muted">(${esc(x.user_type)})</small>`:''}</td><td style="font-size:12px" class="muted">${esc(x.detail||'')}</td></tr>`}).join('')}</table></div>`:'<p class="muted">Todavía no hay accesos registrados: se empiezan a guardar desde ahora.</p>'}</div>
+      <div class="card"><div class="card-title">👤 Últimos pacientes con cuenta</div>
+        ${d.pacientes.length?d.pacientes.map(p=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #FAF6F0;font-size:13px"><span><b>${esc([p.first_name,p.last_name].filter(Boolean).join(' ')||p.email)}</b><br><small class="muted">${esc(p.email)}</small></span><span class="muted" style="text-align:right">alta ${hace(p.created_at)}<br>ingreso ${hace(p.last_login_at)}</span></div>`).join(''):'<p class="muted">Sin pacientes con cuenta.</p>'}</div>`;
+  }catch(e){main.innerHTML=`<div class="card"><p class="error">${esc(e.message)}</p></div>`}
 }
 
 // ─── Recordatorios por WhatsApp (modo manual: botón que abre WhatsApp) ───
@@ -2251,7 +2298,7 @@ async function loadMisTurnos(){
         </div>
         <span class="badge-sm ${a.status}">${statusLabel(a.status)}</span>
       </div>`}).join('')
-    :'<div class="card center" style="padding:40px"><p style="font-size:30px">📅</p><p class="muted mt-8">No tenés turnos próximos</p><button onclick="navigateTo('reservar-turno')" class="btn btn-primary mt-16" style="display:inline-flex;width:auto;padding:12px 24px">Reservar turno</button></div>'}`;
+    :'<div class="card center" style="padding:40px"><p style="font-size:30px">📅</p><p class="muted mt-8">No tenés turnos próximos</p><button onclick="navigateTo(\'reservar-turno\')" class="btn btn-primary mt-16" style="display:inline-flex;width:auto;padding:12px 24px">Reservar turno</button></div>'}`;
 }
 
 // ─── Reservar turno (paciente) ─────────────────────────────
