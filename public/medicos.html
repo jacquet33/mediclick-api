@@ -57,6 +57,8 @@ input:focus,select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 
 .hidden{display:none!important}
 .done{text-align:center;padding:30px 10px}
 .store{display:inline-flex;align-items:center;gap:10px;background:#111;color:#fff;text-decoration:none;border-radius:12px;padding:10px 18px;font-weight:600}
+.drop .cambiar{display:block;font-size:12px;font-weight:700;color:var(--primary);margin-top:6px}
+.drop img{max-width:100%;max-height:220px;border-radius:10px;display:block;margin:0 auto}
 .store small{display:block;font-size:10px;opacity:.75;font-weight:500}
 .lanz{max-width:760px;margin:8px auto 16px;text-align:center;background:#EEF7F2;border:1px solid #CFE6DA;color:#245A4C;border-radius:12px;padding:10px 14px;font-size:14px}
 .per{display:flex;justify-content:center;gap:4px;margin:0 auto 22px;background:#EFE6DA;border-radius:12px;padding:4px;width:max-content}
@@ -263,10 +265,12 @@ function seg(id,key){$(id).querySelectorAll('button').forEach(b=>b.onclick=()=>{
 seg('prefijo','prefijo');seg('tipoMat','tipoMat');
 function ir(n){paso=n;[1,2,3].forEach(i=>{$('p'+i).classList.toggle('hidden',i!==n);$('d'+i).classList.toggle('on',i<=n)});$('b1').classList.toggle('on',n>1);$('b2').classList.toggle('on',n>2);document.getElementById('alta').scrollIntoView({behavior:'smooth'})}
 // Imágenes: se achican en el navegador
-function leerImg(file,lado){return new Promise((ok,mal)=>{const fr=new FileReader();fr.onerror=()=>mal(new Error('No se pudo leer'));fr.onload=()=>{const i=new Image();i.onerror=()=>mal(new Error('Formato no soportado (usá JPG o PNG)'));i.onload=()=>{const r=Math.min(1,lado/Math.max(i.width,i.height));const c=document.createElement('canvas');c.width=Math.round(i.width*r);c.height=Math.round(i.height*r);c.getContext('2d').drawImage(i,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.82))};i.src=fr.result};fr.readAsDataURL(file)})}
-$('avatar').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{D.avatar=await leerImg(f,512);$('avPrev').innerHTML=`<img src="${D.avatar}" alt="">`}catch(x){alert(x.message)}};
-$('dniFoto').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{D.dniFoto=await leerImg(f,1400);$('dniDrop').innerHTML=`<img src="${D.dniFoto}" alt="DNI">`;$('dniDrop').appendChild($('dniFoto'));$('dniFotoErr').classList.add('hidden')}catch(x){alert(x.message)}};
-$('credFoto').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{D.credFoto=await leerImg(f,1400);$('credDrop').innerHTML=`<img src="${D.credFoto}" alt="Credencial">`;$('credDrop').appendChild($('credFoto'))}catch(x){alert(x.message)}};
+function leerImg(file,lado){return new Promise((ok,mal)=>{const fr=new FileReader();fr.onerror=()=>mal(new Error('No se pudo leer'));fr.onload=()=>{const i=new Image();i.onerror=()=>mal(new Error('No pudimos abrir esa imagen. Probá con una foto JPG o PNG (si es del iPhone, sacala desde la cámara al elegir el archivo).'));i.onload=()=>{const r=Math.min(1,lado/Math.max(i.width,i.height));const c=document.createElement('canvas');c.width=Math.round(i.width*r);c.height=Math.round(i.height*r);c.getContext('2d').drawImage(i,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.82))};i.src=fr.result};fr.readAsDataURL(file)})}
+$('avatar').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{D.avatar=await leerImg(f,512);const ip=$('avPrev');if(ip.contains($('avatar'))){ip.querySelectorAll(':scope > :not(input)').forEach(n=>n.remove());const im=document.createElement('img');im.src=D.avatar;ip.insertBefore(im,$('avatar'))}else ip.innerHTML=`<img src="${D.avatar}" alt="">`}catch(x){alert(x.message)}};
+// Muestra la foto elegida dentro del recuadro sin borrar el <input> (antes se borraba y fallaba appendChild)
+function verFoto(dropId,input,src,alt){const d=$(dropId);d.querySelectorAll(':scope > :not(input)').forEach(n=>n.remove());const im=document.createElement('img');im.src=src;im.alt=alt;d.insertBefore(im,input);const c=document.createElement('span');c.className='cambiar';c.textContent='Cambiar foto';d.insertBefore(c,input)}
+$('dniFoto').onchange=async e=>{const inp=e.target,f=inp.files[0];if(!f)return;try{D.dniFoto=await leerImg(f,1400);verFoto('dniDrop',inp,D.dniFoto,'DNI');$('dniFotoErr').classList.add('hidden')}catch(x){$('dniFotoErr').textContent=x.message;$('dniFotoErr').classList.remove('hidden')}};
+$('credFoto').onchange=async e=>{const inp=e.target,f=inp.files[0];if(!f)return;try{D.credFoto=await leerImg(f,1400);verFoto('credDrop',inp,D.credFoto,'Credencial')}catch(x){alert(x.message)}};
 // REFEPS al escribir el DNI (como en el registro de SISA)
 let tRef=null;
 $('dni').oninput=()=>{clearTimeout(tRef);const d=$('dni').value.replace(/\D/g,'');const h=$('refepsHint');h.classList.add('hidden');if(d.length<7)return;
