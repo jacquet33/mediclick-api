@@ -219,7 +219,7 @@ export class PrescriptionPdfService {
       y += 15;
 
       // DNI
-      const dniLine = `DNI: ${rx.patient_dni || 'S/N'}`;
+      const dniLine = `DNI: ${rx.patient_dni || 'S/N'}${(rx as any).patient_cuil ? '   CUIL: ' + (rx as any).patient_cuil : ''}`;
       doc.fontSize(9).font('Helvetica').fillColor('#444444')
         .text(dniLine, LEFT + 10, y, { width: W / 2 - 10 });
 
@@ -266,6 +266,11 @@ export class PrescriptionPdfService {
           doc.fontSize(8).font('Helvetica-Oblique').fillColor('#9A6B3F')
             .text(`  DCI: ${(item as any).generic_name}`, LEFT + 15, y, { width: W - 30 });
           y += 12;
+        }
+        if ((item as any).cuir) {
+          doc.fontSize(7).font('Helvetica').fillColor('#777777')
+            .text(`  CUIR: ${(item as any).cuir}`, LEFT + 15, y, { width: W - 30 });
+          y += 10;
         }
 
         // Forma farmacéutica y presentación

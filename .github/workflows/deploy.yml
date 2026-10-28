@@ -87,6 +87,21 @@ jobs:
               traefik-public:
                 external: true
             YAML
+            # Copia de seguridad diaria de la base (Ley 26.529 / Dto. 98/23 art. 4 inc. i): 03:15, se guardan 90 días
+            mkdir -p /opt/mediclick/backups /opt/mediclick/logs
+            cat > /opt/mediclick/backup-diario.sh <<'SH'
+            #!/bin/sh
+            set -e
+            U=$(docker exec mediclick-db printenv POSTGRES_USER); D=$(docker exec mediclick-db printenv POSTGRES_DB)
+            F=/opt/mediclick/backups/tuconsultorio_$(date +%Y-%m-%d_%H%M).sql.gz
+            docker exec mediclick-db pg_dump -U "$U" "$D" | gzip > "$F.tmp" && mv "$F.tmp" "$F"
+            find /opt/mediclick/backups -name 'tuconsultorio_*.sql.gz' -mtime +90 -delete
+            echo "$(date -Is) backup ok $(du -h "$F" | cut -f1)"
+            SH
+            sed -i 's/^            //' /opt/mediclick/backup-diario.sh
+            chmod 700 /opt/mediclick/backup-diario.sh
+            ( crontab -l 2>/dev/null | grep -v backup-diario.sh ; echo "15 3 * * * /opt/mediclick/backup-diario.sh >> /opt/mediclick/logs/backup.log 2>&1" ) | crontab -
+            ls /opt/mediclick/backups/tuconsultorio_*.sql.gz >/dev/null 2>&1 || /opt/mediclick/backup-diario.sh || echo "primer backup falló"
             BASE=$(ls docker-compose.yml compose.yaml compose.yml 2>/dev/null | head -1)
             FILES="-f $BASE"
             [ -f docker-compose.override.yml ] && FILES="$FILES -f docker-compose.override.yml"

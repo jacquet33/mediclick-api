@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, Res, Header, BadRequestException } from '@nestjs/common';
 import { EmailService } from '../email/email.service';
+import { FhirService } from './fhir.service';
 import { Public } from '../../common/guards/auth.guard';
 import { PrescriptionService, CreatePrescriptionDto } from './prescription.service';
 import { PrescriptionPdfService } from './prescription-pdf.service';
@@ -12,7 +13,15 @@ export class PrescriptionController {
     private rxService: PrescriptionService,
     private pdfService: PrescriptionPdfService,
     private emailService: EmailService,
+    private fhir: FhirService,
   ) {}
+
+  /** GET /prescriptions/:id/fhir — receta en HL7 FHIR R4 */
+  @Get(':id/fhir')
+  async fhirBundle(@OrgId() orgId: string, @Param('id') id: string) {
+    await this.rxService.findById(orgId, id);
+    return this.fhir.bundle(id);
+  }
 
   /** POST /prescriptions/:id/email { email? } — manda el PDF de la receta (por defecto al email del paciente) */
   @Post(':id/email')

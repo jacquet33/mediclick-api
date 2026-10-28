@@ -46,6 +46,32 @@ code{background:#F5ECE1;padding:2px 6px;border-radius:6px;font-size:12px}
     <p class="muted" style="margin-bottom:10px">La entrega TuConsultorioOnline al habilitar la farmacia (escribinos a contact@rispy.io). Queda guardada solo en este equipo.</p>
     <div style="display:flex;gap:8px"><input id="clave" type="password" placeholder="tco_ph_…" autocomplete="off"><button class="btn" id="btnClave">Ingresar</button></div>
     <p id="errClave" class="err hidden"></p>
+    <p class="muted" style="margin-top:12px">¿Tu farmacia todavía no tiene clave? <a href="#" id="verRegistro" style="color:var(--primary);font-weight:600">Registrala gratis</a>. Cualquier farmacia habilitada del país puede dispensar las recetas de TuConsultorioOnline.</p>
+  </div>
+
+  <div class="card hidden" id="cardRegistro">
+    <h2>🏪 Registrar mi farmacia</h2>
+    <div class="row">
+      <div><label>Nombre de la farmacia *</label><input id="rNombre"></div>
+      <div><label>CUIT *</label><input id="rCuit" inputmode="numeric" placeholder="11 dígitos"></div>
+      <div><label>N° de habilitación *</label><input id="rHab" placeholder="Habilitación sanitaria / REFES"></div>
+      <div><label>Farmacéutico/a director/a técnico/a *</label><input id="rFarm"></div>
+      <div><label>Matrícula del farmacéutico/a *</label><input id="rMat"></div>
+      <div><label>Email *</label><input id="rEmail" type="email"></div>
+      <div><label>Teléfono</label><input id="rTel" inputmode="tel"></div>
+      <div><label>Dirección *</label><input id="rDir"></div>
+      <div><label>Ciudad *</label><input id="rCiudad"></div>
+      <div><label>Provincia *</label><select id="rProv" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;font:inherit;background:#fff"></select></div>
+    </div>
+    <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;text-transform:none;letter-spacing:0;font-weight:500;margin-top:12px;color:var(--text)"><input type="checkbox" id="rDdjj" style="width:18px;height:18px;margin-top:1px;accent-color:var(--primary)"> Declaro bajo juramento que la farmacia está habilitada por la autoridad sanitaria y que los datos son verdaderos. Voy a usar los datos de las recetas solo para dispensar (Ley 25.326).</label>
+    <p id="errReg" class="err hidden"></p>
+    <div style="display:flex;gap:8px;margin-top:12px"><button class="btn" id="btnReg">Registrar y obtener clave</button><button class="btn sec" id="btnRegNo">Cancelar</button></div>
+  </div>
+  <div class="card hidden" id="cardClaveNueva">
+    <h2>✅ Farmacia registrada</h2>
+    <p>Esta es tu clave. <b>Guardala ahora: se muestra una sola vez.</b></p>
+    <p id="claveNueva" style="font-family:monospace;font-size:15px;background:#F5ECE1;padding:12px;border-radius:10px;margin:10px 0;word-break:break-all;user-select:all"></p>
+    <button class="btn" id="btnUsarClave">Empezar a dispensar</button>
   </div>
 
   <div id="app" class="hidden">
@@ -90,6 +116,20 @@ async function entrar(){
     const q=new URLSearchParams(location.search);if(q.get('code')){$('codigo').value=q.get('code');$('dni').focus()}
   }catch(e){$('errClave').textContent=e.message;$('errClave').classList.remove('hidden');$('cardClave').classList.remove('hidden');$('app').classList.add('hidden')}
 }
+const PROV=['Buenos Aires','Ciudad de Buenos Aires','Catamarca','Chaco','Chubut','Córdoba','Corrientes','Entre Ríos','Formosa','Jujuy','La Pampa','La Rioja','Mendoza','Misiones','Neuquén','Río Negro','Salta','San Juan','San Luis','Santa Cruz','Santa Fe','Santiago del Estero','Tierra del Fuego','Tucumán'];
+$('rProv').innerHTML='<option value="">Elegí…</option>'+PROV.map(p=>`<option>${p}</option>`).join('');
+$('verRegistro').onclick=e=>{e.preventDefault();$('cardRegistro').classList.remove('hidden');$('rNombre').focus()};
+$('btnRegNo').onclick=()=>$('cardRegistro').classList.add('hidden');
+$('btnReg').onclick=async()=>{
+  const err=$('errReg');err.classList.add('hidden');
+  if(!$('rDdjj').checked){err.textContent='Tenés que aceptar la declaración';err.classList.remove('hidden');return}
+  try{
+    const r=await fetch('/api/v1/farmacia/registro',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:$('rNombre').value,cuit:$('rCuit').value,habilitacion:$('rHab').value,pharmacistName:$('rFarm').value,pharmacistLicense:$('rMat').value,email:$('rEmail').value,phone:$('rTel').value||undefined,address:$('rDir').value,city:$('rCiudad').value,province:$('rProv').value})});
+    const d=await r.json();if(!r.ok)throw new Error(Array.isArray(d.message)?d.message.join(', '):(d.message||'Error'));
+    $('cardRegistro').classList.add('hidden');$('cardClaveNueva').classList.remove('hidden');$('claveNueva').textContent=d.apiKey;
+    $('btnUsarClave').onclick=()=>{KEY=d.apiKey;try{localStorage.setItem('tco_ph_key',KEY)}catch{};$('cardClaveNueva').classList.add('hidden');entrar()};
+  }catch(e){err.textContent=e.message;err.classList.remove('hidden')}
+};
 $('btnClave').onclick=()=>{KEY=$('clave').value.trim();try{localStorage.setItem('tco_ph_key',KEY)}catch{};entrar()};
 $('btnSalir').onclick=()=>{try{localStorage.removeItem('tco_ph_key')}catch{};KEY='';location.reload()};
 if(KEY) entrar();

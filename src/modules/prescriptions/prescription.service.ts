@@ -3,6 +3,8 @@ import { DatabaseService } from '../../database/database.service';
 import { VerificationService } from '../verification/verification.service';
 import { PrescriptionSigningService } from './prescription-signing.service';
 import { DigitalSignatureService } from './digital-signature.service';
+import { cuilDesdeDni, cuilValido } from '../../common/utils/argentina';
+import { CentralRepoService } from './central-repo.service';
 
 export interface PrescriptionItemDto {
   medicationName: string;
@@ -39,6 +41,7 @@ export class PrescriptionService {
     private verification: VerificationService,
     private signing: PrescriptionSigningService,
     private digital: DigitalSignatureService,
+    private centralRepo: CentralRepoService,
   ) {}
 
   /** PDF firmado digitalmente (si existe) */
@@ -115,10 +118,18 @@ export class PrescriptionService {
     const incompleto = items.findIndex((i: any) => !String(i.dosage || '').trim() || !String(i.frequency || '').trim());
     if (incompleto >= 0) throw new BadRequestException(`Completá la dosis y la frecuencia del medicamento ${incompleto + 1}`);
     if (!dto.diagnosis?.trim()) throw new BadRequestException('Indicá el diagnóstico');
-    const paciente = await this.db.queryOne(`SELECT dni FROM patients WHERE id = $1 AND organization_id = $2`, [patientId, orgId]);
+    const paciente = await this.db.queryOne(`SELECT dni, cuil, gender FROM patients WHERE id = $1 AND organization_id = $2`, [patientId, orgId]);
     if (!paciente) throw new NotFoundException('Paciente no encontrado');
     if (!String(paciente.dni || '').replace(/\D/g, '')) {
       throw new BadRequestException('Para la receta electrónica el paciente tiene que tener DNI cargado');
+    }
+    // CUIL del paciente (Res. 2214/2025): el indicado, el cargado o calculado con DNI + sexo
+    const cuil = String(dto.patientCuil || dto.patient_cuil || paciente.cuil || cuilDesdeDni(paciente.dni, paciente.gender) || '').replace(/\D/g, '');
+    if (!cuilValido(cuil)) {
+      throw new BadRequestException('Indicá el CUIL del paciente (o cargá su sexo para calcularlo desde el DNI)');
+    }
+    if (!cuil.includes(String(paciente.dni).replace(/\D/g, '').padStart(8, '0'))) {
+      throw new BadRequestException('El CUIL no corresponde al DNI del paciente');
     }
 
     const creada = await this.db.transaction(async (client) => {
@@ -167,11 +178,15 @@ export class PrescriptionService {
       return { ...rx.rows[0], items };
     });
 
+    await this.db.query(`UPDATE prescriptions SET patient_cuil = $2 WHERE id = $1`, [creada.id, cuil]);
+    await this.db.query(`UPDATE patients SET cuil = $2 WHERE id = $1 AND COALESCE(cuil, '') = ''`, [patientId, cuil]).catch(() => undefined);
+
     // Firma electrónica y CUIR (después de confirmar la receta)
     const firma = await this.signing.firmar(creada.id).catch((e) => {
       this.logger.error(`No se pudo firmar la receta ${creada.id}: ${e.message}`);
       return null;
     });
+    if (firma) await this.centralRepo.encolar(creada.id);
     return { ...creada, cuir: firma?.cuir, content_hash: firma?.hash, firmada: !!firma };
   }
 

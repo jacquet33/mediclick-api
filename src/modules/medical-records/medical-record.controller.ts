@@ -206,7 +206,7 @@ export class MedicalRecordController {
     @Body() dto: Partial<CreateMedicalRecordDto>,
     @Req() req: Request,
   ) {
-    const record = await this.recordService.update(orgId, id, dto);
+    const record = await this.recordService.update(orgId, id, dto, doctorId);
     this.auditService.logAccess(
       doctorId, 'doctor', 'UPDATE_RECORD',
       'medical_records', id,
@@ -215,14 +215,22 @@ export class MedicalRecordController {
     return record;
   }
 
+  /** GET /medical-records/:id/versions — historial de cambios de la consulta */
+  @Get(':id/versions')
+  versions(@OrgId() orgId: string, @Param('id') id: string) {
+    return this.recordService.versions(orgId, id);
+  }
+
   @Delete(':id')
   async softDelete(
     @OrgId() orgId: string,
     @DoctorId() doctorId: string,
     @Param('id') id: string,
     @Req() req: Request,
+    @Query('reason') reason?: string,
+    @Body('reason') bodyReason?: string,
   ) {
-    const record = await this.recordService.softDelete(orgId, id, doctorId);
+    const record = await this.recordService.softDelete(orgId, id, doctorId, bodyReason || reason);
     this.auditService.logAccess(
       doctorId, 'doctor', 'DELETE_RECORD',
       'medical_records', id,

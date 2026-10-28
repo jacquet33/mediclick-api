@@ -299,6 +299,11 @@
     F.saving = true; F.error = null; actualizarBoton();
     try {
       const body = payload();
+      if (F.recordId) {
+        const motivo = prompt('Motivo de la modificación (queda registrado junto a la versión anterior):', '');
+        if (motivo === null) { F.saving = false; actualizarBoton(); return; }
+        body.changeReason = motivo || 'Corrección';
+      }
       const r = F.recordId
         ? await apiFetch(`/api/v1/medical-records/${F.recordId}`, { method: 'PUT', body })
         : await apiFetch('/api/v1/medical-records', { method: 'POST', body });
@@ -420,6 +425,7 @@
       ${bannerVerificacion(v)}
       <div class="card"><div class="card-title">👤 Paciente</div>
         ${p ? `<div class="appt-row"><div class="who"><strong>${e(p.first_name)} ${e(p.last_name)}</strong><small>${e([p.dni ? 'DNI ' + p.dni : 'Sin DNI', p.insurance_provider || 'Particular', p.insurance_number ? 'Afiliado ' + p.insurance_number : ''].filter(Boolean).join(' · '))}</small></div><button class="btn btn-sm btn-soft" id="rxCambiarPac">Cambiar</button></div>
+          ${!sinDni ? `<div class="field" style="max-width:320px;margin-top:8px"><label>CUIL del paciente *</label><input id="rxCuil" value="${e(R.cuil || p.cuil || cuilDesdeDni(p.dni, p.gender) || '')}" inputmode="numeric" placeholder="Ej: 20301112223"></div>` : ''}
           ${sinDni ? `<p class="error">La receta electrónica necesita el DNI del paciente. <a href="#" onclick="abrirPaciente('${p.id}');setTimeout(()=>editarPaciente('${p.id}'),900);return false" style="color:var(--primary)">Cargarlo</a></p>` : ''}`
         : `<div class="field"><label>Buscar paciente</label><input id="rxPacQ" placeholder="Nombre, DNI o teléfono" autocomplete="off"></div><div id="rxPacRes"></div>`}
       </div>
@@ -459,7 +465,17 @@
     enlazarReceta(v);
   }
 
+  function cuilDesdeDni(dni, sexo) {
+    const d = String(dni || '').replace(/\D/g, '').padStart(8, '0');
+    let pref = sexo === 'male' ? '20' : sexo === 'female' ? '27' : null;
+    if (!pref || d.length !== 8) return '';
+    const dig = (b) => { const m = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2]; const r = 11 - (m.reduce((a, x, i) => a + x * +b[i], 0) % 11); return r === 11 ? 0 : r; };
+    let v = dig(pref + d);
+    if (v === 10) { v = pref === '20' ? 9 : 4; pref = '23'; }
+    return pref + d + v;
+  }
   function leerReceta() {
+    const cu = $('rxCuil'); if (cu) R.cuil = cu.value.replace(/\D/g, '');
     const dx = $('rxDx'); if (dx) R.diagnosis = dx.value;
     const c = $('rxCie'); if (c) R.diagnosisCode = c.value.split(' ')[0];
     const ve = $('rxVence'); if (ve) R.expiresInDays = +ve.value;
@@ -514,7 +530,7 @@
       emitir.disabled = true; emitir.textContent = 'Firmando…';
       try {
         const r = await apiFetch('/api/v1/prescriptions', { method: 'POST', body: {
-          patientId: R.patientId, medicalRecordId: R.medicalRecordId || undefined, diagnosis: R.diagnosis.trim(), diagnosisCode: R.diagnosisCode || undefined,
+          patientId: R.patientId, patientCuil: R.cuil || undefined, medicalRecordId: R.medicalRecordId || undefined, diagnosis: R.diagnosis.trim(), diagnosisCode: R.diagnosisCode || undefined,
           expiresInDays: R.expiresInDays, notes: R.notes || undefined,
           items: items.map((x) => ({ genericName: x.genericName.trim(), medicationName: (x.medicationName || '').trim() || x.genericName.trim(), pharmaceuticalForm: x.pharmaceuticalForm || undefined, presentation: x.presentation || undefined, dosage: x.dosage || undefined, frequency: x.frequency || undefined, duration: x.duration || undefined, quantity: parseInt(x.quantity, 10) || undefined, instructions: x.instructions || undefined })),
         } });
@@ -579,7 +595,7 @@
         <p class="muted" style="margin-bottom:10px">Con tu certificado de firma digital (archivo .p12 / .pfx emitido por un certificador licenciado: AC ONTI, AC Modernización, etc.) cada receta queda firmada digitalmente dentro del PDF y cualquier lector (Adobe, la farmacia) puede validarla. La clave privada y la contraseña <b>nunca salen de tu equipo</b>.</p>
         <div id="certBox"><div class="spinner" style="margin:10px 0"></div></div>
       </div>
-      ${v.is_platform_admin ? `<div class="card"><div class="card-title">🛡️ Administración</div><div class="flex" style="flex-wrap:wrap"><button class="btn btn-sm btn-outline" onclick="abrirVerificaciones()">Revisar matrículas pendientes</button><button class="btn btn-sm btn-outline" onclick="abrirFarmaciasAdmin()">Farmacias habilitadas</button></div></div>` : ''}`;
+      ${v.is_platform_admin ? `<div class="card"><div class="card-title">🛡️ Administración</div><div class="flex" style="flex-wrap:wrap"><button class="btn btn-sm btn-outline" onclick="abrirVerificaciones()">Revisar matrículas pendientes</button><button class="btn btn-sm btn-outline" onclick="abrirFarmaciasAdmin()">Farmacias habilitadas</button><button class="btn btn-sm btn-outline" onclick="abrirPedidosDatos()">Pedidos de datos personales</button></div></div>` : ''}`;
     enlazarMatricula();
     const c = await certificadoActual();
     const box = $('certBox');
@@ -684,7 +700,7 @@
           </div><button class="btn btn-sm btn-primary" id="phCrear">Crear y generar clave</button></div>
         <div class="card"><div class="card-title">🏪 Farmacias (${l.length})</div>
           ${l.length ? l.map((f) => `<div class="appt-row"><div class="who"><strong>${e(f.name)}</strong><small>${e([f.city, f.province, f.cuit && 'CUIT ' + f.cuit, f.pharmacist_name].filter(Boolean).join(' · '))}</small><small>Clave ${e(f.api_key_prefix)}… · ${f.dispensas} dispensas · último uso ${f.last_used_at ? fmtDate(f.last_used_at) : 'nunca'}</small></div>
-            <div class="side"><span class="badge-sm ${f.is_active ? 'confirmed' : 'cancelled'}">${f.is_active ? 'Activa' : 'Deshabilitada'}</span><div class="acts">
+            <div class="side"><span class="badge-sm ${f.is_active ? 'confirmed' : 'cancelled'}">${f.is_active ? 'Activa' : 'Deshabilitada'}</span>${f.self_registered ? '<span class="badge-sm pending">Se registró sola</span>' : ''}<div class="acts">
               <button class="btn btn-sm btn-soft" onclick="farmaciaAccion('${f.id}','regenerate-key')">Nueva clave</button>
               <button class="btn btn-sm ${f.is_active ? 'btn-no' : 'btn-ok'}" onclick="farmaciaAccion('${f.id}','${f.is_active ? 'deactivate' : 'activate'}')">${f.is_active ? 'Deshabilitar' : 'Habilitar'}</button></div></div></div>`).join('') : '<p class="muted">Todavía no hay farmacias habilitadas.</p>'}
         </div>`;
@@ -694,6 +710,25 @@
         catch (ex) { alert(ex.message); }
       };
     } catch (ex) { m.innerHTML = `<div class="card"><p class="error">${e(ex.message)}</p></div>`; }
+  };
+  window.abrirPedidosDatos = async function (estado = 'pending') {
+    const m = main(); m.innerHTML = '<div class="spinner"></div>';
+    try {
+      const l = await apiFetch(`/api/v1/admin/data-requests?estado=${estado}`);
+      const tipos = { acceso: 'Acceso', rectificacion: 'Rectificación', supresion: 'Supresión', oposicion: 'Oposición' };
+      m.innerHTML = `<div class="topbar"><button class="btn btn-sm btn-outline" onclick="abrirMatricula()">← Volver</button><h1>Pedidos de datos (Ley 25.326)</h1><span></span></div>
+        <div class="chips">${[['pending', 'Pendientes'], ['done', 'Resueltos'], ['rejected', 'Rechazados']].map(([k, t]) => `<button class="chip ${k === estado ? 'active' : ''}" onclick="abrirPedidosDatos('${k}')">${t}</button>`).join('')}</div>
+        <p class="muted" style="margin-bottom:10px">Plazos: acceso 10 días corridos; rectificación, supresión u oposición 5 días hábiles. La historia clínica no se suprime antes de los 10 años: se bloquea.</p>
+        ${l.length ? l.map((r) => `<div class="card"><div class="flex-between" style="flex-wrap:wrap"><b>${tipos[r.kind] || r.kind}</b><span class="muted">Vence ${fmtDate(r.due_at)}</span></div>
+          <p style="font-size:13px;margin-top:6px">${e(r.patient_name || r.full_name || '')} · DNI ${e(r.dni || '—')} · ${e(r.email || '')}</p>
+          ${r.detail ? `<p class="muted" style="margin-top:4px">${e(r.detail)}</p>` : ''}${r.response ? `<p style="margin-top:6px;font-size:13px">Respuesta: ${e(r.response)}</p>` : ''}
+          ${r.status === 'pending' ? `<div class="flex" style="margin-top:8px"><button class="btn btn-sm btn-ok" onclick="resolverPedido('${r.id}','done')">Marcar resuelto</button><button class="btn btn-sm btn-no" onclick="resolverPedido('${r.id}','rejected')">Rechazar</button></div>` : ''}</div>`).join('') : '<div class="card"><p class="muted center">No hay pedidos.</p></div>'}`;
+    } catch (ex) { m.innerHTML = `<div class="card"><p class="error">${e(ex.message)}</p></div>`; }
+  };
+  window.resolverPedido = async function (id, status) {
+    const resp = prompt('Respuesta enviada al titular (queda registrada):', status === 'done' ? 'Respondido por email' : '');
+    if (resp === null) return;
+    try { await apiFetch(`/api/v1/admin/data-requests/${id}/resolve`, { method: 'POST', body: { status, response: resp } }); abrirPedidosDatos(); } catch (ex) { alert(ex.message); }
   };
   window.farmaciaAccion = async function (id, acc) {
     if (acc === 'regenerate-key' && !confirm('La clave anterior deja de funcionar. ¿Generar una nueva?')) return;

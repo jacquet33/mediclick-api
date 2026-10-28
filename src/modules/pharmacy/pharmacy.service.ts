@@ -45,7 +45,8 @@ export class PharmacyService {
        JOIN patients p ON p.id = rx.patient_id
        JOIN doctors d ON d.id = rx.doctor_id
        JOIN organizations o ON o.id = rx.organization_id
-       WHERE upper(rx.verification_code) = $1 OR upper(rx.cuir) = $1`,
+       WHERE upper(rx.verification_code) = $1 OR upper(rx.cuir) = $1
+          OR rx.id = (SELECT prescription_id FROM prescription_items WHERE cuir = $1 LIMIT 1)`,
       [c],
     );
     // Mismo mensaje si no existe o si el DNI no coincide (no revela si la receta existe)
@@ -96,6 +97,13 @@ export class PharmacyService {
     };
   }
 
+  async fhir(key: string, codigo: string, dni: string, fhir: any, ip?: string) {
+    const ph = await this.autenticar(key);
+    const rx = await this.receta(codigo, dni);
+    this.log(ph.id, rx.id, 'consulta_fhir', ip);
+    return fhir.bundle(rx.id);
+  }
+
   async dispensar(key: string, codigo: string, body: { dni: string; items: { itemId: string; cantidad: number; producto?: string; lote?: string; vencimiento?: string }[]; farmaceutico?: string; notas?: string }, ip?: string) {
     const ph = await this.autenticar(key);
     const rx = await this.receta(codigo, body.dni);
@@ -134,6 +142,41 @@ export class PharmacyService {
     });
   }
 
+  // ─── Registro abierto: cualquier farmacia habilitada (Ley 27.553, art. 4 Dto. 98/23) ───
+  static cuitValido(c: string) {
+    const d = String(c || '').replace(/\D/g, '');
+    if (d.length !== 11) return false;
+    const m = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+    const s = m.reduce((a, x, i) => a + x * +d[i], 0);
+    let v = 11 - (s % 11); if (v === 11) v = 0; if (v === 10) v = 9;
+    return v === +d[10];
+  }
+
+  async registroPublico(dto: any, ip?: string) {
+    const req = (k: string, msg: string) => { if (!String(dto[k] || '').trim()) throw new BadRequestException(msg); };
+    req('name', 'Ingresá el nombre de la farmacia');
+    req('habilitacion', 'Ingresá el número de habilitación de la farmacia');
+    req('pharmacistName', 'Ingresá el nombre del farmacéutico/a director/a técnico/a');
+    req('pharmacistLicense', 'Ingresá la matrícula del farmacéutico/a');
+    req('address', 'Ingresá la dirección'); req('city', 'Ingresá la ciudad'); req('province', 'Elegí la provincia');
+    if (!PharmacyService.cuitValido(dto.cuit)) throw new BadRequestException('CUIT inválido');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(dto.email || ''))) throw new BadRequestException('Email inválido');
+    const cuit = String(dto.cuit).replace(/\D/g, '');
+    const ya = await this.db.queryOne(`SELECT id FROM pharmacies WHERE regexp_replace(COALESCE(cuit,''), '\\D', '', 'g') = $1 AND habilitacion = $2`, [cuit, String(dto.habilitacion).trim()]);
+    if (ya) throw new BadRequestException('Esa farmacia ya está registrada. Si perdiste la clave escribinos a contact@rispy.io');
+    const k = this.nuevaClave();
+    const ph = await this.db.queryOne(
+      `INSERT INTO pharmacies (name, cuit, habilitacion, pharmacist_name, pharmacist_license, email, phone, address, city, province,
+                               api_key_hash, api_key_prefix, self_registered, reviewed)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,true,false) RETURNING id, name`,
+      [String(dto.name).trim(), cuit, String(dto.habilitacion).trim(), String(dto.pharmacistName).trim(), String(dto.pharmacistLicense).trim(),
+       String(dto.email).trim().toLowerCase(), dto.phone || null, String(dto.address).trim(), String(dto.city).trim(), dto.province, k.hash, k.prefix],
+    );
+    this.log(ph.id, null, 'registro', ip);
+    this.logger.log(`Farmacia registrada: ${ph.name} (${cuit})`);
+    return { ...ph, apiKey: k.key };
+  }
+
   // ─── Administración (administrador de la plataforma) ───
   private async mustAdmin(doctorId: string) {
     const a = await this.db.queryOne(`SELECT is_platform_admin FROM doctors WHERE id = $1`, [doctorId]);
@@ -149,7 +192,7 @@ export class PharmacyService {
     await this.mustAdmin(adminId);
     return this.db.queryMany(
       `SELECT ph.id, ph.name, ph.cuit, ph.habilitacion, ph.pharmacist_name, ph.pharmacist_license, ph.email, ph.phone,
-              ph.address, ph.city, ph.province, ph.api_key_prefix, ph.is_active, ph.created_at, ph.last_used_at,
+              ph.address, ph.city, ph.province, ph.api_key_prefix, ph.is_active, ph.created_at, ph.last_used_at, ph.self_registered, ph.reviewed,
               (SELECT COUNT(*)::int FROM prescription_dispensations d WHERE d.pharmacy_id = ph.id) AS dispensas
        FROM pharmacies ph ORDER BY ph.created_at DESC`);
   }

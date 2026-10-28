@@ -246,8 +246,9 @@ export class PatientService {
       this.db.queryOne(`SELECT email, created_at, last_login_at FROM patient_auth WHERE patient_id = $1`, [patientId]).catch(() => null),
       clinico ? q(`SELECT id, to_char(date, 'YYYY-MM-DD') AS date, record_type, chief_complaint, diagnosis, diagnosis_code,
                           allergies, current_medications, personal_history, family_history, habits, occupation, vital_signs,
-                          doctor_full_name, present_illness, physical_exam, findings, treatment_plan, instructions, follow_up, systems_review
-                   FROM medical_records WHERE patient_id = $1 AND organization_id = $2 AND deleted_at IS NULL
+                          doctor_full_name, present_illness, physical_exam, findings, treatment_plan, instructions, follow_up, systems_review,
+                          version, deleted_at, annulled_reason
+                   FROM medical_records WHERE patient_id = $1 AND organization_id = $2
                    ORDER BY date DESC, created_at DESC LIMIT 50`) : Promise.resolve([]),
       clinico ? q(`SELECT p.id, to_char(p.issued_at, 'YYYY-MM-DD') AS date, p.diagnosis, p.status, p.verification_code,
                           COALESCE(json_agg(json_build_object('name', i.medication_name, 'dosage', i.dosage, 'frequency', i.frequency)
@@ -261,7 +262,7 @@ export class PatientService {
     const hoy = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
     const proximos = appointments.filter((a: any) => a.date >= hoy && !['cancelled', 'no_show', 'completed'].includes(a.status)).reverse();
     // Último dato clínico cargado (lo más reciente de la historia)
-    const ultima = records[0] || null;
+    const ultima = records.find((r: any) => !r.deleted_at) || null;
     return {
       patient: { ...patient, photo_url: photo?.data_url || null },
       stats: stats || {},

@@ -2,15 +2,29 @@ import { Controller, Get, Post, Body, Param, Query, Headers, Req, ForbiddenExcep
 import { Request } from 'express';
 import { Public, AuthUser } from '../../common/guards/auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { PublicThrottle } from '../../common/decorators/throttle.decorator';
+import { PublicThrottle, StrictThrottle } from '../../common/decorators/throttle.decorator';
 import { PharmacyService } from './pharmacy.service';
+import { FhirService } from '../prescriptions/fhir.service';
 
 /** API para farmacias: header X-Pharmacy-Key */
 @Public()
 @PublicThrottle()
 @Controller('api/v1/farmacia')
 export class PharmacyApiController {
-  constructor(private service: PharmacyService) {}
+  constructor(private service: PharmacyService, private fhirSvc: FhirService) {}
+
+  /** GET /farmacia/recetas/fhir?codigo&dni — la receta en HL7 FHIR R4 */
+  @Get('recetas/fhir')
+  fhir(@Headers('x-pharmacy-key') key: string, @Query('codigo') codigo: string, @Query('dni') dni: string, @Req() req: Request) {
+    return this.service.fhir(key, codigo, dni, this.fhirSvc, req.ip);
+  }
+
+  /** POST /farmacia/registro — cualquier farmacia habilitada obtiene su clave (se muestra una sola vez) */
+  @StrictThrottle()
+  @Post('registro')
+  registro(@Body() dto: any, @Req() req: Request) {
+    return this.service.registroPublico(dto, req.ip);
+  }
 
   @Get('me')
   async me(@Headers('x-pharmacy-key') key: string) {

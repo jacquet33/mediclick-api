@@ -836,7 +836,7 @@ async function abrirPaciente(id){
           </div>
           <div class="card"><div class="card-title">📋 Consultas (${c.records.length})</div>
             ${c.records.length?c.records.map(r=>`<details class="rec"><summary><span><b>${fmtDate(r.date)}</b> · ${esc(r.diagnosis||r.chief_complaint||'Consulta')}${r.diagnosis_code?` <span class="muted">(${esc(r.diagnosis_code)})</span>`:''}</span><span class="muted">${esc(r.doctor_full_name||'')}</span></summary>
-              <div class="flex" style="margin-top:8px"><button class="btn btn-sm btn-soft" onclick="abrirFormularioHC('${p.id}',{recordId:'${r.id}',nombre:'${esc(nombre)}'})">✏️ Editar consulta</button><button class="btn btn-sm btn-soft" onclick="abrirNuevaReceta({patientId:'${p.id}',medicalRecordId:'${r.id}',diagnosis:'${esc((r.diagnosis||'').replace(/'/g,''))}',diagnosisCode:'${esc(r.diagnosis_code||'')}'})">💊 Receta</button></div>
+              ${r.deleted_at?`<p style="color:var(--danger);font-size:12px">Anulada${r.annulled_reason?': '+esc(r.annulled_reason):''}</p>`:''}<div class="flex" style="margin-top:8px;flex-wrap:wrap">${r.deleted_at?'':`<button class="btn btn-sm btn-soft" onclick="abrirFormularioHC('${p.id}',{recordId:'${r.id}',nombre:'${esc(nombre)}'})">✏️ Editar consulta</button>`}${(r.version||1)>1?`<button class="btn btn-sm btn-soft" onclick="verVersionesHC('${r.id}')">🕑 Versiones (${r.version})</button>`:''}${r.deleted_at?'':`<button class="btn btn-sm btn-no" onclick="anularHC('${r.id}','${p.id}')">Anular</button>`}<button class="btn btn-sm btn-soft" onclick="abrirNuevaReceta({patientId:'${p.id}',medicalRecordId:'${r.id}',diagnosis:'${esc((r.diagnosis||'').replace(/'/g,''))}',diagnosisCode:'${esc(r.diagnosis_code||'')}'})">💊 Receta</button></div>
               ${[['Motivo',r.chief_complaint],['Enfermedad actual',r.present_illness],['Revisión por sistemas',r.systems_review],['Examen físico',r.physical_exam],['Hallazgos',r.findings],['Diagnóstico',r.diagnosis],['Plan',r.treatment_plan],['Indicaciones',r.instructions],['Seguimiento',r.follow_up]].filter(x=>x[1]).map(([k,v])=>`<p><b>${k}:</b> ${esc(String(v).replace(/; /g,'\n'))}</p>`).join('')}
             </details>`).join(''):'<p class="muted">Sin consultas registradas.</p>'}
           </div>`:''}
@@ -858,6 +858,22 @@ async function abrirPaciente(id){
       </div>`;
     window._fichaPaciente=p;
   }catch(e){main.innerHTML=`<div class="card"><p class="error">${esc(e.message)}</p><button class="btn btn-sm btn-outline" onclick="navigateTo(_fichaVolver||'pacientes')">← Volver</button></div>`}
+}
+async function anularHC(id,pid){
+  const m=prompt('Motivo de la anulación (la consulta no se borra: queda anulada con este motivo):','');
+  if(m===null)return; if(!m.trim()){alert('Indicá el motivo');return}
+  try{await apiFetch(`/api/v1/medical-records/${id}`,{method:'DELETE',body:{reason:m}});abrirPaciente(pid)}catch(e){alert(e.message)}
+}
+async function verVersionesHC(id){
+  try{
+    const v=await apiFetch(`/api/v1/medical-records/${id}/versions`);
+    const main=document.getElementById('mainContent');const volver=main.innerHTML;
+    window._volverHC=volver;
+    main.innerHTML=`<div class="topbar"><button class="btn btn-sm btn-outline" onclick="document.getElementById('mainContent').innerHTML=window._volverHC">← Volver</button><h1>Versiones anteriores</h1><span></span></div>
+      ${v.map(x=>`<div class="card"><div class="flex-between"><b>Versión ${x.version}</b><span class="muted">reemplazada el ${new Date(x.changed_at).toLocaleString('es-AR')}${x.changed_by_name?' por '+esc(x.changed_by_name):''}</span></div>
+        ${x.change_reason?`<p class="muted" style="margin-top:4px">Motivo: ${esc(x.change_reason)}</p>`:''}
+        ${[['Motivo de consulta',x.data.chief_complaint],['Enfermedad actual',x.data.present_illness],['Examen físico',x.data.physical_exam],['Diagnóstico',[x.data.diagnosis_code,x.data.diagnosis].filter(Boolean).join(' — ')],['Plan',x.data.treatment_plan],['Indicaciones',x.data.instructions]].filter(y=>y[1]).map(([k,t])=>`<p style="font-size:13px;margin-top:6px;white-space:pre-wrap"><b>${k}:</b> ${esc(t)}</p>`).join('')}</div>`).join('')||'<div class="card"><p class="muted">Sin versiones anteriores.</p></div>'}`;
+  }catch(e){alert(e.message)}
 }
 function nuevaConsultaDesdeFicha(id,nombre){navigateTo('historial');setTimeout(()=>{try{viewPatientHistory(id,nombre);showNewRecord(id)}catch{}},400)}
 async function subirFotoPaciente(id,file){
@@ -1938,7 +1954,15 @@ async function loadMiHistorial(){
 
 async function loadMisRecetas(){
   const main=document.getElementById('mainContent');
-  main.innerHTML=`<div class="topbar"><h1>Mis recetas</h1></div><div class="card center" style="padding:40px"><p style="font-size:30px">💊</p><p class="muted mt-8">Tus recetas van a aparecer acá cuando tu médico las emita.</p></div>`;
+  try{
+    const l=asList(await apiFetch('/api/v1/me/prescriptions'));
+    main.innerHTML=`<div class="topbar"><h1>Mis recetas</h1></div>
+      ${l.length?l.map(r=>{const venc=r.expires_at&&new Date(r.expires_at)<new Date();const est=r.status==='cancelled'?['Anulada','cancelled']:r.status==='dispensed'?['Dispensada','completed']:venc?['Vencida','no_show']:['Vigente','confirmed'];
+        return `<div class="card"><div class="flex-between" style="flex-wrap:wrap;gap:8px"><div><b>${fmtDate(r.issued_at)}</b> · Dr/a. ${esc(r.doctor_name)}<br><span class="muted">${esc(r.consultorio)}${r.diagnosis?' · '+esc(r.diagnosis):''}</span></div><span class="badge-sm ${est[1]}">${est[0]}</span></div>
+        <div style="margin:10px 0">${(r.items||[]).map(i=>`<p style="font-size:14px">💊 <b>${esc(i.generico)}</b> ${esc(i.presentacion||'')}<br><span class="muted">${esc([i.dosis,i.frecuencia].filter(Boolean).join(' · '))}</span></p>`).join('')}</div>
+        <p class="muted">Código para la farmacia: <b style="font-size:16px;color:var(--text)">${esc(r.verification_code)}</b> · CUIR ${esc(r.cuir||'')}</p>
+        <div class="flex" style="margin-top:10px;flex-wrap:wrap"><a class="btn btn-sm btn-primary" style="text-decoration:none" target="_blank" href="${API}/api/v1/prescriptions/verify/${r.verification_code}/pdf">Ver / descargar PDF</a><a class="btn btn-sm btn-outline" style="text-decoration:none" target="_blank" href="/verificar-receta?code=${r.verification_code}">Verificar</a></div></div>`}).join(''):'<div class="card center" style="padding:40px"><p style="font-size:30px">💊</p><p class="muted mt-8">Tus recetas van a aparecer acá cuando tu médico las emita.</p></div>'}`;
+  }catch(e){main.innerHTML=`<div class="card"><p class="error">${esc(e.message)}</p></div>`}
 }
 
 function loadMiPerfil(){
@@ -1948,16 +1972,33 @@ function loadMiPerfil(){
     <div class="topbar"><h1>Mi perfil</h1></div>
     <div class="card">
       <div class="flex" style="gap:16px;margin-bottom:16px">
-        <div class="avatar" style="width:56px;height:56px;font-size:20px">${initials(u.first_name+' '+u.last_name)}</div>
-        <div><h2 style="font-size:18px">${u.first_name||''} ${u.last_name||''}</h2><p class="muted">${u.email||''}</p></div>
+        <div class="avatar" style="width:56px;height:56px;font-size:20px">${initials((u.first_name||'')+' '+(u.last_name||''))}</div>
+        <div><h2 style="font-size:18px">${esc(u.first_name||'')} ${esc(u.last_name||'')}</h2><p class="muted">${esc(u.email||'')}</p></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px">
-        <div><span class="muted">Teléfono</span><br><strong>${u.phone||'—'}</strong></div>
-        <div><span class="muted">DNI</span><br><strong>${u.dni||'—'}</strong></div>
-        <div><span class="muted">Obra social</span><br><strong>${u.insurance_provider||'Particular'}</strong></div>
-        <div><span class="muted">N° credencial</span><br><strong>${u.insurance_number||'—'}</strong></div>
+        <div><span class="muted">Teléfono</span><br><strong>${esc(u.phone||'—')}</strong></div>
+        <div><span class="muted">DNI</span><br><strong>${esc(u.dni||'—')}</strong></div>
+        <div><span class="muted">Obra social</span><br><strong>${esc(u.insurance_provider||'Particular')}</strong></div>
+        <div><span class="muted">N° credencial</span><br><strong>${esc(u.insurance_number||'—')}</strong></div>
       </div>
+    </div>
+    <div class="card"><div class="card-title">🔒 Mis datos personales (Ley 25.326)</div>
+      <p class="muted" style="margin-bottom:12px">Podés descargar todo lo que guardamos sobre vos, o pedir que lo corrijamos. La historia clínica se conserva 10 años por ley (Ley 26.529).</p>
+      <div class="flex" style="flex-wrap:wrap">
+        <button class="btn btn-sm btn-primary" onclick="descargarMisDatos()">Descargar mis datos</button>
+        <button class="btn btn-sm btn-outline" onclick="pedirSobreMisDatos('rectificacion')">Pedir una corrección</button>
+        <button class="btn btn-sm btn-outline" onclick="pedirSobreMisDatos('supresion')">Pedir la supresión</button>
+      </div>
+      <p class="muted" style="margin-top:10px;font-size:12px"><a href="/privacidad" target="_blank" style="color:var(--primary)">Política de privacidad</a> · <a href="/terminos" target="_blank" style="color:var(--primary)">Términos</a></p>
     </div>`;
+}
+async function descargarMisDatos(){
+  try{const d=await apiFetch('/api/v1/me/data-export');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));a.download='mis-datos-tuconsultorio.json';document.body.appendChild(a);a.click();a.remove()}catch(e){alert(e.message)}
+}
+async function pedirSobreMisDatos(kind){
+  const det=prompt(kind==='rectificacion'?'¿Qué dato hay que corregir y cuál es el correcto?':'Contanos qué datos querés que suprimamos:','');
+  if(det===null)return;
+  try{const r=await apiFetch('/api/v1/me/data-requests',{method:'POST',body:{kind,detail:det}});alert(`✅ Pedido N° ${r.numero} recibido. Te respondemos antes del ${new Date(r.respondemosAntesDe).toLocaleDateString('es-AR')}.`)}catch(e){alert(e.message)}
 }
 
 // ═══════════════════════════════════════════════════════════

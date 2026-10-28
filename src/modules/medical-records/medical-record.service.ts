@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, Logger } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 
 export interface CreateMedicalRecordDto {
@@ -226,8 +226,12 @@ export class MedicalRecordService {
     return record;
   }
 
-  async update(orgId: string, id: string, dto: Partial<CreateMedicalRecordDto>) {
-    await this.findById(orgId, id);
+  async update(orgId: string, id: string, dto: Partial<CreateMedicalRecordDto> & { changeReason?: string }, doctorId?: string) {
+    const actual: any = await this.findById(orgId, id);
+    // Solo quien la escribió puede modificarla; cada cambio queda versionado (trigger trg_hc_versionar)
+    if (doctorId && actual?.doctor_id && actual.doctor_id !== doctorId) {
+      throw new ForbiddenException('Solo el profesional que hizo la consulta puede modificarla. Podés agregar una nueva consulta.');
+    }
 
     const fields: string[] = [];
     const values: any[] = [];
@@ -270,6 +274,8 @@ export class MedicalRecordService {
 
     if (fields.length === 0) return this.findById(orgId, id);
 
+    fields.push(`updated_by = $${idx}`); values.push(doctorId || null); idx++;
+    fields.push(`change_reason = $${idx}`); values.push(dto.changeReason || null); idx++;
     values.push(id, orgId);
     return this.db.queryOne(
       `UPDATE medical_records SET ${fields.join(', ')} WHERE id = $${idx} AND organization_id = $${idx + 1} RETURNING *`,
@@ -281,11 +287,25 @@ export class MedicalRecordService {
    * Soft-delete: marca el registro como eliminado sin borrarlo físicamente.
    * Ley 26.529 — inalterabilidad: los registros clínicos nunca se borran.
    */
-  async softDelete(orgId: string, id: string, doctorId: string) {
-    await this.findById(orgId, id);
+  async softDelete(orgId: string, id: string, doctorId: string, reason?: string) {
+    const actual: any = await this.findById(orgId, id);
+    if (actual?.doctor_id && actual.doctor_id !== doctorId) throw new ForbiddenException('Solo el profesional que hizo la consulta puede anularla');
+    // Anulación con motivo: el registro y sus versiones se conservan (Ley 26.529)
     return this.db.queryOne(
-      `UPDATE medical_records SET deleted_at = NOW() WHERE id = $1 AND organization_id = $2 RETURNING *`,
-      [id, orgId],
+      `UPDATE medical_records SET deleted_at = NOW(), annulled_reason = $3, updated_by = $4, change_reason = 'Anulada: ' || $3
+       WHERE id = $1 AND organization_id = $2 RETURNING *`,
+      [id, orgId, (reason || 'Sin motivo indicado').slice(0, 500), doctorId],
+    );
+  }
+
+  /** Versiones anteriores de una consulta (Ley 26.529) */
+  async versions(orgId: string, id: string) {
+    await this.findById(orgId, id);
+    return this.db.queryMany(
+      `SELECT v.version, v.changed_at, v.change_reason, d.first_name || ' ' || d.last_name AS changed_by_name, v.data
+       FROM medical_record_versions v LEFT JOIN doctors d ON d.id = v.changed_by
+       WHERE v.record_id = $1 ORDER BY v.version DESC`,
+      [id],
     );
   }
 }

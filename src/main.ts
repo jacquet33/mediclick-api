@@ -66,6 +66,9 @@ import { PrescriptionSigningService } from './modules/prescriptions/prescription
 import { DigitalSignatureService } from './modules/prescriptions/digital-signature.service';
 import { DigitalSignatureController } from './modules/prescriptions/digital-signature.controller';
 import { PharmacyService } from './modules/pharmacy/pharmacy.service';
+import { PrivacyController } from './modules/privacy/privacy.controller';
+import { FhirService } from './modules/prescriptions/fhir.service';
+import { CentralRepoService } from './modules/prescriptions/central-repo.service';
 import { PharmacyApiController, PharmacyAdminController } from './modules/pharmacy/pharmacy.controller';
 import { AuditController } from './modules/audit/audit.controller';
 import { AuditService } from './modules/audit/audit.service';
@@ -169,6 +172,7 @@ class HealthController {
     DigitalSignatureController,
     PharmacyApiController,
     PharmacyAdminController,
+    PrivacyController,
     AuditController,
     ConsentController,
     OnboardingController,
@@ -215,6 +219,8 @@ class HealthController {
     PrescriptionSigningService,
     DigitalSignatureService,
     PharmacyService,
+    FhirService,
+    CentralRepoService,
     AuditService,
     ConsentService,
     OnboardingService,
