@@ -467,6 +467,8 @@ if (!slug && pathParts[0] === 'reservar') {
     doctorSlug = pathParts[1];
   }
 }
+// Sin médico en el enlace (ej. /reservar.html): mandar al buscador de profesionales
+if (!slug && !doctorSlug && !location.pathname.startsWith('/turno/')) { location.replace('/#results'); }
 let chatOpen=false, chatLoaded=false;
 
 function toggleChat(){

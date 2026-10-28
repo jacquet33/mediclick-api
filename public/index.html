@@ -139,11 +139,11 @@ footer p{font-size:12px;color:var(--muted)}
     <p>Buscá tu médico, elegí día y hora, completá tus datos y listo. Sin llamar por teléfono, disponible 24/7.</p>
     <a class="feat-link">Buscar médico →</a>
   </div>
-  <div class="feat" onclick="window.location='/reservar.html?slug=alejandro-jacquet#waitlist'" style="cursor:pointer">
+  <div class="feat" onclick="document.getElementById('results').scrollIntoView({behavior:'smooth'})" style="cursor:pointer">
     <div class="feat-icon">🔔</div>
     <h3>Avisame si se libera</h3>
     <p>¿No hay turno el día que querés? Dejá tu celular y te notificamos apenas se cancele uno. Gratis.</p>
-    <a class="feat-link">Probar ahora →</a>
+    <a class="feat-link">Elegí tu médico y anotate →</a>
   </div>
   <div class="feat" onclick="window.location='/portal.html'" style="cursor:pointer">
     <div class="feat-icon">💊</div>
@@ -210,7 +210,7 @@ function renderResults(doctors,total){
   res.innerHTML=`
     <div class="results-header"><h2>Profesionales disponibles</h2><span>${total} encontrados</span></div>
     <div class="results-grid">${doctors.map(d=>`
-      <div class="doc-card" onclick="window.location='/reservar.html?slug=${d.public_slug}'">
+      <div class="doc-card" onclick="window.location='/reservar/${encodeURIComponent(d.public_slug)}'">
         <div class="doc-top">
           <div class="doc-avatar">${(d.name||'').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}</div>
           <div>

@@ -2251,7 +2251,7 @@ async function loadMisTurnos(){
         </div>
         <span class="badge-sm ${a.status}">${statusLabel(a.status)}</span>
       </div>`}).join('')
-    :'<div class="card center" style="padding:40px"><p style="font-size:30px">📅</p><p class="muted mt-8">No tenés turnos próximos</p><a href="/reservar.html" class="btn btn-primary mt-16" style="display:inline-flex;width:auto;padding:12px 24px;text-decoration:none">Reservar turno</a></div>'}`;
+    :'<div class="card center" style="padding:40px"><p style="font-size:30px">📅</p><p class="muted mt-8">No tenés turnos próximos</p><button onclick="navigateTo('reservar-turno')" class="btn btn-primary mt-16" style="display:inline-flex;width:auto;padding:12px 24px">Reservar turno</button></div>'}`;
 }
 
 // ─── Reservar turno (paciente) ─────────────────────────────

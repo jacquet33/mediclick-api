@@ -591,7 +591,7 @@ function showSuccess(data, body) {
     <div class="success-row"><span>Obra social</span><span>${ins}</span></div>
   `;
 
-  document.getElementById('bookingLink').href = `/reservar.html?slug=${slug}`;
+  document.getElementById('bookingLink').href = `/reservar/${encodeURIComponent(slug)}`;
 }
 
 init();
