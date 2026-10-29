@@ -38,11 +38,12 @@ jobs:
             echo "OLL modelos $(docker exec rispy-ollama ollama list 2>/dev/null | tail -n +2 | awk "{print \$1, \$3\$4}" | tr "\n" ";")"
             echo "OLL recursos $(docker stats --no-stream --format "{{.Name}}={{.MemUsage}} cpu {{.CPUPerc}}" rispy-ollama mediclick-api 2>/dev/null | tr "\n" ";") total=$(free -m | awk "/Mem/ {print \$2\"MB usados \"\$3}") cpus=$(nproc)"
             echo "INV google $(curl -s http://127.0.0.1:3100/api/v1/public/config | grep -o "googleClientId[^,]*")"
-            echo "PUERTOS publicos $(ss -tlnH 2>/dev/null | awk "{print \$4}" | grep -vE "^(127\.|\[::1\])" | sed "s/.*://" | sort -un | tr "\n" " ") | docker $(docker ps --format "{{.Names}}={{.Ports}}" | grep -E "0\.0\.0\.0|:::" | sed -E "s/(0\.0\.0\.0|\[?::\]?):([0-9]+)->[0-9]+\/tcp/\2/g; s/, /,/g" | tr "\n" " " | head -c 300)"
+            echo "PUERTOS 3100-bloqueado=$(iptables -C DOCKER-USER -p tcp -m conntrack --ctorigdstport 3100 --ctdir ORIGINAL -j DROP 2>/dev/null && echo si || echo no) publicos $(ss -tlnH 2>/dev/null | awk "{print \$4}" | grep -vE "^(127\.|\[::1\])" | sed "s/.*://" | sort -un | tr "\n" " ") | docker $(docker ps --format "{{.Names}}={{.Ports}}" | grep -E "0\.0\.0\.0|:::" | sed -E "s/(0\.0\.0\.0|\[?::\]?):([0-9]+)->[0-9]+\/tcp/\2/g; s/, /,/g" | tr "\n" " " | head -c 300)"
             echo "CAP host load=$(cut -d" " -f1-3 /proc/loadavg) ram=$(free -m | awk "/Mem/ {print \$3\"/\"\$2\"MB\"}") swap=$(free -m | awk "/Swap/ {print \$3\"MB\"}") disco=$(df -h / | awk "NR==2 {print \$5\" de \"\$2}") contenedores=$(docker ps -q | wc -l)"
             echo "CAP top $(docker stats --no-stream --format "{{.CPUPerc}} {{.MemUsage}} {{.Name}}" 2>/dev/null | sort -rn | head -6 | awk "{print \$4\"=\"\$1\"/\"\$2}" | tr "\n" " ")"
             echo "CAP rispy colas $(docker exec rispy-rabbitmq rabbitmqctl -q list_queues name messages consumers 2>/dev/null | awk "\$2>0 || \$3==0 {print \$1\"=\"\$2\"msg/\"\$3\"cons\"}" | tr "\n" " " | head -c 300) backups-rispy=$(ls /opt/rispy-infra/backups/rispy_*.sql.gz 2>/dev/null | wc -l) logs=$(du -sh /var/lib/docker/containers 2>/dev/null | cut -f1)"
           ' > out.txt 2>&1 || true
           echo "PUBKEY $(ssh-keygen -y -f k 2>/dev/null)" >> out.txt
+          echo "PUERTOS desde-internet 3100=$(curl -s -m 8 -o /dev/null -w %{http_code} http://$HOST:3100/api/v1/health || true) 5432=$(timeout 5 bash -c "</dev/tcp/$HOST/5432" 2>/dev/null && echo ABIERTO || echo cerrado) 6379=$(timeout 5 bash -c "</dev/tcp/$HOST/6379" 2>/dev/null && echo ABIERTO || echo cerrado)" >> out.txt
           { grep -E '^(PUERTOS|CAP|LOCAL directo)' out.txt; grep -E '^ACT' out.txt | head -3; } | while IFS= read -r l; do echo "::notice::$l"; done
           rm -f k

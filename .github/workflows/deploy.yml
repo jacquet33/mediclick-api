@@ -149,6 +149,12 @@ jobs:
             fi
             ls /opt/mediclick/backups/tuconsultorio_*.sql.gz >/dev/null 2>&1 || /opt/mediclick/backup-diario.sh || echo "primer backup falló"
             ls /opt/rispy-infra/backups/rispy_*.sql.gz >/dev/null 2>&1 || /opt/mediclick/backup-diario.sh || echo "primer backup rispy falló"
+            # La API quedaba publicada en el puerto 3100 para todo internet (sin HTTPS, salteando Traefik).
+            # Se bloquea el acceso externo a ese puerto; desde el propio servidor (healthcheck) sigue andando.
+            if command -v iptables >/dev/null 2>&1; then
+              iptables -C DOCKER-USER -p tcp -m conntrack --ctorigdstport 3100 --ctdir ORIGINAL -j DROP 2>/dev/null \
+                || iptables -I DOCKER-USER -p tcp -m conntrack --ctorigdstport 3100 --ctdir ORIGINAL -j DROP || echo "no se pudo cerrar 3100"
+            fi
             BASE=$(ls docker-compose.yml compose.yaml compose.yml 2>/dev/null | head -1)
             FILES="-f $BASE"
             [ -f docker-compose.override.yml ] && FILES="$FILES -f docker-compose.override.yml"
