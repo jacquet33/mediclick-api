@@ -106,6 +106,8 @@ export class PharmacyService {
 
   async dispensar(key: string, codigo: string, body: { dni: string; items: { itemId: string; cantidad: number; producto?: string; lote?: string; vencimiento?: string }[]; farmaceutico?: string; notas?: string }, ip?: string) {
     const ph = await this.autenticar(key);
+    // Una farmacia autorregistrada puede consultar, pero no marcar dispensas hasta que la revisemos
+    if (ph.self_registered && !ph.reviewed) throw new ForbiddenException('Tu farmacia está en revisión: mientras tanto podés consultar recetas, pero todavía no registrar dispensas. Te avisamos por email cuando quede habilitada.');
     const rx = await this.receta(codigo, body.dni);
     const vencida = rx.expires_at && new Date(rx.expires_at) < new Date();
     if (!['active', 'partially_dispensed'].includes(rx.status) || vencida) throw new BadRequestException('La receta no se puede dispensar (anulada, vencida o ya dispensada)');
@@ -220,7 +222,8 @@ export class PharmacyService {
 
   async activar(adminId: string, id: string, activo: boolean) {
     await this.mustAdmin(adminId);
-    await this.db.query(`UPDATE pharmacies SET is_active = $2 WHERE id = $1`, [id, activo]);
+    // Activarla desde el panel equivale a revisarla (habilita registrar dispensas)
+    await this.db.query(`UPDATE pharmacies SET is_active = $2, reviewed = (reviewed OR $2) WHERE id = $1`, [id, activo]);
     return { ok: true };
   }
 }

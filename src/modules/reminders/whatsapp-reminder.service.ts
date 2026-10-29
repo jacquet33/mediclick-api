@@ -75,20 +75,22 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
     const appt = await this.db.queryOne(
       `UPDATE appointments
           SET whatsapp_reminder = true, whatsapp_reminder_phone = $2,
-              whatsapp_reminder_requested_at = now(), whatsapp_reminder_sent_at = NULL, whatsapp_reminder_error = NULL
+              whatsapp_reminder_requested_at = now(), whatsapp_reminder_error = NULL
         WHERE id = $1 AND status NOT IN ('cancelled','completed','no_show')
+          AND whatsapp_reminder_sent_at IS NULL
+          -- como mucho unos pocos cambios de número por turno (evita usarlo para mandar mensajes a cualquiera)
+          AND (whatsapp_reminder_requested_at IS NULL OR whatsapp_reminder_requested_at < now() - interval '1 minute')
         RETURNING id, date, start_time`,
       [br.appointment_id, '+' + numero],
     );
-    if (!appt) throw new BadRequestException('Este turno ya no admite recordatorio');
+    if (!appt) throw new BadRequestException('Este turno ya no admite cambios en el recordatorio (o ya se envió)');
 
-    // Si corrigió el celular, se actualiza en la reserva y en su ficha para que el consultorio lo tenga bien
+    // Si corrigió el celular queda en la reserva (el consultorio lo ve en el turno). La ficha del paciente
+    // NO se modifica desde una página pública: la actualiza el consultorio si corresponde.
     const nuevo = '+' + numero;
     const anterior = String(br.phone || '');
     if (WhatsappReminderService.normalizarCelular(anterior) !== numero) {
       await this.db.query(`UPDATE booking_requests SET phone = $2 WHERE id = $1`, [br.id, nuevo]);
-      const pid = br.appt_patient || br.patient_id;
-      if (pid) await this.db.query(`UPDATE patients SET phone = $2 WHERE id = $1`, [pid, nuevo]);
     }
 
     return { ok: true, phone: nuevo, appointmentId: appt.id };

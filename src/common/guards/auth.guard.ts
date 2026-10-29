@@ -145,7 +145,9 @@ export class AuthGuard implements CanActivate {
 
     // Secretaría / recepción: gestionan turnos y pacientes, pero no acceden a datos clínicos
     if (userType === 'staff') {
-      const path = String(req.originalUrl || req.url || '').split('?')[0];
+      let path = String(req.originalUrl || req.url || '').split('?')[0];
+      try { path = decodeURIComponent(path); } catch { /* deja el original */ }
+      path = path.toLowerCase().replace(/\/{2,}/g, '/');
       if (/^\/api\/v1\/(medical-records|prescriptions|consent|consents|informed-consents)(\/|$)/.test(path) || /\/api\/v1\/patients\/[^/]+\/(timeline|history)(\/|$)/.test(path)) {
         throw new ForbiddenException('La secretaría no tiene acceso a la historia clínica');
       }

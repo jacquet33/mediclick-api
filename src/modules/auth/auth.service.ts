@@ -4,6 +4,10 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { DatabaseService } from '../../database/database.service';
 import { EmailService } from '../email/email.service';
+import { createHash, timingSafeEqual, randomUUID } from 'crypto';
+
+const sha256 = (t: string) => createHash('sha256').update(t).digest('hex');
+const safeEqual = (a: string, b: string) => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
 
 export interface TokenPayload {
   sub: string;
@@ -311,8 +315,12 @@ export class AuthService {
     const token = String((dto as any).bookingToken || '').trim();
     if (token) {
       patient = await this.db.queryOne(
-        `SELECT COALESCE(a.patient_id, br.patient_id) AS id FROM booking_requests br LEFT JOIN appointments a ON a.id = br.appointment_id
-          WHERE br.confirmation_token = $1 AND br.created_at > now() - interval '48 hours' AND COALESCE(a.patient_id, br.patient_id) IS NOT NULL`,
+        // Solo si esa reserva CREÓ la ficha (paciente nuevo). Si la reserva se asoció a una ficha que ya existía
+        // (por DNI), no alcanza: cualquiera que conozca un DNI podría reservar y quedarse con la historia clínica.
+        `SELECT p.id FROM booking_requests br LEFT JOIN appointments a ON a.id = br.appointment_id
+           JOIN patients p ON p.id = COALESCE(a.patient_id, br.patient_id)
+          WHERE br.confirmation_token = $1 AND br.created_at > now() - interval '48 hours'
+            AND p.created_at >= br.created_at - interval '2 minutes'`,
         [token],
       );
       if (patient && !(await this.db.queryOne(`SELECT 1 FROM patient_auth WHERE patient_id = $1`, [patient.id]))) {
@@ -409,22 +417,29 @@ export class AuthService {
   // ═══════════════════════════════════════════════════════════
 
   async refreshTokens(userId: string, refreshToken: string): Promise<AuthTokens> {
-    // Intentar las 3 tablas
+    // 1) La firma del refresh token tiene que ser válida y pertenecer al mismo usuario.
+    let payload: any;
+    try {
+      payload = await this.jwt.verifyAsync(refreshToken, { secret: this.config.get('JWT_REFRESH_SECRET') });
+    } catch {
+      throw new UnauthorizedException('Token inválido');
+    }
+    if (!payload?.sub || payload.sub !== userId) throw new UnauthorizedException('Token inválido');
+    // 2) Además tiene que ser el último emitido (rotación): se compara el SHA-256 completo del token
+    //    (bcrypt solo mira 72 bytes y en un JWT esos bytes son casi fijos).
+    const hash = sha256(refreshToken);
     for (const table of ['doctors', 'patient_auth', 'staff']) {
       const user = await this.db.queryOne(
         `SELECT id, email, refresh_token_hash FROM ${table} WHERE id = $1`,
         [userId],
       );
-      if (user?.refresh_token_hash) {
-        const valid = await bcrypt.compare(refreshToken, user.refresh_token_hash);
-        if (valid) {
-          const userType = table === 'doctors' ? 'doctor' : table === 'patient_auth' ? 'patient' : 'staff';
-          const tokens = await this.generateTokens({
-            sub: user.id, email: user.email, role: userType, userType: userType as any,
-          });
-          await this.updateRefreshToken(table, user.id, tokens.refreshToken);
-          return tokens;
-        }
+      if (user?.refresh_token_hash && safeEqual(user.refresh_token_hash, hash)) {
+        const userType = table === 'doctors' ? 'doctor' : table === 'patient_auth' ? 'patient' : 'staff';
+        const tokens = await this.generateTokens({
+          sub: user.id, email: user.email, role: userType, userType: userType as any,
+        });
+        await this.updateRefreshToken(table, user.id, tokens.refreshToken);
+        return tokens;
       }
     }
     throw new UnauthorizedException('Token inválido');
@@ -462,13 +477,14 @@ export class AuthService {
       this.jwt.signAsync(payload, {
         secret: this.config.get('JWT_REFRESH_SECRET'),
         expiresIn: '30d',
+        jwtid: randomUUID(), // cada refresh es único: el anterior deja de servir
       }),
     ]);
     return { accessToken, refreshToken };
   }
 
   private async updateRefreshToken(table: string, userId: string, refreshToken: string): Promise<void> {
-    const hash = await bcrypt.hash(refreshToken, 10);
+    const hash = sha256(refreshToken);
     await this.db.query(`UPDATE ${table} SET refresh_token_hash = $1 WHERE id = $2`, [hash, userId]);
   }
 }

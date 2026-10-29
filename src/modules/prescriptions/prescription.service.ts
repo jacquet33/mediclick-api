@@ -256,12 +256,16 @@ export class PrescriptionService {
     );
   }
 
-  async verify(code: string, interno = false) {
+  /**
+   * Verificación pública (QR / farmacia). Sin DNI muestra validez, médico y medicamentos; el diagnóstico,
+   * las notas y el nombre completo solo si se informa el DNI del paciente.
+   */
+  async verify(code: string, interno = false, dni?: string) {
     const rx = await this.db.queryOne(
       `SELECT rx.id, rx.organization_id, rx.cuir, rx.verification_code, rx.diagnosis, rx.diagnosis_code,
               d.license_type, d.medical_license_province, COALESCE(d.license_status, 'unverified') AS doctor_license_status,
               rx.issued_at, rx.expires_at, rx.status, rx.notes,
-              p.first_name || ' ' || p.last_name AS patient_name,
+              p.first_name || ' ' || p.last_name AS patient_name, p.dni AS patient_dni,
               d.first_name || ' ' || d.last_name AS doctor_name,
               d.medical_license, d.specialty,
               o.name AS org_name
@@ -290,7 +294,17 @@ export class PrescriptionService {
       `SELECT d.created_at, ph.name AS farmacia, d.items FROM prescription_dispensations d JOIN pharmacies ph ON ph.id = d.pharmacy_id
        WHERE d.prescription_id = $1 ORDER BY d.created_at`, [rx.id]).catch(() => []);
     const out: any = { ...rx, items, firma, firmaDigital, dispensas, vigente: ['active', 'partially_dispensed'].includes(rx.status) && !vencida };
-    if (!interno) { delete out.id; delete out.organization_id; }
+    const limpio = (x: any) => String(x || '').replace(/\D/g, '');
+    out.dni_ok = !!dni && !!limpio(rx.patient_dni) && limpio(dni) === limpio(rx.patient_dni);
+    if (!interno) {
+      delete out.id; delete out.organization_id;
+      if (!out.dni_ok) {
+        delete out.diagnosis; delete out.diagnosis_code; delete out.notes;
+        const partes = String(rx.patient_name || '').trim().split(/\s+/);
+        out.patient_name = partes.map((w: string) => (w ? w[0] + '.' : '')).join(' ');
+      }
+    }
+    delete out.patient_dni;
     return out;
   }
 }

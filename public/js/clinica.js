@@ -420,8 +420,8 @@
     catch (err) { alert(err.message); }
   };
   window.recetaWhatsApp = function (code, tel, nombre) {
-    const link = `${location.origin}/api/v1/prescriptions/verify/${encodeURIComponent(code)}/pdf`;
-    const msg = `Hola ${nombre || ''}! Te envío tu receta electrónica 💊\n\nDescargala acá: ${link}\nCódigo de verificación: ${code}\n\nPodés mostrarla en la farmacia desde el celular.`;
+    const link = `${location.origin}/verificar-receta?code=${encodeURIComponent(code)}`;
+    const msg = `Hola ${nombre || ''}! Te envío tu receta electrónica 💊\n\nVerificala y descargala acá (te pide tu DNI): ${link}\nCódigo de verificación: ${code}\n\nPodés mostrarla en la farmacia desde el celular.`;
     const t = String(tel || '').replace(/\D/g, '');
     window.open(`https://wa.me/${t ? (t.startsWith('54') ? t : '549' + t) : ''}?text=${encodeURIComponent(msg)}`, '_blank');
   };

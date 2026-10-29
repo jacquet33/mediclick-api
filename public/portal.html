@@ -401,6 +401,7 @@ details.rec p{font-size:13px;margin-top:6px;white-space:pre-wrap}
   .agl .s{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center}
 }
 </style>
+<script src="/js/captcha.js"></script>
 </head>
 <body>
 
@@ -2485,7 +2486,7 @@ async function loadMisRecetas(){
         return `<div class="card"><div class="flex-between" style="flex-wrap:wrap;gap:8px"><div><b>${fmtDate(r.issued_at)}</b> · Dr/a. ${esc(r.doctor_name)}<br><span class="muted">${esc(r.consultorio)}${r.diagnosis?' · '+esc(r.diagnosis):''}</span></div><span class="badge-sm ${est[1]}">${est[0]}</span></div>
         <div style="margin:10px 0">${(r.items||[]).map(i=>`<p style="font-size:14px">💊 <b>${esc(i.generico)}</b> ${esc(i.presentacion||'')}<br><span class="muted">${esc([i.dosis,i.frecuencia].filter(Boolean).join(' · '))}</span></p>`).join('')}</div>
         <p class="muted">Código para la farmacia: <b style="font-size:16px;color:var(--text)">${esc(r.verification_code)}</b> · CUIR ${esc(r.cuir||'')}</p>
-        <div class="flex" style="margin-top:10px;flex-wrap:wrap"><a class="btn btn-sm btn-primary" style="text-decoration:none" target="_blank" href="${API}/api/v1/prescriptions/verify/${r.verification_code}/pdf">Ver / descargar PDF</a><a class="btn btn-sm btn-outline" style="text-decoration:none" target="_blank" href="/verificar-receta?code=${r.verification_code}">Verificar</a></div></div>`}).join(''):'<div class="card center" style="padding:40px"><p style="font-size:30px">💊</p><p class="muted mt-8">Tus recetas van a aparecer acá cuando tu médico las emita.</p></div>'}`;
+        <div class="flex" style="margin-top:10px;flex-wrap:wrap"><a class="btn btn-sm btn-primary" style="text-decoration:none" target="_blank" href="/verificar-receta?code=${r.verification_code}">Ver / descargar PDF</a><a class="btn btn-sm btn-outline" style="text-decoration:none" target="_blank" href="/verificar-receta?code=${r.verification_code}">Verificar</a></div></div>`}).join(''):'<div class="card center" style="padding:40px"><p style="font-size:30px">💊</p><p class="muted mt-8">Tus recetas van a aparecer acá cuando tu médico las emita.</p></div>'}`;
   }catch(e){main.innerHTML=`<div class="card"><p class="error">${esc(e.message)}</p></div>`}
 }
 

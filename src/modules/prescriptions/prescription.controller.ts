@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, Res, Header, BadRequestException } from '@nestjs/common';
+import { PublicThrottle, StrictThrottle } from '../../common/decorators/throttle.decorator';
+import { Controller, Get, Post, Patch, Body, Param, Query, Res, Header, BadRequestException, HttpCode } from '@nestjs/common';
 import { EmailService } from '../email/email.service';
 import { FhirService } from './fhir.service';
 import { Public } from '../../common/guards/auth.guard';
@@ -75,29 +76,46 @@ export class PrescriptionController {
   }
 
   @Public()
+  @PublicThrottle()
   @Get('verify/:code')
   verify(@Param('code') code: string) {
-    return this.rxService.verify(code);
+    return this.rxService.verify(code, false);
   }
 
+  /** Con el DNI del paciente (por POST: no queda en URLs ni logs) se ven diagnóstico y nombre completo */
+  @Public()
+  @StrictThrottle()
+  @Post('verify/:code')
+  @HttpCode(200)
+  verifyConDni(@Param('code') code: string, @Body('dni') dni?: string) {
+    return this.rxService.verify(code, false, String(dni || ''));
+  }
+
+  /** Links viejos al PDF: llevan a la página de verificación, donde se pide el DNI */
   @Public()
   @Get('verify/:code/pdf')
-  async verifyAndDownloadPdf(
-    @Param('code') code: string,
-    @Res() res: Response,
-  ) {
+  verifyPdfLink(@Param('code') code: string, @Res() res: Response) {
+    return res.redirect(302, `/verificar-receta?code=${encodeURIComponent(code)}`);
+  }
+
+  /** PDF completo (tiene DNI, nacimiento y obra social): solo con el DNI del paciente */
+  @Public()
+  @StrictThrottle()
+  @Post('verify/:code/pdf')
+  async verifyAndDownloadPdf(@Param('code') code: string, @Body('dni') dni: string, @Res() res: Response) {
     try {
-      const rx = await this.rxService.verify(code, true);
-      if (!rx) return res.status(404).json({ message: 'Receta no encontrada' });
+      const rx = await this.rxService.verify(code, true, String(dni || ''));
+      if (!rx.dni_ok) return res.status(403).json({ message: 'El DNI no coincide con el de la receta' });
       const buffer = (await this.rxService.signedPdf(rx.id)) || await this.pdfService.generatePdf(rx.organization_id, rx.id);
       res.set({
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="receta-${code}.pdf"`,
         'Content-Length': buffer.length,
+        'Cache-Control': 'no-store',
       });
       res.end(buffer);
     } catch (e) {
-      res.status(500).json({ message: e.message || 'Error generando PDF' });
+      res.status(e?.status || 500).json({ message: e.message || 'Error generando PDF' });
     }
   }
 

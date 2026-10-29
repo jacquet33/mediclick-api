@@ -90,6 +90,9 @@ jobs:
                   OLLAMA_MODEL: "${{ vars.OLLAMA_MODEL || 'qwen3.5:2b' }}"
                   ANTHROPIC_API_KEY: "${{ secrets.ANTHROPIC_API_KEY }}"
                   IOS_APP_STORE_URL: "${{ vars.IOS_APP_STORE_URL }}"
+                  # Captcha de Cloudflare Turnstile en formularios públicos. Vacíos = sin captcha
+                  TURNSTILE_SITE_KEY: "${{ vars.TURNSTILE_SITE_KEY }}"
+                  TURNSTILE_SECRET: "${{ secrets.TURNSTILE_SECRET }}"
                 networks:
                   - mediclick-net
                   - traefik-public

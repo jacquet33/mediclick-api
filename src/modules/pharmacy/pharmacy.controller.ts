@@ -1,3 +1,5 @@
+import { UseGuards } from '@nestjs/common';
+import { CaptchaGuard } from '../../common/guards/captcha.guard';
 import { Controller, Get, Post, Body, Param, Query, Headers, Req, ForbiddenException } from '@nestjs/common';
 import { Request } from 'express';
 import { Public, AuthUser } from '../../common/guards/auth.guard';
@@ -21,6 +23,7 @@ export class PharmacyApiController {
 
   /** POST /farmacia/registro — cualquier farmacia habilitada obtiene su clave (se muestra una sola vez) */
   @StrictThrottle()
+  @UseGuards(CaptchaGuard)
   @Post('registro')
   registro(@Body() dto: any, @Req() req: Request) {
     return this.service.registroPublico(dto, req.ip);

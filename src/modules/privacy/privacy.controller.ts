@@ -1,3 +1,5 @@
+import { UseGuards } from '@nestjs/common';
+import { CaptchaGuard } from '../../common/guards/captcha.guard';
 import { Controller, Get, Post, Body, Param, Query, Req, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Request } from 'express';
 import { Public, AuthUser } from '../../common/guards/auth.guard';
@@ -13,6 +15,7 @@ export class PrivacyController {
   /** Formulario público de la política de privacidad */
   @Public()
   @StrictThrottle()
+  @UseGuards(CaptchaGuard)
   @Post('public/data-requests')
   async crear(@Body() b: any, @Req() req: Request) {
     const kind = String(b.kind || '');

@@ -1,3 +1,5 @@
+import { UseGuards } from '@nestjs/common';
+import { CaptchaGuard } from '../../common/guards/captcha.guard';
 import { Controller, Get, Post, Put, Patch, Body, Param, Query } from '@nestjs/common';
 import { BookingService } from './booking.service';
 import { WhatsappReminderService } from '../reminders/whatsapp-reminder.service';
@@ -6,7 +8,7 @@ import { PublicRegisterPatientDto } from '../../common/dto/public-patient.dto';
 import { UploadPaymentProofDto, CancelBookingDto, WhatsappReminderDto } from '../../common/dto/misc.dto';
 import { OrgId, DoctorId } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/guards/auth.guard';
-import { PublicThrottle } from '../../common/decorators/throttle.decorator';
+import { PublicThrottle, StrictThrottle } from '../../common/decorators/throttle.decorator';
 
 // ═══════════════════════════════════════════════════════════
 // PÚBLICO — sin autenticación (para pacientes)
@@ -44,6 +46,8 @@ export class PublicBookingController {
 
   /** POST /public/booking/:slug — crear reserva */
   @Post(':slug')
+  @StrictThrottle()
+  @UseGuards(CaptchaGuard)
   createBooking(@Param('slug') slug: string, @Body() dto: CreateBookingDto) {
     return this.bookingService.createBooking(slug, dto);
   }
@@ -71,6 +75,7 @@ export class PublicBookingController {
 
   /** POST /public/booking/:slug/register-patient — auto-registro en cartilla */
   @Post(':slug/register-patient')
+  @UseGuards(CaptchaGuard)
   registerPatient(@Param('slug') slug: string, @Body() dto: PublicRegisterPatientDto) {
     return this.bookingService.registerPatientPublic(slug, dto);
   }

@@ -100,6 +100,23 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+document.addEventListener('submit', async (ev) => {
+  if (ev.target?.id !== 'pdfForm') return;
+  ev.preventDefault();
+  const msg = document.getElementById('pdfMsg');
+  const dni = (document.getElementById('pdfDni').value || '').replace(/\D/g, '');
+  if (dni.length < 6) { msg.textContent = 'Ingresá un DNI válido'; return; }
+  msg.style.color = '#777'; msg.textContent = 'Generando…';
+  const w = window.open('', '_blank');
+  try {
+    const r = await fetch(`${API}/api/v1/prescriptions/verify/${encodeURIComponent(code)}/pdf`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dni }) });
+    if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(r.status === 429 ? 'Demasiados intentos, esperá un minuto' : (j.message || 'No se pudo descargar')); }
+    const url = URL.createObjectURL(await r.blob());
+    if (w) w.location = url; else location.href = url;
+    msg.textContent = '';
+  } catch (e) { if (w) w.close(); msg.style.color = '#8A2B2B'; msg.textContent = e.message; }
+});
+
 async function verify() {
   const el = document.getElementById('content');
 
@@ -160,7 +177,15 @@ async function verify() {
       </div>` : ''}
       ${(rx.dispensas||[]).length ? `<div class="card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="font-size:18px">🏪</span><span style="font-size:15px;font-weight:600">Dispensas</span></div>
         ${rx.dispensas.map(d=>`<div class="field"><div class="field-label">${new Date(d.created_at).toLocaleString('es-AR')}</div><div class="field-value">${d.farmacia}</div></div>`).join('')}</div>` : ''}
-      <div class="card" style="text-align:center"><a href="${API}/api/v1/prescriptions/verify/${encodeURIComponent(code)}/pdf" target="_blank" rel="noopener" style="display:inline-block;padding:12px 20px;border-radius:12px;background:#9A6B3F;color:#fff;font-weight:600;text-decoration:none">Descargar PDF de la receta</a></div>
+      <div class="card" style="text-align:center">
+        <div style="font-size:14px;font-weight:600;margin-bottom:6px">Descargar la receta completa (PDF)</div>
+        <div style="font-size:12.5px;color:#777;margin-bottom:10px">Por privacidad, ingresá el DNI del paciente.</div>
+        <form id="pdfForm" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+          <input id="pdfDni" inputmode="numeric" autocomplete="off" placeholder="DNI del paciente" style="padding:11px 12px;border:1.5px solid #ddd;border-radius:12px;font-size:15px;width:180px">
+          <button type="submit" style="padding:12px 20px;border-radius:12px;border:0;background:#9A6B3F;color:#fff;font-weight:600;cursor:pointer">Descargar PDF</button>
+        </form>
+        <div id="pdfMsg" style="font-size:13px;color:#8A2B2B;margin-top:8px"></div>
+      </div>
 
       <div class="card">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
@@ -211,10 +236,10 @@ async function verify() {
           </div>
         </div>
 
-        <div class="field">
+        ${rx.dni_ok ? `<div class="field">
           <div class="field-label">Diagnóstico</div>
           <div class="field-value">${rx.diagnosis_code ? rx.diagnosis_code + ' — ' : ''}${rx.diagnosis || 'No especificado'}</div>
-        </div>
+        </div>` : ''}
 
         ${rx.items && rx.items.length ? `
           <hr class="divider">

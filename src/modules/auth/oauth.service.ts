@@ -157,41 +157,53 @@ export class OAuthService {
   }
 
 
+  private appleKeys: { at: number; keys: any[] } | null = null;
+
+  /** Claves públicas de Apple (se cachean 6 h) */
+  private async appleJwks(force = false): Promise<any[]> {
+    if (!force && this.appleKeys && Date.now() - this.appleKeys.at < 6 * 3600_000) return this.appleKeys.keys;
+    const r = await fetch('https://appleid.apple.com/auth/keys', { signal: AbortSignal.timeout(8000) })
+      .catch(() => { throw new UnauthorizedException('No se pudo validar el acceso con Apple, probá de nuevo'); });
+    if (!r.ok) throw new UnauthorizedException('No se pudo validar el acceso con Apple');
+    const j: any = await r.json();
+    this.appleKeys = { at: Date.now(), keys: j.keys || [] };
+    return this.appleKeys.keys;
+  }
+
   private async verifyAppleToken(dto: AppleLoginDto): Promise<OAuthProfile> {
-    // Decodificar el JWT de Apple (sin verificar firma por ahora,
-    // en producción usar las Apple public keys de https://appleid.apple.com/auth/keys)
-    const parts = dto.identityToken.split('.');
-    if (parts.length !== 3) {
-      throw new UnauthorizedException('Token de Apple inválido');
-    }
+    const token = String(dto.identityToken || '');
+    const parts = token.split('.');
+    if (parts.length !== 3) throw new UnauthorizedException('Token de Apple inválido');
+    let header: any;
+    try { header = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8')); } catch { throw new UnauthorizedException('Token de Apple inválido'); }
+    if (header.alg !== 'RS256' || !header.kid) throw new UnauthorizedException('Token de Apple inválido');
 
-    const payload = JSON.parse(
-      Buffer.from(parts[1], 'base64url').toString('utf8'),
-    );
+    let jwk = (await this.appleJwks()).find((k) => k.kid === header.kid);
+    if (!jwk) jwk = (await this.appleJwks(true)).find((k) => k.kid === header.kid);
+    if (!jwk) throw new UnauthorizedException('Token de Apple inválido');
 
-    // Verificar issuer y audience
-    if (payload.iss !== 'https://appleid.apple.com') {
-      throw new UnauthorizedException('Token de Apple: issuer inválido');
-    }
+    // Firma RS256 verificada con la clave pública de Apple
+    const data = Buffer.from(`${parts[0]}.${parts[1]}`);
+    const firma = Buffer.from(parts[2], 'base64url');
+    const key = crypto.createPublicKey({ key: jwk, format: 'jwk' });
+    if (!crypto.verify('RSA-SHA256', data, key, firma)) throw new UnauthorizedException('Token de Apple inválido');
 
-    const appleClientId = this.config.get('APPLE_CLIENT_ID');
-    if (appleClientId && payload.aud !== appleClientId) {
-      throw new UnauthorizedException('Token de Apple: audience inválido');
-    }
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    if (payload.iss !== 'https://appleid.apple.com') throw new UnauthorizedException('Token de Apple: issuer inválido');
+    const audiencias = String(this.config.get('APPLE_CLIENT_ID') || 'com.mediclick.app').split(',').map((x) => x.trim()).filter(Boolean);
+    const aud = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+    if (!aud.some((x: string) => audiencias.includes(x))) throw new UnauthorizedException('Token de Apple: audience inválido');
+    if (!payload.exp || payload.exp * 1000 < Date.now()) throw new UnauthorizedException('Token de Apple expirado');
 
-    // Verificar expiración
-    if (payload.exp && payload.exp * 1000 < Date.now()) {
-      throw new UnauthorizedException('Token de Apple expirado');
-    }
-
-    // Apple solo envía email y nombre la PRIMERA vez
-    // Después hay que buscarlo por providerId
-    const email = payload.email || dto.email;
+    // Solo se confía en el email que viene FIRMADO por Apple (nunca en el que manda la app)
+    const verificado = payload.email_verified === true || payload.email_verified === 'true';
+    const email = payload.email && verificado ? String(payload.email) : '';
+    if (!email) throw new UnauthorizedException('Apple no compartió un email verificado. Ingresá con email y contraseña o con Google.');
 
     return {
       provider: 'apple',
       providerId: payload.sub,
-      email: email || '',
+      email,
       firstName: dto.fullName?.givenName,
       lastName: dto.fullName?.familyName,
     };
