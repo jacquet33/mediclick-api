@@ -129,6 +129,13 @@ jobs:
             docker exec mediclick-db pg_dump -U "$U" "$D" | gzip > "$F.tmp" && mv "$F.tmp" "$F"
             find /opt/mediclick/backups -name 'tuconsultorio_*.sql.gz' -mtime +90 -delete
             echo "$(date -Is) backup ok $(du -h "$F" | cut -f1)"
+            # Rispy (bandeja de mensajes): misma rutina, 30 días. Si falla no afecta el de TuConsultorio
+            if docker inspect rispy-postgres >/dev/null 2>&1; then
+              mkdir -p /opt/rispy-infra/backups
+              R=/opt/rispy-infra/backups/rispy_$(date +%Y-%m-%d_%H%M).sql.gz
+              if docker exec rispy-postgres pg_dump -U rispy rispy | gzip > "$R.tmp"; then mv "$R.tmp" "$R"; echo "$(date -Is) backup rispy ok $(du -h "$R" | cut -f1)"; else rm -f "$R.tmp"; echo "$(date -Is) backup rispy FALLO"; fi
+              find /opt/rispy-infra/backups -name 'rispy_*.sql.gz' -mtime +30 -delete
+            fi
             SH
             sed -i 's/^            //' /opt/mediclick/backup-diario.sh
             chmod 700 /opt/mediclick/backup-diario.sh
@@ -141,6 +148,7 @@ jobs:
               systemctl daemon-reload && systemctl enable --now tuconsultorio-backup.timer || echo "timer backup falló"
             fi
             ls /opt/mediclick/backups/tuconsultorio_*.sql.gz >/dev/null 2>&1 || /opt/mediclick/backup-diario.sh || echo "primer backup falló"
+            ls /opt/rispy-infra/backups/rispy_*.sql.gz >/dev/null 2>&1 || /opt/mediclick/backup-diario.sh || echo "primer backup rispy falló"
             BASE=$(ls docker-compose.yml compose.yaml compose.yml 2>/dev/null | head -1)
             FILES="-f $BASE"
             [ -f docker-compose.override.yml ] && FILES="$FILES -f docker-compose.override.yml"
