@@ -64,11 +64,11 @@ jobs:
                   GOOGLE_CLIENT_ID_IOS: "85175903902-58qlp27n6qr88t5qtmec6begnf5v9e74.apps.googleusercontent.com"
                   # Links de recetas, pagos y correos con el dominio nuevo
                   # Dominio público. Variable PUBLIC_BASE_URL (https://tusrecetasmed.com) cuando el certificado ya esté activo
-                  BASE_URL: "${{ vars.PUBLIC_BASE_URL || 'https://tusrecetasmed.com' }}"
-                  API_BASE_URL: "${{ vars.PUBLIC_BASE_URL || 'https://tusrecetasmed.com' }}"
+                  BASE_URL: "${{ vars.PUBLIC_BASE_URL || 'https://tuconsultorio.rispy.io' }}"
+                  API_BASE_URL: "${{ vars.PUBLIC_BASE_URL || 'https://tuconsultorio.rispy.io' }}"
                   PUBLIC_DOMAIN: "tusrecetasmed.com"
                   # true = los dominios anteriores redirigen sus páginas a tusrecetasmed.com (la API sigue en todos)
-                  REDIRECT_OLD_DOMAINS: "${{ vars.REDIRECT_OLD_DOMAINS || 'true' }}"
+                  REDIRECT_OLD_DOMAINS: "${{ vars.REDIRECT_OLD_DOMAINS || 'false' }}"
                   # Verificación de médicos y firma de recetas (secretos del repo; vacíos = revisión manual)
                   PLATFORM_ADMIN_EMAILS: "${{ secrets.PLATFORM_ADMIN_EMAILS }}"
                   SISA_USUARIO: "${{ secrets.SISA_USUARIO }}"
