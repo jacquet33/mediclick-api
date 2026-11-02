@@ -12,7 +12,9 @@ import { DatabaseService } from '../../database/database.service';
  *   WHATSAPP_PHONE_NUMBER_ID  ID del número emisor
  *   WHATSAPP_TEMPLATE         nombre de la plantilla (por defecto: recordatorio_turno)
  *   WHATSAPP_TEMPLATE_LANG    idioma de la plantilla (por defecto: es_AR)
- * Sin esas variables el pedido queda guardado y no se envía nada.
+ *   WHATSAPP_TEMPLATE_CONFIRM plantilla de confirmación inmediata (opcional), 4 variables:
+ *     Hola {{1}}, tu turno con Dr/a. {{2}} quedó agendado para el {{3}} a las {{4}} hs. Te recordamos un día antes por acá.
+ * Sin esas variables el pedido queda guardado y el consultorio lo envía a mano desde su lista.
  *
  * Plantilla sugerida (categoría "Utilidad"), 4 variables en el cuerpo:
  *   Hola {{1}}, te recordamos tu turno de mañana con Dr/a. {{2}} a las {{3}} hs en {{4}}.
@@ -93,7 +95,26 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
       await this.db.query(`UPDATE booking_requests SET phone = $2 WHERE id = $1`, [br.id, nuevo]);
     }
 
-    return { ok: true, phone: nuevo, appointmentId: appt.id };
+    // Mensaje de confirmación inmediato: el paciente comprueba que su número quedó bien cargado.
+    // Usa la plantilla WHATSAPP_TEMPLATE_CONFIRM (aprobada en Meta). Sin WhatsApp Business configurado no se envía nada.
+    let confirmacion: 'enviada' | 'error' | 'no_configurado' = 'no_configurado';
+    const plantilla = this.config.get<string>('WHATSAPP_TEMPLATE_CONFIRM');
+    if (this.habilitado && plantilla) {
+      const t = await this.db.queryOne(
+        `SELECT p.first_name, d.first_name || ' ' || d.last_name AS doctor_name,
+                to_char(a.date, 'DD/MM') AS fecha, to_char(a.start_time, 'HH24:MI') AS hora
+           FROM appointments a JOIN patients p ON p.id = a.patient_id
+           JOIN organization_doctors od ON od.id = a.org_doctor_id JOIN doctors d ON d.id = od.doctor_id
+          WHERE a.id = $1`, [appt.id]);
+      try {
+        await this.enviarPlantilla(numero, [t?.first_name || 'paciente', t?.doctor_name || '', t?.fecha || '', t?.hora || ''], plantilla);
+        confirmacion = 'enviada';
+      } catch (e: any) {
+        confirmacion = 'error';
+        this.logger.warn(`Confirmación WhatsApp ${appt.id}: ${e.message}`);
+      }
+    }
+    return { ok: true, phone: nuevo, appointmentId: appt.id, confirmacion, automatico: this.habilitado };
   }
 
   /** Envía los recordatorios cuyo turno empieza dentro de las próximas 24 h (hora de Argentina) */
@@ -108,8 +129,10 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
             SELECT id FROM appointments
              WHERE whatsapp_reminder AND whatsapp_reminder_sent_at IS NULL
                AND status IN ('confirmed','pending','pending_approval')
-               AND EXISTS (SELECT 1 FROM organization_doctors od JOIN doctor_reminder_settings rs ON rs.doctor_id = od.doctor_id
-                            WHERE od.id = appointments.org_doctor_id AND rs.whatsapp_reminder_mode = 'auto')
+               -- Lo pidió el paciente desde la confirmación (whatsapp_reminder_requested_at) o el médico tiene modo automático
+               AND (whatsapp_reminder_requested_at IS NOT NULL
+                    OR EXISTS (SELECT 1 FROM organization_doctors od JOIN doctor_reminder_settings rs ON rs.doctor_id = od.doctor_id
+                                WHERE od.id = appointments.org_doctor_id AND rs.whatsapp_reminder_mode = 'auto'))
                AND (date + start_time) AT TIME ZONE 'America/Argentina/Buenos_Aires' > now()
                AND (date + start_time) AT TIME ZONE 'America/Argentina/Buenos_Aires' <= now() + interval '24 hours'
              LIMIT 50 FOR UPDATE SKIP LOCKED)
@@ -211,7 +234,7 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
     return r;
   }
 
-  private async enviarPlantilla(to: string, vars: string[]) {
+  private async enviarPlantilla(to: string, vars: string[], plantilla?: string) {
     const url = `https://graph.facebook.com/v21.0/${this.config.get('WHATSAPP_PHONE_NUMBER_ID')}/messages`;
     const r = await fetch(url, {
       method: 'POST',
@@ -221,7 +244,7 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
         to,
         type: 'template',
         template: {
-          name: this.config.get('WHATSAPP_TEMPLATE') || 'recordatorio_turno',
+          name: plantilla || this.config.get('WHATSAPP_TEMPLATE') || 'recordatorio_turno',
           language: { code: this.config.get('WHATSAPP_TEMPLATE_LANG') || 'es_AR' },
           components: [{ type: 'body', parameters: vars.map(text => ({ type: 'text', text: String(text).slice(0, 200) })) }],
         },

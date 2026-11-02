@@ -92,6 +92,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--crema);min-height
 .wa-rem-edit{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#1D6B3B;padding:0 4px}
 .wa-link{background:none;border:none;color:#128C4A;font-weight:700;text-decoration:underline;cursor:pointer;font:inherit;font-size:13px}
 .wa-rem-form input{background:#fff}
+.wa-rem-num{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border-radius:12px;padding:10px 12px}
+.wa-rem-num span{font-size:12px;color:#1D6B3B;font-weight:600;width:100%}
+.wa-rem-num b{font-size:20px;letter-spacing:.5px;color:#14532D;flex:1}
 .wa-rem-ok{display:flex;flex-direction:column;gap:4px;font-size:14px;color:#1D6B3B;padding:6px 4px}
 /* Cobertura / particular */
 .cov-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -968,7 +971,7 @@ function formatoCel(v){
 function editarCelWa(){
   document.getElementById('waRemForm').classList.remove('hidden');
   const i=document.getElementById('waRemInput');i.focus();i.select();
-  i.oninput=()=>{document.getElementById('waRemNum').textContent='Te llega al '+formatoCel(i.value)};
+  i.oninput=()=>{document.getElementById('waRemNum').textContent=formatoCel(i.value)};
 }
 async function pedirRecordatorioWa(){
   const btn=document.getElementById('waRemBtn');
@@ -983,8 +986,10 @@ async function pedirRecordatorioWa(){
     if(!r.ok) throw new Error(d.message||'No se pudo agendar');
     const dia=new Date(selectedDate+'T12:00:00');dia.setDate(dia.getDate()-1);
     const cuando=dia.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'numeric'});
+    const yaLlega=d.confirmacion==='enviada';
     document.getElementById('waRem').innerHTML=`<div class="wa-rem-ok"><strong>✓ Recordatorio agendado</strong>
-      <span>Te escribimos por WhatsApp el ${cuando} al ${formatoCel(crudo)}.</span></div>`;
+      <span>${yaLlega?`Te enviamos un WhatsApp de confirmación al <b>${formatoCel(crudo)}</b>. Si no te llegó en unos minutos, revisá el número.`:`Te escribimos por WhatsApp el ${cuando} al <b>${formatoCel(crudo)}</b>.`}</span>
+      ${yaLlega?'':'<span style="font-size:12px;opacity:.8">Verificá que el número sea correcto: es donde te va a llegar el aviso.</span>'}</div>`;
     document.getElementById('phone').value=String(d.phone||tel).replace(/^\+?54/,'').replace(/^9/,'');
   }catch(e){showToast(e.message,4000);btn.disabled=false}
 }
@@ -1111,15 +1116,11 @@ function showConfirmation(data){
 
   document.getElementById('summaryContent').innerHTML+=`
     <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">
-      ${!staffSesion&&data.confirmationToken?`<div class="wa-rem" id="waRem">
-        <button type="button" class="wa-rem-btn" id="waRemBtn" onclick="pedirRecordatorioWa()">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.5 14.4c-.3-.1-1.8-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-.3-.1-1.3-.5-2.4-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6l.4-.5c.2-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5 2.5 1 3 .8 3.6.7.6-.1 1.8-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.2-.3-.3-.6-.4zM12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg>
-          <span><strong>Agregar recordatorio un día antes por WhatsApp</strong>
-          <small id="waRemNum">Te llega al ${esc(formatoCel(document.getElementById('phone').value))}</small></span>
-        </button>
-        <div class="wa-rem-edit">
-          <span id="waRemQ">¿Es tu número?</span>
-          <button type="button" class="wa-link" onclick="editarCelWa()">Cambiar número</button>
+      ${data.confirmationToken?`<div class="wa-rem" id="waRem">
+        <div class="wa-rem-num">
+          <span>${staffSesion?'WhatsApp del paciente':'Tu WhatsApp'}</span>
+          <b id="waRemNum">${esc(formatoCel(document.getElementById('phone').value))}</b>
+          <button type="button" class="wa-link" onclick="editarCelWa()">✏️ Corregir</button>
         </div>
         <div class="wa-rem-form hidden" id="waRemForm">
           <div style="display:flex;gap:8px">
@@ -1128,10 +1129,12 @@ function showConfirmation(data){
           </div>
           <div class="hint">Con código de área, sin 0 ni 15</div>
         </div>
+        <button type="button" class="wa-rem-btn" id="waRemBtn" onclick="pedirRecordatorioWa()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.5 14.4c-.3-.1-1.8-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-.3-.1-1.3-.5-2.4-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6l.4-.5c.2-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5 2.5 1 3 .8 3.6.7.6-.1 1.8-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.2-.3-.3-.6-.4zM12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg>
+          <span><strong>Recibir recordatorio por WhatsApp</strong>
+          <small>Un día antes del turno${staffSesion?', al paciente':''}</small></span>
+        </button>
       </div>`:''}
-      ${staffSesion?`<a href="https://wa.me/?text=${encodeURIComponent(msgCompartir)}" target="_blank" rel="noopener" class="btn btn-primary" style="background:#25D366;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px">
-        📱 Enviar por WhatsApp
-      </a>`:''}
       <div style="display:flex;gap:8px">
         <a href="${gcal}" target="_blank" rel="noopener" class="btn" style="flex:1;background:var(--bg-soft,#F2EBE1);color:var(--text,#2B241F);border:1.5px solid var(--arena);font-size:13px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px">🔔 Recordármelo (Google Calendar)</a>
         <button onclick="descargarIcs()" class="btn" style="flex:1;background:var(--bg-soft,#F2EBE1);color:var(--text,#2B241F);border:1.5px solid var(--arena);font-size:13px">📅 iPhone / otro calendario</button>
