@@ -179,6 +179,22 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--crema);min-height
 .spinner{width:28px;height:28px;border:3px solid var(--bg-soft);border-top-color:var(--primary);
   border-radius:50%;animation:spin .7s linear infinite;margin:20px auto}
 @keyframes spin{to{transform:rotate(360deg)}}
+/* Turnos: al tocar un día baja a los horarios y aparecen en cascada */
+@keyframes slotIn{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes pulseBtn{0%{box-shadow:0 0 0 0 rgba(154,107,63,.45)}100%{box-shadow:0 0 0 14px rgba(154,107,63,0)}}
+@keyframes cardGlow{0%{box-shadow:0 0 0 0 rgba(154,107,63,.28)}100%{box-shadow:0 0 0 10px rgba(154,107,63,0)}}
+.slots .slot{animation:slotIn .32s ease both}
+.slot-group{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-soft);margin:14px 0 8px}
+.slot-group:first-child{margin-top:0}
+#slotsCard.glow{animation:cardGlow .9s ease-out}
+#slotsCard{scroll-margin-top:12px}
+#btnNext1.pulse{animation:pulseBtn 1s ease-out 2}
+@media (max-width:640px){
+  .slot{padding:14px 0;font-size:15px}
+  body.cta-on #chatFab{bottom:92px!important}
+  #btnNext1:not(:disabled){position:sticky;bottom:12px;z-index:5;box-shadow:0 10px 24px -8px rgba(60,40,20,.45)}
+}
+@media (prefers-reduced-motion:reduce){.slots .slot,#slotsCard.glow,#btnNext1.pulse{animation:none}}
 .center{text-align:center}
 .muted{color:var(--text-muted);font-size:13px}
 .mt-8{margin-top:8px}
@@ -853,11 +869,19 @@ function changeMonth(d){currentMonth.setMonth(currentMonth.getMonth()+d);renderC
 async function selectDate(iso){
   selectedDate=iso;selectedSlot=null;
   renderCalendar();updateNextBtn();
+  document.getElementById('btnNext1').textContent='Continuar →';
 
   const card=document.getElementById('slotsCard');
   const content=document.getElementById('slotsContent');
   card.classList.remove('hidden');
   content.innerHTML='<div class="spinner"></div>';
+  // Bajar suavemente a los horarios del día elegido (sobre todo en el celular)
+  const suave=!window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  requestAnimationFrame(()=>{
+    card.scrollIntoView({behavior:suave?'smooth':'auto',block:'start'});
+    card.classList.remove('glow');void card.offsetWidth;card.classList.add('glow');
+  });
+  if(navigator.vibrate)try{navigator.vibrate(8)}catch(e){}
 
   const d=new Date(iso+'T12:00:00');
   const days=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -876,11 +900,16 @@ async function selectDate(iso){
           <p>¿Querés que te avisemos si se libera un turno?</p>
           <button class="btn-waitlist" onclick="openWaitlist()">Avisame cuando haya turno</button>
         </div>`;
+      requestAnimationFrame(()=>card.scrollIntoView({behavior:'smooth',block:'start'}));
       return;
     }
-    content.innerHTML='<div class="slots">'+available.map(s=>
-      `<button class="slot" onclick="selectSlot('${s.startTime}','${s.endTime}',this)">${s.startTime.substring(0,5)}</button>`
-    ).join('')+'</div>';
+    if(selectedDate!==iso)return; // tocó otro día mientras cargaba
+    const boton=(s,i)=>`<button class="slot" style="animation-delay:${Math.min(i,18)*28}ms" onclick="selectSlot('${s.startTime}','${s.endTime}',this)">${s.startTime.substring(0,5)}</button>`;
+    const manana=available.filter(s=>parseInt(s.startTime,10)<13), tarde=available.filter(s=>parseInt(s.startTime,10)>=13);
+    content.innerHTML=(manana.length&&tarde.length)
+      ? `<div class="slot-group">☀️ Mañana</div><div class="slots">${manana.map(boton).join('')}</div><div class="slot-group">🌇 Tarde</div><div class="slots">${tarde.map((x,i)=>boton(x,i+manana.length)).join('')}</div>`
+      : '<div class="slots">'+available.map(boton).join('')+'</div>';
+    requestAnimationFrame(()=>document.getElementById('slotsCard').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'}));
   }catch(e){content.innerHTML='<p class="muted center">Error al cargar horarios</p>'}
 }
 
@@ -889,12 +918,20 @@ function selectSlot(start,end,el){
   document.querySelectorAll('.slot').forEach(s=>s.classList.remove('active'));
   el.classList.add('active');
   updateNextBtn();
+  if(navigator.vibrate)try{navigator.vibrate(8)}catch(e){}
+  // Llevar a "Continuar" para que el siguiente paso quede a la vista
+  const btn=document.getElementById('btnNext1');
+  btn.textContent=`Continuar con las ${start.substring(0,5)} →`;
+  btn.classList.remove('pulse');void btn.offsetWidth;btn.classList.add('pulse');
+  const r=btn.getBoundingClientRect();
+  if(r.bottom>window.innerHeight-8||r.top<0)btn.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});
 }
 
-function updateNextBtn(){document.getElementById('btnNext1').disabled=!(selectedDate&&selectedSlot)}
+function updateNextBtn(){const ok=!!(selectedDate&&selectedSlot);document.getElementById('btnNext1').disabled=!ok;document.body.classList.toggle('cta-on',ok)}
 
 // ─── Steps ───────────────────────────────────────────────
 function goStep(n){
+  document.body.classList.toggle('cta-on',n===1&&!!(selectedDate&&selectedSlot));
   [1,2,3].forEach(i=>{
     document.getElementById('step'+i).classList.toggle('hidden',i!==n);
     const dot=document.getElementById('s'+i);
