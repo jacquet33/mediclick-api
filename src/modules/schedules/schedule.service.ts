@@ -27,6 +27,37 @@ export class ScheduleService {
 
   constructor(private db: DatabaseService) {}
 
+  /**
+   * Días en que se puede dar turno entre `from` y `to` (YYYY-MM-DD): días de la semana con horario
+   * y fechas bloqueadas por excepciones (feriados, ausencias). Lo usan la página de reservas y las apps
+   * para mostrar en gris los días sin atención.
+   */
+  async diasConAtencion(orgDoctorId: string, from?: string, to?: string) {
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    const ok = (x?: string) => !!x && /^\d{4}-\d{2}-\d{2}$/.test(x);
+    const desde = ok(from) ? from! : iso(new Date());
+    const hasta = ok(to) ? to! : iso(new Date(Date.now() + 120 * 86400000));
+    const dias = await this.db.queryMany<{ day_of_week: number }>(
+      `SELECT DISTINCT day_of_week FROM doctor_schedules WHERE org_doctor_id = $1 AND is_active = true ORDER BY day_of_week`,
+      [orgDoctorId],
+    );
+    const excepciones = await this.db.queryMany<{ date: string; is_available: boolean }>(
+      `SELECT to_char(date, 'YYYY-MM-DD') AS date, is_available FROM schedule_exceptions
+        WHERE org_doctor_id = $1 AND date BETWEEN $2::date AND $3::date`,
+      [orgDoctorId, desde, hasta],
+    );
+    return {
+      weekdays: dias.map((d) => Number(d.day_of_week)),           // 0 = domingo … 6 = sábado
+      blockedDates: excepciones.filter((e) => !e.is_available).map((e) => e.date),
+      from: desde,
+      to: hasta,
+    };
+  }
+
+  async diasDelMedico(orgId: string, doctorId: string, from?: string, to?: string) {
+    return this.diasConAtencion(await this.getOrgDoctorId(orgId, doctorId), from, to);
+  }
+
   async getSchedules(orgId: string, doctorId: string) {
     const orgDoctorId = await this.getOrgDoctorId(orgId, doctorId);
     return this.db.queryMany(

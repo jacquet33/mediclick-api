@@ -128,7 +128,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--crema);min-height
 .cal-day:hover:not(:disabled):not(.active){background:var(--bg-soft)}
 .cal-day.active{background:linear-gradient(135deg,var(--lavanda),var(--tinta));color:#fff;font-weight:700;
   box-shadow:0 3px 10px rgba(154,107,63,.35)}
-.cal-day:disabled{color:var(--text-muted);opacity:.35;cursor:default}
+.cal-day:disabled{color:var(--text-muted);opacity:.32;cursor:not-allowed}
+.cal-hint{font-size:12px;color:var(--text-soft);margin-top:10px;display:flex;align-items:center;gap:6px}
+.cal-hint i{width:10px;height:10px;border-radius:3px;background:var(--lavanda);display:inline-block}
 .cal-day.today:not(.active){color:var(--primary);font-weight:700;text-decoration:underline}
 .cal-day.empty{visibility:hidden}
 
@@ -252,6 +254,7 @@ body{padding-bottom:96px}
       <button class="cal-nav" onclick="changeMonth(1)">›</button>
     </div>
     <div class="cal-grid" id="calGrid"></div>
+    <div class="cal-hint" id="calHint" hidden>Los días en gris no tienen atención.</div>
   </div>
 
   <div class="card hidden" id="slotsCard">
@@ -616,6 +619,7 @@ async function init(){
       } catch(e){}
       renderProfile();
       renderCalendar();
+      cargarDiasAtencion();
       initInsuranceSearch();
       return;
     }
@@ -645,8 +649,10 @@ async function loadProfile(){
     const r = await fetch(`${API}/api/v1/public/booking/${slug}`);
     if(!r.ok) throw new Error();
     profile = await r.json();
+    diasAtencion=null;
     renderProfile();
     renderCalendar();
+    cargarDiasAtencion();
     initInsuranceSearch();
   } catch(e){ showError() }
 }
@@ -841,6 +847,16 @@ function setCobertura(tipo){
 }
 
 // ─── Calendar ────────────────────────────────────────────
+// Días con atención del médico: el resto se muestra en gris y no se puede elegir
+let diasAtencion=null;
+async function cargarDiasAtencion(){
+  try{
+    const r=await fetch(`${API}/api/v1/public/booking/${slug}/days`);
+    if(!r.ok)return;
+    const j=await r.json();
+    if(Array.isArray(j.weekdays)&&j.weekdays.length){diasAtencion={weekdays:j.weekdays,blocked:new Set(j.blockedDates||[])};const h=document.getElementById('calHint');if(h)h.hidden=false;renderCalendar()}
+  }catch(e){}
+}
 function renderCalendar(){
   const y=currentMonth.getFullYear(),m=currentMonth.getMonth();
   const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -856,7 +872,8 @@ function renderCalendar(){
   for(let d=1;d<=daysInMonth;d++){
     const date=new Date(y,m,d);
     const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const disabled=date<today||date>maxDate;
+    const sinAtencion=diasAtencion&&(!diasAtencion.weekdays.includes(date.getDay())||diasAtencion.blocked.has(iso));
+    const disabled=date<today||date>maxDate||sinAtencion;
     const active=selectedDate===iso;
     const isToday=iso===todayISO;
     html+=`<button class="cal-day${active?' active':''}${isToday?' today':''}" ${disabled?'disabled':''} onclick="selectDate('${iso}')">${d}</button>`;

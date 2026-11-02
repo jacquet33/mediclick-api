@@ -1,3 +1,4 @@
+import { ScheduleService } from '../schedules/schedule.service';
 import { UseGuards } from '@nestjs/common';
 import { CaptchaGuard } from '../../common/guards/captcha.guard';
 import { Controller, Get, Post, Put, Patch, Body, Param, Query } from '@nestjs/common';
@@ -18,7 +19,7 @@ import { PublicThrottle, StrictThrottle } from '../../common/decorators/throttle
 @PublicThrottle()
 @Controller('api/v1/public/booking')
 export class PublicBookingController {
-  constructor(private bookingService: BookingService, private waReminder: WhatsappReminderService) {}
+  constructor(private bookingService: BookingService, private waReminder: WhatsappReminderService, private schedules: ScheduleService) {}
 
   /** POST /public/booking/status/:token/whatsapp-reminder — el paciente pide recordatorio 1 día antes */
   @Post('status/:token/whatsapp-reminder')
@@ -36,6 +37,15 @@ export class PublicBookingController {
   @Get(':slug')
   getProfile(@Param('slug') slug: string) {
     return this.bookingService.getPublicProfile(slug);
+  }
+
+  /** GET /public/booking/:slug/days — días de la semana con atención y fechas bloqueadas (el resto va en gris) */
+  @Get(':slug/days')
+  async getDays(@Param('slug') slug: string) {
+    const p: any = await this.bookingService.getPublicProfile(slug);
+    const hoy = new Date();
+    const hasta = new Date(hoy.getTime() + (Number(p.max_days_in_advance) || 60) * 86400000);
+    return this.schedules.diasConAtencion(p.org_doctor_id, hoy.toISOString().slice(0, 10), hasta.toISOString().slice(0, 10));
   }
 
   /** GET /public/booking/:slug/slots?date=2026-09-01 */

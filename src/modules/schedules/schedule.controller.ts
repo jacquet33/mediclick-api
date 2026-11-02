@@ -21,6 +21,12 @@ export class ScheduleController {
     return this.scheduleService.setSchedules(orgId, { ...dto, doctorId: this.target(user, dto.doctorId) });
   }
 
+  /** GET /schedules/days?from&to — días con atención (para pintar en gris los demás al crear un turno) */
+  @Get('days')
+  getDays(@OrgId() orgId: string, @CurrentUser() user: AuthUser, @Query('doctor_id') doctorId?: string, @Query('from') from?: string, @Query('to') to?: string) {
+    return this.scheduleService.diasDelMedico(orgId, this.target(user, doctorId as string), from, to);
+  }
+
   @Get('exceptions')
   getExceptions(
     @OrgId() orgId: string,
