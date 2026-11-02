@@ -3,283 +3,265 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#2B241F">
-<meta name="description" content="TusRecetasMed para médicos — Gestioná tu consultorio, turnos, historia clínica y facturación desde una sola app.">
-<title>TusRecetasMed para Médicos — Tu consultorio digital</title>
+<title>TusRecetasMed para médicos — Recetas, turnos e historia clínica gratis</title>
+<meta name="description" content="Recetá, dá turnos online y llevá la historia clínica desde el celular o la compu. Gratis para siempre, sin tarjeta.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="TusRecetasMed para Médicos — Tu consultorio digital">
-<meta property="og:description" content="Gestioná tu consultorio, turnos, historia clínica y facturación desde una sola app.">
+<meta property="og:title" content="TusRecetasMed para médicos">
+<meta property="og:description" content="Recetas electrónicas, turnos online e historia clínica. Gratis para siempre.">
 <meta property="og:site_name" content="TusRecetasMed">
-<meta name="twitter:card" content="summary">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>
-:root{--crema:#F7F2EA;--arena:#E3DACC;--tinta:#2B241F;--lavanda:#9A6B3F;--lavanda-light:#F5ECE1;--soft:#5B5047;--muted:#999;--surface:#fff;--radius:16px}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',system-ui,sans-serif;background:var(--crema);color:var(--tinta);-webkit-font-smoothing:antialiased}
-a{color:inherit;text-decoration:none}
-
-/* Nav */
-nav{background:var(--surface);border-bottom:0.5px solid var(--arena);position:sticky;top:0;z-index:50}
-.nav-inner{max-width:1100px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
-.logo{font-size:20px;font-weight:700;color:var(--tinta);display:flex;align-items:center;gap:8px}
-.logo span{color:var(--lavanda)}
-.nav-links{display:flex;gap:8px;align-items:center}
-.nav-links a{font-size:13px;font-weight:500;padding:8px 16px;border-radius:8px;transition:.15s}
-.nav-links a:hover{background:var(--lavanda-light)}
-.btn-cta{background:var(--lavanda)!important;color:#fff!important;border-radius:8px!important;font-weight:600!important}
-.btn-cta:hover{opacity:.9}
-
-/* Hero */
-.hero{background:linear-gradient(135deg,var(--lavanda-light) 0%,var(--crema) 60%);padding:80px 20px 60px}
-.hero-inner{max-width:900px;margin:0 auto;text-align:center}
-.hero h1{font-size:clamp(30px,5vw,48px);font-weight:800;line-height:1.15;margin-bottom:16px}
-.hero h1 em{font-style:normal;color:var(--lavanda)}
-.hero .sub{font-size:18px;color:var(--soft);margin-bottom:32px;max-width:600px;margin-inline:auto;line-height:1.6}
-.hero-buttons{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.hero-buttons a{padding:14px 32px;border-radius:12px;font-size:15px;font-weight:600;transition:.15s}
-.hero-buttons .primary{background:var(--lavanda);color:#fff}
-.hero-buttons .primary:hover{opacity:.9}
-.hero-buttons .secondary{background:var(--surface);color:var(--tinta);border:1px solid var(--arena)}
-.hero-buttons .secondary:hover{border-color:var(--lavanda);color:var(--lavanda)}
-
-.badge{display:inline-block;background:var(--surface);border:1px solid var(--arena);border-radius:20px;padding:6px 16px;font-size:12px;font-weight:600;color:var(--lavanda);margin-bottom:20px;letter-spacing:.3px}
-
-/* Stats */
-.stats{display:flex;justify-content:center;gap:40px;margin-top:40px;flex-wrap:wrap}
-.stat{text-align:center}
-.stat strong{display:block;font-size:28px;font-weight:800;color:var(--lavanda)}
-.stat span{font-size:12px;color:var(--muted);font-weight:500}
-
-/* Features */
-.features-section{max-width:1100px;margin:60px auto;padding:0 20px}
-.features-section h2{font-size:28px;font-weight:700;text-align:center;margin-bottom:8px}
-.features-section .sub{text-align:center;color:var(--soft);margin-bottom:40px;font-size:15px}
-.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
-.feat-card{background:var(--surface);border-radius:var(--radius);padding:28px;border:0.5px solid var(--arena);transition:.2s}
-.feat-card:hover{border-color:var(--lavanda);box-shadow:0 4px 20px rgba(154,107,63,.1);transform:translateY(-2px)}
-.feat-icon{width:48px;height:48px;border-radius:12px;background:var(--lavanda-light);display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:16px}
-.feat-card h3{font-size:16px;font-weight:700;margin-bottom:6px}
-.feat-card p{font-size:13px;color:var(--soft);line-height:1.6}
-
-/* How it works */
-.how-section{background:var(--tinta);color:#fff;padding:60px 20px;margin-top:60px}
-.how-inner{max-width:900px;margin:0 auto}
-.how-inner h2{font-size:28px;font-weight:700;text-align:center;margin-bottom:40px}
-.how-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px}
-.how-step{text-align:center}
-.step-num{width:40px;height:40px;border-radius:50%;background:var(--lavanda);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;margin:0 auto 12px}
-.how-step h3{font-size:15px;font-weight:600;margin-bottom:6px}
-.how-step p{font-size:13px;color:rgba(255,255,255,.7);line-height:1.5}
-
-/* Pricing */
-.pricing-section{max-width:1120px;margin:60px auto;padding:0 20px}
-.pricing-section h2{font-size:28px;font-weight:700;text-align:center;margin-bottom:8px}
-.pricing-section .sub{text-align:center;color:var(--soft);margin-bottom:40px;font-size:15px}
-.pricing-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;max-width:1080px;margin:0 auto}
-.plan{background:var(--surface);border-radius:var(--radius);padding:32px;border:0.5px solid var(--arena);position:relative}
-.plan.popular{border:2px solid var(--lavanda)}
-.plan.popular::before{content:'Para empezar hoy';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--lavanda);color:#fff;font-size:11px;font-weight:600;padding:4px 14px;border-radius:20px}
-.plan h3{font-size:18px;font-weight:700;margin-bottom:4px}
-.plan .price{font-size:32px;font-weight:800;color:var(--lavanda);margin-bottom:4px}
-.plan .price span{font-size:14px;font-weight:500;color:var(--muted)}
-.plan .desc{font-size:13px;color:var(--soft);margin-bottom:20px}
-.plan ul{list-style:none;margin-bottom:24px}
-.plan li{font-size:13px;padding:6px 0;color:var(--soft);display:flex;align-items:center;gap:8px}
-.plan li::before{content:'✓';color:var(--lavanda);font-weight:700}
-.plan .plan-btn{display:block;text-align:center;padding:12px;border-radius:10px;font-size:14px;font-weight:600;transition:.15s}
-.plan .plan-btn.primary{background:var(--lavanda);color:#fff}
-.plan .plan-btn.primary:hover{opacity:.9}
-.plan .plan-btn.outline{background:var(--crema);color:var(--tinta);border:1px solid var(--arena)}
-.plan .plan-btn.outline:hover{border-color:var(--lavanda)}
-
-/* CTA */
-.cta-section{background:linear-gradient(135deg,var(--lavanda) 0%,#7F5631 100%);padding:60px 20px;text-align:center;margin-top:60px}
-.cta-section h2{font-size:28px;font-weight:700;color:#fff;margin-bottom:12px}
-.cta-section p{font-size:16px;color:rgba(255,255,255,.85);margin-bottom:28px;max-width:500px;margin-inline:auto}
-.cta-section a{display:inline-block;background:#fff;color:var(--lavanda);padding:14px 36px;border-radius:12px;font-size:15px;font-weight:700;transition:.15s}
-.cta-section a:hover{opacity:.9}
-
-/* Footer */
-footer{background:var(--surface);border-top:0.5px solid var(--arena);padding:30px 20px;text-align:center}
-footer p{font-size:12px;color:var(--muted)}
-footer a{color:var(--lavanda)}
-
-@media(max-width:600px){
-  .hero{padding:50px 16px 40px}
-  .stats{gap:20px}
-  .features-grid,.how-steps,.pricing-grid{grid-template-columns:1fr}
-}
-</style>
+<meta name="theme-color" content="#F7F2EA">
 <link rel="icon" type="image/svg+xml" href="/img/logo.svg">
-<meta name="theme-color" content="#7F8F5E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/trm.css">
+<script src="/js/captcha.js"></script>
+<style>
+/* Agenda de escritorio (mockup) */
+.desk{position:relative;background:#fff;border:1px solid var(--line);border-radius:24px;box-shadow:0 40px 80px -36px rgba(35,28,23,.45);overflow:hidden}
+.desk-bar{display:flex;gap:6px;align-items:center;padding:12px 16px;background:#F6F1EA;border-bottom:1px solid var(--line)}
+.desk-bar i{width:10px;height:10px;border-radius:50%;background:#E3D7C7}
+.desk-bar span{margin-left:10px;font-size:11.5px;color:var(--muted);background:#fff;border-radius:7px;padding:3px 10px}
+.desk-body{padding:18px}
+.desk-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.desk-top b{font-family:var(--serif);font-size:19px}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--sage2);background:var(--sage-l);padding:4px 10px;border-radius:999px}
+.live::before{content:'';width:7px;height:7px;border-radius:50%;background:#6FA35A;animation:ping 2s infinite}
+.row{display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;padding:11px 12px;border-radius:14px;border:1px solid var(--line);margin-bottom:8px;font-size:13.5px;background:#fff}
+.row time{font-weight:800;color:var(--soft);font-size:12.5px}
+.row small{display:block;color:var(--muted);font-size:11.5px}
+.pill{font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;white-space:nowrap}
+.pill.ok{background:#E7F1E1;color:#4F6B3B}.pill.web{background:var(--cara-l);color:var(--cara2)}.pill.wa{background:#E6F6EC;color:#1E8A4C}.pill.free{background:#F2EFEA;color:var(--muted)}
+.row.new{animation:newrow 7s infinite}
+@keyframes newrow{0%,30%{opacity:0;transform:translateY(-8px)}38%,100%{opacity:1;transform:none}}
+.wa-pop{position:absolute;right:-18px;bottom:26px;width:250px;background:#fff;border-radius:18px;padding:12px 14px;box-shadow:var(--shadow);border:1px solid var(--line);font-size:12.5px;animation:bob 5s ease-in-out infinite}
+.wa-pop b{display:flex;align-items:center;gap:6px;font-size:12px;color:#1E8A4C;margin-bottom:4px}
+@media(max-width:900px){.wa-pop{position:static;width:auto;margin-top:12px}}
+</style>
 </head>
 <body>
 
-<nav>
-<div class="nav-inner">
-  <a href="/" class="logo" aria-label="TusRecetasMed"><img src="/img/logo.svg" width="26" height="26" alt="" style="display:block;border-radius:7px"><b style="font-weight:600;color:var(--text)">TusRecetas<em style="font-style:normal;font-weight:inherit;opacity:1;color:#7F8F5E;-webkit-text-fill-color:#7F8F5E">Med</em></b></a>
-  <div class="nav-links">
-    <a href="/">Pacientes</a>
-    <a href="/portal.html">Ingresar</a>
-    <a href="/registro.html" class="btn-cta">Empezar gratis</a>
+<nav class="trm-nav">
+  <div class="wrap">
+    <a href="/" class="brand" aria-label="TusRecetasMed"><img src="/img/logo.svg" alt=""><span>TusRecetas<em>Med</em></span></a>
+    <div class="nav-links">
+      <a href="#funciones" class="hide-m">Funciones</a>
+      <a href="#precios" class="hide-m">Precios</a>
+      <a href="#preguntas" class="hide-m">Preguntas</a>
+      <a href="/portal">Ingresar</a>
+      <a href="/medicos#alta" class="btn btn-pri btn-sm">Empezar gratis</a>
+    </div>
   </div>
-</div>
 </nav>
 
-<section class="hero">
-<div class="hero-inner">
-  <div class="badge">PARA MÉDICOS Y CONSULTORIOS</div>
-  <h1>Tu consultorio digital,<br>en <em>una sola app</em></h1>
-  <p class="sub">Turnos online, historia clínica, recetas digitales, facturación y cobros. Todo lo que necesitás para gestionar tu práctica médica desde el celular.</p>
-  <div class="hero-buttons">
-    <a href="/registro.html" class="primary">Crear cuenta gratis</a>
-    <a href="#features" class="secondary">Ver funcionalidades</a>
-  </div>
-  <div class="stats">
-    <div class="stat"><strong>24/7</strong><span>Turnos online</span></div>
-    <div class="stat"><strong>100%</strong><span>Digital</span></div>
-    <div class="stat"><strong>30s</strong><span>Para activarte</span></div>
-    <div class="stat"><strong>80+</strong><span>Obras sociales</span></div>
-  </div>
-</div>
-</section>
-
-<section class="features-section" id="features">
-  <h2>Todo para tu consultorio</h2>
-  <p class="sub">Las herramientas que necesitás, sin complicaciones</p>
-  <div class="features-grid">
-    <div class="feat-card">
-      <div class="feat-icon">📅</div>
-      <h3>Agenda inteligente</h3>
-      <p>Configurá tus horarios, duraciones de turno y excepciones. Tus pacientes reservan online y vos recibís la notificación al instante.</p>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon">📋</div>
-      <h3>Historia clínica digital</h3>
-      <p>Cumple con la Ley 26.529. Firma electrónica, trazabilidad completa, retención 10 años. Todo auditable y seguro.</p>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon">💊</div>
-      <h3>Recetas digitales</h3>
-      <p>Generá recetas en PDF con tu firma y matrícula. Envialas por WhatsApp o que el paciente las descargue desde la app.</p>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon">🏥</div>
-      <h3>Obras sociales</h3>
-      <p>Conectá las obras sociales con las que trabajás. Los pacientes filtran por cobertura al reservar turno.</p>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon">💰</div>
-      <h3>Facturación y cobros</h3>
-      <p>Registrá prácticas, cobrá seña por Mercado Pago, generá reportes de facturación. Todo integrado.</p>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon">🔔</div>
-      <h3>Notificaciones push</h3>
-      <p>Recordatorios automáticos a tus pacientes. Reducí las ausencias y mantené tu agenda organizada.</p>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon">👥</div>
-      <h3>Multi-consultorio</h3>
-      <p>Gestioná múltiples consultorios desde una sola cuenta. Invitá colegas, asigná roles y permisos.</p>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon">📱</div>
-      <h3>App iOS nativa</h3>
-      <p>App dedicada para iPhone con sincronización offline. Consultá tu agenda incluso sin conexión a internet.</p>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon">🔒</div>
-      <h3>Seguridad y compliance</h3>
-      <p>Ley 25.326 de datos personales. Encriptación, backups diarios, audit logs. Tus datos y los de tus pacientes, protegidos.</p>
-    </div>
-  </div>
-</section>
-
-<section class="how-section">
-<div class="how-inner">
-  <h2>Activá tu consultorio en 3 pasos</h2>
-  <div class="how-steps">
-    <div class="how-step">
-      <div class="step-num">1</div>
-      <h3>Creá tu cuenta</h3>
-      <p>Registrate con tu email y matrícula. Tu organización y agenda se crean automáticamente.</p>
-    </div>
-    <div class="how-step">
-      <div class="step-num">2</div>
-      <h3>Configurá tu agenda</h3>
-      <p>Elegí tus días y horarios de atención, duración de turnos y obras sociales que aceptás.</p>
-    </div>
-    <div class="how-step">
-      <div class="step-num">3</div>
-      <h3>Compartí tu link</h3>
-      <p>Recibí un link único de reservas. Compartilo por WhatsApp, redes sociales o tu web.</p>
-    </div>
-  </div>
-</div>
-</section>
-
-<section class="pricing-section" id="pricing">
-  <h2>Planes simples, sin sorpresas</h2>
-  <p class="sub">Recetá y dá turnos gratis, para siempre. Pagás solo si querés más.</p>
-  <div class="pricing-grid">
-    <div class="plan popular plan-free">
-      <h3>Gratis</h3>
-      <div class="price">$0 <span>para siempre</span></div>
-      <div class="desc">Todo lo que necesitás para atender y recetar. Sin tarjeta.</div>
-      <ul>
+<header class="hero">
+  <div class="aura" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="wrap">
+    <div>
+      <span class="eyebrow"><span class="dot"></span>Para médicos y consultorios</span>
+      <h1 class="display">¿Seguís dando turnos <em>por teléfono</em> y recetando a mano?</h1>
+      <p class="lead">TusRecetasMed reúne tu agenda, tus recetas y la historia clínica en un solo lugar. Lo usás desde el celular o la compu, y tus pacientes reservan solos.</p>
+      <ul class="checks">
         <li>Recetas electrónicas ilimitadas, con firma y QR</li>
-        <li>Pacientes y turnos ilimitados</li>
         <li>Tu página de turnos: tusrecetasmed.com/tu-nombre</li>
-        <li>Historia clínica con evoluciones y antecedentes</li>
-        <li>Recordatorios por WhatsApp con un toque</li>
-        <li>App para iPhone y Android</li>
-        <li>Importá tus pacientes desde Excel</li>
+        <li>Recordatorios por WhatsApp para que no falten</li>
       </ul>
-      <a href="/medicos#alta" class="plan-btn primary">Crear mi cuenta gratis</a>
+      <div class="ctas">
+        <a href="/medicos#alta" class="btn btn-pri">Crear mi cuenta gratis →</a>
+        <a href="#como" class="btn btn-sec">Ver cómo funciona</a>
+      </div>
+      <p class="micro">Gratis para siempre · Sin tarjeta · Listo en 2 minutos</p>
     </div>
-    <div class="plan">
-      <h3>Profesional</h3>
-      <div class="price">$9.000 <span>/mes</span></div>
-      <div class="desc">Incluido sin costo hasta el 31/03/2027</div>
-      <ul>
-        <li>Todo lo de Gratis</li>
-        <li>Asistente: resumen, dictado e indicaciones</li>
-        <li>Recordatorios automáticos por WhatsApp</li>
-        <li>Estudios y documentos compartidos con el paciente</li>
-        <li>Sala de espera y lista de espera</li>
-        <li>Firma digital con certificado</li>
-        <li>Soporte prioritario</li>
-      </ul>
-      <a href="/medicos#alta" class="plan-btn outline">Empezar gratis</a>
-    </div>
-    <div class="plan">
-      <h3>Consultorio</h3>
-      <div class="price">$19.000 <span>/mes</span></div>
-      <div class="desc">Hasta 5 profesionales · De 6 a 10: $34.000/mes</div>
-      <ul>
-        <li>Todo lo de Profesional, para cada médico</li>
-        <li>Secretarías sin costo adicional</li>
-        <li>Agenda de todo el equipo y permisos</li>
-        <li>Facturación y obras sociales</li>
-        <li>Más de 10 profesionales: precio a medida</li>
-      </ul>
-      <a href="mailto:contact@rispy.io?subject=TusRecetasMed%20para%20consultorios" class="plan-btn outline">Hablemos</a>
+
+    <div class="desk" data-reveal aria-hidden="true">
+      <div class="desk-bar"><i></i><i></i><i></i><span>tusrecetasmed.com/portal</span></div>
+      <div class="desk-body">
+        <div class="desk-top"><b>Hoy · 6 turnos</b><span class="live">En vivo</span></div>
+        <div class="row"><time>09:00</time><div>Martina G.<small>Control · OSDE</small></div><span class="pill ok">Confirmó</span></div>
+        <div class="row new"><time>09:30</time><div>Jorge I.<small>Primera consulta · Particular</small></div><span class="pill web">Reservó online</span></div>
+        <div class="row"><time>10:00</time><div>Lucía B.<small>Resultados · Swiss Medical</small></div><span class="pill wa">Recordatorio ✓</span></div>
+        <div class="row"><time>10:30</time><div>Libre<small>Se ofrece a la lista de espera</small></div><span class="pill free">Disponible</span></div>
+        <div class="row"><time>11:00</time><div>Carlos M.<small>Receta · IOSPER</small></div><span class="pill ok">Receta enviada</span></div>
+      </div>
+      <div class="wa-pop"><b><svg class="ic sm"><use href="#i-chat"/></svg>WhatsApp · recordatorio</b>Hola Lucía, te recordamos tu turno mañana 10:00 con la Dra. Paz. ¿Confirmás?</div>
     </div>
   </div>
-  <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:16px">Precios finales en pesos argentinos, sin permanencia. Emitir recetas nunca va a ser un extra pago.</p>
+</header>
+
+<section class="sec" id="como">
+  <div class="wrap">
+    <div class="sec-head" data-reveal>
+      <span class="kicker">Antes y después</span>
+      <h2 class="title">Menos llamadas. <em>Más consultas.</em></h2>
+      <p class="sub">Así cambia el día a día del consultorio.</p>
+    </div>
+    <div class="ba">
+      <div class="col before" data-reveal>
+        <h3>Sin TusRecetasMed</h3>
+        <ul>
+          <li>Teléfono sonando todo el día para pedir turno</li>
+          <li>Pacientes que se olvidan y no avisan</li>
+          <li>Recetas a mano, ilegibles o perdidas</li>
+          <li>Historias clínicas en papel o en varias planillas</li>
+        </ul>
+      </div>
+      <div class="col after" data-reveal>
+        <h3>Con TusRecetasMed</h3>
+        <ul>
+          <li>Los pacientes reservan solos, las 24 horas</li>
+          <li>Recordatorio por WhatsApp el día anterior</li>
+          <li>Receta electrónica con QR en segundos, al celular del paciente</li>
+          <li>Toda la historia clínica ordenada y a un clic</li>
+        </ul>
+      </div>
+    </div>
+  </div>
 </section>
 
-<section class="cta-section">
-  <h2>¿Listo para digitalizar tu consultorio?</h2>
-  <p>Creá tu cuenta en 30 segundos. Sin tarjeta de crédito, sin compromiso.</p>
-  <a href="/registro.html">Empezar ahora →</a>
+<section class="sec" id="funciones" style="padding-top:20px">
+  <div class="wrap">
+    <div class="sec-head" data-reveal>
+      <span class="kicker">Funciones</span>
+      <h2 class="title">Todo tu consultorio, <span class="sage">en un solo lugar</span></h2>
+      <p class="sub">Pensado con médicos argentinos: obras sociales, matrícula y receta electrónica.</p>
+    </div>
+    <div class="bento">
+      <div class="trm-card w3" data-reveal><svg class="ic lg"><use href="#i-rx"/></svg><h3>Recetas electrónicas ilimitadas</h3><p>Buscador de medicamentos, recetas frecuentes y alertas de alergias e interacciones. Cada receta sale con firma electrónica, código único y QR para la farmacia.</p></div>
+      <div class="trm-card w3" data-reveal><svg class="ic lg"><use href="#i-cal"/></svg><h3>Agenda y turnos online</h3><p>Tu link propio para compartir por WhatsApp o Instagram. Los pacientes eligen día y horario, con o sin obra social, y vos lo ves al instante.</p></div>
+      <div class="trm-card w2" data-reveal><svg class="ic"><use href="#i-chat"/></svg><h3>Recordatorios por WhatsApp</h3><p>Un toque y le llega el recordatorio al paciente. Menos ausencias.</p></div>
+      <div class="trm-card w2" data-reveal><svg class="ic"><use href="#i-doc"/></svg><h3>Historia clínica</h3><p>Evoluciones, antecedentes, estudios y línea de tiempo. Inalterable, como pide la Ley 26.529.</p></div>
+      <div class="trm-card w2" data-reveal><svg class="ic"><use href="#i-spark"/></svg><h3>Asistente <span class="tag-new">Nuevo</span></h3><p>Dictá la consulta y se ordena sola. Resumen del paciente en segundos.</p></div>
+      <div class="trm-card w2" data-reveal><svg class="ic"><use href="#i-card"/></svg><h3>Obras sociales</h3><p>El paciente indica su cobertura y credencial al reservar. Vos lo tenés en el turno.</p></div>
+      <div class="trm-card w2" data-reveal><svg class="ic"><use href="#i-phone"/></svg><h3>App iPhone y Android</h3><p>Tu agenda y tus pacientes en el bolsillo, también para tu secretaria.</p></div>
+      <div class="trm-card w2" data-reveal><svg class="ic"><use href="#i-shield"/></svg><h3>Datos protegidos</h3><p>Conexión cifrada, copias de seguridad diarias y registro de cada acceso.</p></div>
+    </div>
+  </div>
 </section>
 
-<footer>
-  <p>© 2026 TusRecetasMed — Gestión de consultorios médicos · Entre Ríos, Argentina</p>
-  <p style="margin-top:8px"><a href="/terminos.html">Términos y Condiciones</a> · <a href="/privacidad.html">Política de Privacidad</a> · <a href="mailto:contact@rispy.io">contact@rispy.io</a></p>
+<section class="sec dark">
+  <div class="wrap">
+    <div class="sec-head" data-reveal>
+      <span class="kicker" style="color:#D9AE7E">Cómo empezar</span>
+      <h2 class="title" style="color:#fff">Tu consultorio online <em>hoy mismo</em></h2>
+    </div>
+    <div class="steps">
+      <div class="step" data-reveal style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1)"><svg class="ic"><use href="#i-team"/></svg><h3 style="color:#fff">Creá tu cuenta</h3><p>Nombre, matrícula y DNI. Validamos tu matrícula con el registro nacional.</p></div>
+      <div class="step" data-reveal style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1)"><svg class="ic"><use href="#i-clock"/></svg><h3 style="color:#fff">Cargá tus horarios</h3><p>Días, horarios, duración del turno y obras sociales que atendés.</p></div>
+      <div class="step" data-reveal style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1)"><svg class="ic"><use href="#i-qr"/></svg><h3 style="color:#fff">Compartí tu link</h3><p>Ponelo en tu WhatsApp e Instagram. Empezás a recibir turnos.</p></div>
+    </div>
+    <div class="stats" data-reveal>
+      <div class="stat"><b>$<span data-count="0">0</span></b><span>para recetar, siempre</span></div>
+      <div class="stat"><b>24/7</b><span>tus pacientes reservan</span></div>
+      <div class="stat"><b><span data-count="2">2</span> min</b><span>para crear tu cuenta</span></div>
+      <div class="stat"><b><span data-count="10">10</span> años</b><span>de historia clínica guardada</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head" data-reveal>
+      <span class="kicker">Calculadora</span>
+      <h2 class="title">¿Cuánto te cuestan <em>las ausencias</em>?</h2>
+      <p class="sub">Mové los valores y mirá cuánto podrías recuperar por mes con recordatorios.</p>
+    </div>
+    <div class="calc" data-reveal>
+      <div class="in">
+        <label>Turnos por semana <span class="val" id="vT">60</span></label>
+        <input type="range" id="cT" min="10" max="200" step="5" value="60">
+        <label>Pacientes que faltan sin avisar <span class="val" id="vA">15%</span></label>
+        <input type="range" id="cA" min="0" max="40" step="1" value="15">
+        <label>Valor de la consulta <span class="val" id="vV">$25.000</span></label>
+        <input type="range" id="cV" min="5000" max="100000" step="1000" value="25000">
+      </div>
+      <div class="out">
+        <span style="font-size:14px;opacity:.85">Podrías recuperar por mes</span>
+        <b id="cR">$0</b>
+        <small>Estimación: considera que los recordatorios evitan alrededor de un tercio de las ausencias. El resultado real depende de tu consultorio.</small>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="precios" style="padding-top:20px">
+  <div class="wrap">
+    <div class="sec-head" data-reveal>
+      <span class="kicker">Precios</span>
+      <h2 class="title">Recetá gratis. <span class="sage">Para siempre.</span></h2>
+      <p class="sub">Pagás solo si querés más. Precios finales en pesos, sin permanencia.</p>
+    </div>
+    <div class="plans">
+      <div class="plan hot" data-reveal><span class="badge">Para empezar hoy</span>
+        <h3>Gratis</h3><div class="price">$0 <small>para siempre</small></div>
+        <p class="pdesc">Todo lo que necesitás para atender y recetar. Sin tarjeta.</p>
+        <ul><li>Recetas electrónicas ilimitadas, con firma y QR</li><li>Pacientes y turnos ilimitados</li><li>Tu página de turnos online</li><li>Historia clínica con evoluciones y antecedentes</li><li>Recordatorios por WhatsApp con un toque</li><li>App para iPhone y Android</li><li>Importá tus pacientes desde Excel</li></ul>
+        <a href="/medicos#alta" class="btn btn-pri">Crear mi cuenta gratis</a></div>
+      <div class="plan" data-reveal>
+        <h3>Profesional</h3><div class="price">$9.000 <small>/mes</small></div>
+        <p class="pdesc">Incluido sin costo hasta el 31/03/2027.</p>
+        <ul><li>Todo lo de Gratis</li><li>Asistente: resumen, dictado e indicaciones</li><li>Recordatorios automáticos por WhatsApp</li><li>Estudios y documentos compartidos con el paciente</li><li>Sala de espera y lista de espera</li><li>Firma digital con certificado</li><li>Soporte prioritario</li></ul>
+        <a href="/medicos#alta" class="btn btn-sec">Empezar gratis</a></div>
+      <div class="plan" data-reveal>
+        <h3>Consultorio</h3><div class="price">$19.000 <small>/mes</small></div>
+        <p class="pdesc">Hasta 5 profesionales. De 6 a 10: $34.000/mes.</p>
+        <ul><li>Todo lo de Profesional, para cada médico</li><li>Secretarías sin costo adicional</li><li>Agenda de todo el equipo y permisos</li><li>Facturación y obras sociales</li><li>Más de 10 profesionales: precio a medida</li></ul>
+        <a href="mailto:contact@rispy.io?subject=TusRecetasMed%20para%20consultorios" class="btn btn-sec">Hablemos</a></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="preguntas" style="padding-top:20px">
+  <div class="wrap">
+    <div class="sec-head" data-reveal><span class="kicker">Preguntas frecuentes</span><h2 class="title">Lo que más nos preguntan</h2></div>
+    <div class="faq" data-reveal>
+      <details><summary>¿Es gratis de verdad?</summary><p>Sí. Recetar, dar turnos online y llevar la historia clínica es gratis para siempre, sin tarjeta. El plan Profesional suma herramientas extra y está incluido sin costo hasta el 31 de marzo de 2027.</p></details>
+      <details><summary>¿Las recetas sirven en la farmacia?</summary><p>Cada receta sale con firma electrónica, código único (CUIR), QR y código de verificación, y la farmacia puede validarla online. La plataforma está en proceso de inscripción en el registro nacional de recetarios electrónicos del Ministerio de Salud.</p></details>
+      <details><summary>¿Tengo que instalar algo?</summary><p>No. Funciona desde el navegador de la compu o del celular. Si querés, también tenés la app para iPhone y Android.</p></details>
+      <details><summary>¿Puedo traer mis pacientes de otro sistema?</summary><p>Sí. Exportalos a Excel o CSV y los importás en un paso, sin duplicados. Si necesitás ayuda, lo hacemos con vos sin costo.</p></details>
+      <details><summary>¿Cómo les llega el recordatorio a los pacientes?</summary><p>Por WhatsApp. Con un toque se abre el mensaje listo para enviar desde tu número, o se envía solo con el plan Profesional.</p></details>
+      <details><summary>¿Mis datos y los de mis pacientes están seguros?</summary><p>La conexión es cifrada, hacemos copias de seguridad diarias y cada acceso a una historia clínica queda registrado. Cumplimos la Ley 25.326 de protección de datos personales.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="sec" style="padding-top:10px">
+  <div class="wrap">
+    <div class="note" data-reveal>
+      <div class="av">AJ</div>
+      <div><p>“Hice TusRecetasMed para que atender sea más simple: menos tiempo con papeles y llamadas, más tiempo con tus pacientes. Si algo no te sirve o te falta, escribime y lo mejoramos juntos.”</p>
+      <small>Alejandro Jacquet · Fundador · Colón, Entre Ríos · <a href="mailto:contact@rispy.io" style="color:var(--cara)">contact@rispy.io</a></small></div>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap" data-reveal>
+    <h2 class="title">Empezá a recetar <em>hoy</em>.</h2>
+    <p class="sub">Creá tu cuenta en 2 minutos. Gratis, sin tarjeta.</p>
+    <a href="/medicos#alta" class="btn btn-pri">Crear mi cuenta gratis →</a>
+  </div>
+</section>
+
+<footer class="trm-foot">
+  <div class="wrap">
+    <a href="/" class="brand" style="font-size:16px"><img src="/img/logo.svg" alt="" style="width:24px;height:24px;border-radius:7px"><span>TusRecetas<em>Med</em></span></a>
+    <div>© 2026 TusRecetasMed · Entre Ríos, Argentina</div>
+    <div><a href="/">Pacientes</a> · <a href="/terminos.html">Términos</a> · <a href="/privacidad.html">Privacidad</a> · <a href="mailto:contact@rispy.io">Contacto</a></div>
+  </div>
 </footer>
 
+<script src="/js/trm-ui.js"></script>
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i)};
+  var f=new Intl.NumberFormat('es-AR');
+  function calc(){
+    var t=+$('cT').value,a=+$('cA').value/100,v=+$('cV').value;
+    $('vT').textContent=t;$('vA').textContent=Math.round(a*100)+'%';$('vV').textContent='$'+f.format(v);
+    var r=Math.round(t*4.33*a*(1/3)*v/1000)*1000;
+    $('cR').textContent='$'+f.format(r);
+  }
+  ['cT','cA','cV'].forEach(function(i){$(i).addEventListener('input',calc)});calc();
+})();
+</script>
 </body>
 </html>

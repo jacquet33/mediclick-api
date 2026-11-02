@@ -3,235 +3,240 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#2B241F">
-<meta name="description" content="TusRecetasMed — Encontrá tu médico y reservá turno online. Buscá por especialidad, obra social o ubicación.">
-<title>TusRecetasMed — Turnos médicos online</title>
+<title>TusRecetasMed — Turnos médicos online y recetas digitales</title>
+<meta name="description" content="Encontrá tu médico y reservá turno online en segundos. Buscá por especialidad u obra social. Recibí tu receta digital en el celular.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="TusRecetasMed — Turnos médicos online">
-<meta property="og:description" content="Encontrá tu médico y reservá turno online. Buscá por especialidad, obra social o ubicación.">
+<meta property="og:description" content="Encontrá tu médico y reservá turno online. Sin llamar, sin esperar.">
 <meta property="og:site_name" content="TusRecetasMed">
-<meta name="twitter:card" content="summary">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-:root{--teal:#9A6B3F;--teal-light:#F5ECE1;--bg:#F7F2EA;--surface:#fff;--text:#2B241F;--soft:#5B5047;--muted:#999;--border:#E3DACC;--danger:#EF4444;--success:#10B981;--warning:#F59E0B;--radius:16px}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
-a{color:inherit;text-decoration:none}
-
-/* Nav */
-nav{background:var(--surface);border-bottom:0.5px solid var(--border);position:sticky;top:0;z-index:50}
-.nav-inner{max-width:1100px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
-.logo{font-size:18px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px}
-.logo span{color:var(--teal)}
-.nav-links{display:flex;gap:8px}
-.nav-links a{font-size:13px;font-weight:500;padding:8px 16px;border-radius:8px;transition:.15s}
-.nav-links a:hover{background:var(--teal-light)}
-.nav-links .btn-login{background:var(--teal);color:#fff;border-radius:8px}
-.nav-links .btn-login:hover{opacity:.85}
-
-/* Hero */
-.hero{background:linear-gradient(135deg,#F5ECE1 0%,#F7F2EA 100%);padding:60px 20px 40px}
-.hero-inner{max-width:800px;margin:0 auto;text-align:center}
-.hero h1{font-size:clamp(28px,5vw,44px);font-weight:700;color:var(--text);line-height:1.2;margin-bottom:12px}
-.hero h1 span{color:var(--teal)}
-.hero p{font-size:16px;color:var(--soft);margin-bottom:28px;max-width:500px;margin-inline:auto}
-
-/* Search box */
-.search-box{background:var(--surface);border-radius:16px;padding:6px;display:flex;gap:6px;box-shadow:0 4px 20px rgba(0,0,0,.06);border:0.5px solid var(--border);max-width:700px;margin:0 auto}
-.search-box input,.search-box select{border:none;outline:none;font-family:inherit;font-size:14px;padding:14px 16px;background:var(--bg);border-radius:12px;color:var(--text);flex:1;min-width:0}
-.search-box select{flex:0 0 auto;width:auto;cursor:pointer;-webkit-appearance:none;padding-right:30px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' stroke='%23999' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
-.search-box .btn-search{background:var(--teal);color:#fff;border:none;border-radius:12px;padding:14px 24px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:.15s}
-.search-box .btn-search:hover{opacity:.9}
-@media(max-width:600px){.search-box{flex-direction:column}.search-box select{width:100%}}
-
-/* Tags */
-.tags{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:20px;max-width:700px;margin-inline:auto}
-.tag{font-size:12px;font-weight:500;padding:6px 14px;border-radius:20px;background:var(--surface);border:0.5px solid var(--border);color:var(--soft);cursor:pointer;transition:.15s}
-.tag:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-light)}
-
-/* Results */
-.results{max-width:1100px;margin:0 auto;padding:24px 20px}
-.results-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-.results-header h2{font-size:18px;font-weight:600}
-.results-header span{font-size:13px;color:var(--muted)}
-.results-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
-
-/* Doctor card */
-.doc-card{background:var(--surface);border-radius:var(--radius);padding:20px;border:0.5px solid var(--border);transition:.2s;cursor:pointer}
-.doc-card:hover{border-color:var(--teal);box-shadow:0 4px 16px rgba(154,107,63,.15)}
-.doc-top{display:flex;gap:14px;margin-bottom:14px}
-.doc-avatar{width:52px;height:52px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;flex-shrink:0}
-.doc-name{font-size:16px;font-weight:600;margin-bottom:2px}
-.doc-spec{font-size:13px;color:var(--teal);font-weight:500}
-.doc-license{font-size:11px;color:var(--muted);margin-top:2px}
-.doc-org{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--soft);margin-bottom:6px}
-.doc-loc{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
-.doc-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:12px}
-.doc-tag{font-size:11px;font-weight:500;padding:3px 10px;border-radius:12px;background:var(--teal-light);color:var(--teal)}
-.doc-actions{display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border)}
-.doc-actions .btn{flex:1;padding:10px;font-size:13px;font-weight:600;border:none;border-radius:10px;cursor:pointer;font-family:inherit;transition:.15s}
-.doc-actions .btn-book{background:var(--teal);color:#fff}
-.doc-actions .btn-book:hover{opacity:.85}
-.doc-actions .btn-profile{background:var(--bg);color:var(--soft);border:0.5px solid var(--border)}
-
-/* Features */
-.features{max-width:1100px;margin:40px auto;padding:0 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
-.feat{background:var(--surface);border-radius:var(--radius);padding:24px;border:0.5px solid var(--border);text-align:center}
-.feat-icon{font-size:32px;margin-bottom:12px}
-.feat h3{font-size:15px;font-weight:600;margin-bottom:6px}
-.feat p{font-size:13px;color:var(--soft);line-height:1.5;margin-bottom:10px}
-.feat-link{font-size:13px;font-weight:600;color:var(--teal)}
-.feat:hover{border-color:var(--teal);box-shadow:0 4px 16px rgba(154,107,63,.12)}
-
-/* Footer */
-footer{background:var(--surface);border-top:0.5px solid var(--border);padding:30px 20px;text-align:center;margin-top:40px}
-footer p{font-size:12px;color:var(--muted)}
-
-.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;margin:40px auto}
-@keyframes spin{to{transform:rotate(360deg)}}
-.empty{text-align:center;padding:40px 20px;color:var(--muted)}
-.empty span{font-size:40px;display:block;margin-bottom:12px}
-</style>
+<meta name="theme-color" content="#F7F2EA">
 <link rel="icon" type="image/svg+xml" href="/img/logo.svg">
-<meta name="theme-color" content="#7F8F5E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/trm.css">
+<script src="/js/captcha.js"></script>
+<style>
+/* Buscador */
+.search{margin-top:26px;background:rgba(255,255,255,.88);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:20px;padding:8px;display:flex;gap:8px;box-shadow:0 18px 40px -22px rgba(35,28,23,.35);max-width:620px}
+.search .fld{flex:1;display:flex;align-items:center;gap:10px;background:var(--bg2);border-radius:14px;padding:0 14px;min-width:0}
+.search .fld svg{width:22px;height:22px;flex-shrink:0}
+.search input,.search select{border:0;outline:0;background:transparent;font:inherit;font-size:15px;color:var(--ink);padding:15px 0;width:100%;min-width:0}
+.search select{appearance:none;-webkit-appearance:none;cursor:pointer}
+.search .fld.os{flex:0 0 190px}
+@media(max-width:640px){.search{flex-direction:column}.search .fld.os{flex:1}}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.chip{font-size:13px;font-weight:600;padding:8px 14px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--soft);cursor:pointer;transition:.15s}
+.chip:hover{border-color:var(--cara);color:var(--cara2);transform:translateY(-1px)}
+
+/* Resultados */
+.results-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px;gap:12px}
+.results-head h2{font-family:var(--serif);font-size:28px;font-weight:600;letter-spacing:-.5px}
+.results-head span{font-size:14px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:16px}
+.doc{cursor:pointer}
+.doc .top{display:flex;gap:14px;align-items:center}
+.doc .av{width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,var(--sage),var(--sage2));color:#fff;display:grid;place-items:center;font-weight:800;font-size:19px;flex-shrink:0;box-shadow:0 8px 18px -10px rgba(94,110,68,.8)}
+.doc .nm{font-weight:700;font-size:16.5px}
+.doc .sp{font-size:13.5px;color:var(--cara);font-weight:600}
+.doc .li{font-size:12px;color:var(--muted)}
+.doc .meta{margin-top:14px;display:grid;gap:6px;font-size:13.5px;color:var(--soft)}
+.doc .meta div{display:flex;gap:8px;align-items:center}
+.doc .meta svg{width:18px;height:18px}
+.doc .go{margin-top:16px;display:flex;justify-content:space-between;align-items:center;padding-top:14px;border-top:1px solid var(--line)}
+.doc .fee{font-size:13px;font-weight:700;color:var(--sage2);background:var(--sage-l);padding:4px 10px;border-radius:999px}
+.doc .go .btn{padding:10px 16px;font-size:14px}
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.spinner{width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--cara);border-radius:50%;animation:spin .7s linear infinite;margin:40px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sk{height:190px;border-radius:var(--r);background:linear-gradient(90deg,#EFE7DC 25%,#F7F1E9 50%,#EFE7DC 75%);background-size:200% 100%;animation:sh 1.2s infinite}
+@keyframes sh{to{background-position:-200% 0}}
+
+/* Banda de médicos */
+.docband{display:grid;grid-template-columns:1.2fr .8fr;gap:30px;align-items:center;padding:56px}
+.docband .ics{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.docband .ics div{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:16px;text-align:center;font-size:12.5px;color:rgba(244,237,228,.8)}
+.docband .ics svg{margin:0 auto 8px}
+@media(max-width:800px){.docband{grid-template-columns:1fr;padding:34px 24px}}
+</style>
 </head>
 <body>
 
-<nav>
-<div class="nav-inner">
-  <a href="/" class="logo" aria-label="TusRecetasMed"><img src="/img/logo.svg" width="26" height="26" alt="" style="display:block;border-radius:7px"><b style="font-weight:600;color:var(--text)">TusRecetas<em style="font-style:normal;font-weight:inherit;opacity:1;color:#7F8F5E;-webkit-text-fill-color:#7F8F5E">Med</em></b></a>
-  <div class="nav-links">
-    <a href="/para-medicos.html">Para médicos</a>
-    <a href="/portal.html">Ingresar</a>
-    <a href="/portal.html" class="btn-login">Soy médico</a>
+<nav class="trm-nav">
+  <div class="wrap">
+    <a href="/" class="brand" aria-label="TusRecetasMed"><img src="/img/logo.svg" alt=""><span>TusRecetas<em>Med</em></span></a>
+    <div class="nav-links">
+      <a href="#como" class="hide-m">Cómo funciona</a>
+      <a href="/para-medicos.html" class="hide-m">Para médicos</a>
+      <a href="/portal">Mis turnos</a>
+      <a href="/para-medicos.html" class="btn btn-pri btn-sm">Soy médico</a>
+    </div>
   </div>
-</div>
 </nav>
 
-<section class="hero">
-<div class="hero-inner">
-  <h1>Encontrá tu médico y <span>reservá turno</span> online</h1>
-  <p>Buscá por especialidad, obra social o ubicación. Sin llamar, sin esperar.</p>
-  
-  <div class="search-box">
-    <input id="searchQ" type="text" placeholder="Especialidad, médico o clínica..." oninput="debounceSearch()">
-    <select id="searchIns" onchange="doSearch()">
-      <option value="">Obra social</option>
-      <option>IOSPER</option><option>OSDE</option><option>Swiss Medical</option>
-      <option>Galeno</option><option>Medicus</option><option>PAMI</option>
-      <option>Sancor Salud</option><option>Federada Salud</option><option>IOMA</option>
-      <option>Accord Salud</option><option>Medifé</option><option>Omint</option>
-      <option>Hospital Italiano</option><option>Particular</option>
-    </select>
-    <button class="btn-search" onclick="doSearch()">Buscar</button>
+<header class="hero">
+  <div class="aura" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="wrap">
+    <div>
+      <span class="eyebrow"><span class="dot"></span>Turnos online · 24/7</span>
+      <h1 class="display">Tu turno médico, <em>en segundos</em>. Sin llamar.</h1>
+      <p class="lead">Buscá por especialidad u obra social, elegí día y horario, y listo. Te recordamos el turno por WhatsApp y tu receta te llega al celular.</p>
+      <div class="search" role="search">
+        <label class="fld"><svg><use href="#i-search"/></svg><input id="searchQ" type="text" placeholder="Especialidad, médico o clínica" oninput="debounceSearch()" aria-label="Buscar"></label>
+        <label class="fld os"><svg><use href="#i-card"/></svg>
+          <select id="searchIns" onchange="doSearch()" aria-label="Obra social">
+            <option value="">Obra social</option>
+            <option>IOSPER</option><option>OSDE</option><option>Swiss Medical</option>
+            <option>Galeno</option><option>Medicus</option><option>PAMI</option>
+            <option>Sancor Salud</option><option>Federada Salud</option><option>IOMA</option>
+            <option>Accord Salud</option><option>Medifé</option><option>Omint</option>
+            <option>Hospital Italiano</option><option>Particular</option>
+          </select></label>
+        <button class="btn btn-pri" onclick="doSearch();document.getElementById('results').scrollIntoView({behavior:'smooth'})">Buscar</button>
+      </div>
+      <div class="chips" id="specialtyTags"></div>
+    </div>
+
+    <div style="position:relative" data-reveal aria-hidden="true">
+      <div class="device"><div class="screen"><div class="notch"></div>
+        <div class="scr-head"><small>RESERVÁ TU TURNO</small><b>Dra. Laura Paz</b><span>Clínica médica · OSDE, IOSPER</span></div>
+        <div class="scr-body">
+          <div class="mini-cal"><b>D</b><b>L</b><b>M</b><b>M</b><b>J</b><b>V</b><b>S</b>
+            <i>8</i><i>9</i><i>10</i><i>11</i><i class="on">12</i><i>13</i><i>14</i>
+            <i>15</i><i>16</i><i>17</i><i>18</i><i>19</i><i>20</i><i>21</i></div>
+          <div class="mini-slots"><i>09:00</i><i>09:20</i><i>09:40</i><i class="sel">10:00</i><i>10:20</i><i>10:40</i></div>
+          <div class="mini-btn">Continuar con las 10:00 →</div>
+        </div>
+      </div></div>
+      <div class="toast t1"><svg class="ic sm"><use href="#i-cal"/></svg><div><b>Turno confirmado</b><small>Jueves 12 · 10:00</small></div></div>
+      <div class="toast t2"><svg class="ic sm"><use href="#i-chat"/></svg><div><b>Recordatorio por WhatsApp</b><small>Un día antes</small></div></div>
+    </div>
   </div>
-  
-  <div class="tags" id="specialtyTags"></div>
-</div>
+</header>
+
+<section class="sec" id="results" style="padding-top:30px">
+  <div class="wrap" id="resultsInner"><div class="grid"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div></div>
 </section>
 
-<section class="results" id="results">
-  <div class="spinner" id="loader"></div>
-</section>
-
-<section class="features">
-  <div class="feat" onclick="document.getElementById('searchQ').focus();window.scrollTo({top:0,behavior:'smooth'})" style="cursor:pointer">
-    <div class="feat-icon">📅</div>
-    <h3>Reservá en segundos</h3>
-    <p>Buscá tu médico, elegí día y hora, completá tus datos y listo. Sin llamar por teléfono, disponible 24/7.</p>
-    <a class="feat-link">Buscar médico →</a>
-  </div>
-  <div class="feat" onclick="document.getElementById('results').scrollIntoView({behavior:'smooth'})" style="cursor:pointer">
-    <div class="feat-icon">🔔</div>
-    <h3>Avisame si se libera</h3>
-    <p>¿No hay turno el día que querés? Dejá tu celular y te notificamos apenas se cancele uno. Gratis.</p>
-    <a class="feat-link">Elegí tu médico y anotate →</a>
-  </div>
-  <div class="feat" onclick="window.location='/portal.html'" style="cursor:pointer">
-    <div class="feat-icon">💊</div>
-    <h3>Recetas digitales</h3>
-    <p>Tu médico te envía la receta en PDF al celular. Compartila por WhatsApp, imprimila o guardala en Archivos.</p>
-    <a class="feat-link">Ver mis recetas →</a>
-  </div>
-  <div class="feat" onclick="document.getElementById('searchIns').focus();window.scrollTo({top:0,behavior:'smooth'})" style="cursor:pointer">
-    <div class="feat-icon">🏥</div>
-    <h3>Tu obra social</h3>
-    <p>Filtrá médicos que acepten tu cobertura. IOSPER, OSDE, Swiss Medical, Galeno, PAMI y 80+ obras sociales.</p>
-    <a class="feat-link">Filtrar por obra social →</a>
+<section class="sec" id="como" style="padding-top:20px">
+  <div class="wrap">
+    <div class="sec-head" data-reveal>
+      <span class="kicker">Cómo funciona</span>
+      <h2 class="title">Tres pasos y <em>listo</em></h2>
+    </div>
+    <div class="steps">
+      <div class="step" data-reveal><svg class="ic"><use href="#i-search"/></svg><h3>Buscá tu médico</h3><p>Por especialidad, nombre u obra social. Ves dirección, horarios y si atiende tu cobertura.</p></div>
+      <div class="step" data-reveal><svg class="ic"><use href="#i-cal"/></svg><h3>Elegí día y horario</h3><p>Tocás el día y aparecen los horarios libres. Completás tus datos en un minuto.</p></div>
+      <div class="step" data-reveal><svg class="ic"><use href="#i-chat"/></svg><h3>Te lo recordamos</h3><p>Recibís la confirmación y, si querés, un recordatorio por WhatsApp el día anterior.</p></div>
+    </div>
   </div>
 </section>
 
-<footer>
-  <p>© 2026 TusRecetasMed — Turnos médicos online · Entre Ríos, Argentina</p>
-  <p style="margin-top:8px"><a href="/terminos.html" style="color:var(--teal);font-size:12px">Términos y Condiciones</a> · <a href="/privacidad.html" style="color:var(--teal);font-size:12px">Política de Privacidad</a></p>
+<section class="sec" style="padding-top:10px">
+  <div class="wrap">
+    <div class="bento">
+      <div class="trm-card w2" data-reveal><svg class="ic lg"><use href="#i-clock"/></svg><h3>Reservá a cualquier hora</h3><p>Sin llamar ni esperar que atiendan. Los turnos están disponibles las 24 horas.</p></div>
+      <div class="trm-card w2" data-reveal><svg class="ic lg"><use href="#i-bell"/></svg><h3>Avisame si se libera</h3><p>¿No hay lugar el día que querés? Anotate y te avisamos apenas se libere un turno.</p></div>
+      <div class="trm-card w2" data-reveal><svg class="ic lg"><use href="#i-rx"/></svg><h3>Tu receta en el celular</h3><p>Con QR para la farmacia. La compartís por WhatsApp o la ves desde tu cuenta.</p></div>
+      <div class="trm-card w3" data-reveal><svg class="ic lg"><use href="#i-card"/></svg><h3>Con tu obra social o particular</h3><p>Filtrá médicos que atienden tu cobertura y cargá tu credencial al reservar.</p></div>
+      <div class="trm-card w3" data-reveal><svg class="ic lg"><use href="#i-shield"/></svg><h3>Tus datos, protegidos</h3><p>Conexión cifrada y acceso solo para tu médico. Cumplimos la Ley 25.326 de datos personales.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec dark" style="padding:0">
+  <div class="docband">
+    <div data-reveal>
+      <span class="kicker" style="color:#D9AE7E">¿Sos médico o médica?</span>
+      <h2 class="title" style="color:#fff">Recetas, turnos e historia clínica <em>gratis</em>, para siempre.</h2>
+      <p>Tu página de turnos propia, recetas electrónicas ilimitadas y recordatorios por WhatsApp. Sin tarjeta.</p>
+      <div class="ctas" style="margin-top:22px"><a href="/medicos#alta" class="btn btn-pri">Crear mi cuenta gratis →</a><a href="/para-medicos.html" class="btn btn-sec" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.25)">Conocer más</a></div>
+    </div>
+    <div class="ics" data-reveal>
+      <div><svg class="ic"><use href="#i-rx"/></svg>Recetas con QR</div>
+      <div><svg class="ic"><use href="#i-cal"/></svg>Agenda online</div>
+      <div><svg class="ic"><use href="#i-doc"/></svg>Historia clínica</div>
+      <div><svg class="ic"><use href="#i-chat"/></svg>WhatsApp</div>
+      <div><svg class="ic"><use href="#i-spark"/></svg>Asistente</div>
+      <div><svg class="ic"><use href="#i-phone"/></svg>App móvil</div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" style="padding-top:70px">
+  <div class="wrap">
+    <div class="sec-head" data-reveal><span class="kicker">Preguntas frecuentes</span><h2 class="title">¿Tenés dudas?</h2></div>
+    <div class="faq" data-reveal>
+      <details><summary>¿Tiene costo reservar un turno?</summary><p>No. Reservar por TusRecetasMed es gratis. El valor de la consulta lo define cada profesional.</p></details>
+      <details><summary>¿Cómo cancelo o cambio mi turno?</summary><p>Desde el link de confirmación que recibís al reservar, o desde "Mis turnos" si creaste tu cuenta.</p></details>
+      <details><summary>¿Dónde veo mis recetas?</summary><p>Tu médico te la envía por WhatsApp o email. También la ves en "Mis turnos" → Recetas, con el QR para la farmacia.</p></details>
+      <details><summary>¿Necesito crear una cuenta?</summary><p>No hace falta para reservar. Con una cuenta ves todos tus turnos, recetas y estudios en un solo lugar.</p></details>
+    </div>
+  </div>
+</section>
+
+<footer class="trm-foot">
+  <div class="wrap">
+    <a href="/" class="brand" style="font-size:16px"><img src="/img/logo.svg" alt="" style="width:24px;height:24px;border-radius:7px"><span>TusRecetas<em>Med</em></span></a>
+    <div>© 2026 TusRecetasMed · Entre Ríos, Argentina</div>
+    <div><a href="/para-medicos.html">Para médicos</a> · <a href="/terminos.html">Términos</a> · <a href="/privacidad.html">Privacidad</a> · <a href="mailto:contact@rispy.io">Contacto</a></div>
+  </div>
 </footer>
 
+<script src="/js/trm-ui.js"></script>
 <script>
 const API=window.location.origin;
 let searchTimer;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 async function loadSpecialties(){
   try{
     const specs=await(await fetch(`${API}/api/v1/public/directory/specialties`)).json();
-    const el=document.getElementById('specialtyTags');
-    el.innerHTML=specs.slice(0,8).map(s=>`<div class="tag" onclick="searchBySpec('${s.specialty}')">${s.specialty}</div>`).join('');
+    document.getElementById('specialtyTags').innerHTML=specs.slice(0,8).map(s=>`<button type="button" class="chip" data-s="${esc(s.specialty)}">${esc(s.specialty)}</button>`).join('');
   }catch{}
 }
+document.addEventListener('click',e=>{const c=e.target.closest('.chip[data-s]');if(c){document.getElementById('searchQ').value=c.dataset.s;doSearch();document.getElementById('results').scrollIntoView({behavior:'smooth'})}});
 
 function debounceSearch(){clearTimeout(searchTimer);searchTimer=setTimeout(doSearch,400)}
 
 async function doSearch(){
   const q=document.getElementById('searchQ').value.trim();
   const ins=document.getElementById('searchIns').value;
-  const res=document.getElementById('results');
-  res.innerHTML='<div class="spinner"></div>';
-
+  const res=document.getElementById('resultsInner');
+  res.innerHTML='<div class="grid"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>';
   const params=new URLSearchParams();
   if(q) params.set('q',q);
   if(ins) params.set('insurance',ins);
-
   try{
     const data=await(await fetch(`${API}/api/v1/public/directory/doctors?${params}`)).json();
-    renderResults(data.doctors,data.total);
+    renderResults(data.doctors||[],data.total||0);
   }catch(e){
-    res.innerHTML='<div class="empty"><span>⚠️</span>Error al buscar</div>';
+    res.innerHTML='<div class="empty">No pudimos buscar en este momento. Probá de nuevo.</div>';
   }
-}
-
-function searchBySpec(spec){
-  document.getElementById('searchQ').value=spec;
-  doSearch();
 }
 
 function renderResults(doctors,total){
-  const res=document.getElementById('results');
+  const res=document.getElementById('resultsInner');
   if(!doctors.length){
-    res.innerHTML=`<div class="empty"><span>🔍</span><p>No encontramos médicos con esos filtros.<br>Probá con otra búsqueda.</p></div>`;
+    res.innerHTML=`<div class="empty"><svg class="ic lg" style="margin:0 auto 12px"><use href="#i-search"/></svg>No encontramos profesionales con esos filtros.<br>Probá con otra búsqueda.</div>`;
     return;
   }
   res.innerHTML=`
-    <div class="results-header"><h2>Profesionales disponibles</h2><span>${total} encontrados</span></div>
-    <div class="results-grid">${doctors.map(d=>`
-      <div class="doc-card" onclick="window.location='/reservar/${encodeURIComponent(d.public_slug)}'">
-        <div class="doc-top">
-          <div class="doc-avatar">${(d.name||'').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}</div>
-          <div>
-            <div class="doc-name">Dr/a. ${d.name}</div>
-            <div class="doc-spec">${d.specialty||'Medicina General'}</div>
-            ${d.medical_license?`<div class="doc-license">MP ${d.medical_license}</div>`:''}
-          </div>
+    <div class="results-head"><h2>Profesionales disponibles</h2><span>${total} encontrados</span></div>
+    <div class="grid">${doctors.map(d=>`
+      <a class="trm-card doc" data-reveal href="/reservar/${encodeURIComponent(d.public_slug)}">
+        <div class="top">
+          <div class="av">${esc((d.name||'').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase())}</div>
+          <div><div class="nm">Dr/a. ${esc(d.name)}</div><div class="sp">${esc(d.specialty||'Medicina general')}</div>${d.medical_license?`<div class="li">MP ${esc(d.medical_license)}</div>`:''}</div>
         </div>
-        <div class="doc-org">🏥 ${d.org_name||''}</div>
-        ${d.address?`<div class="doc-loc">📍 ${d.address}${d.city?', '+d.city:''}</div>`:''}
-        ${d.consultation_fee?`<div class="doc-tags"><span class="doc-tag">$${Number(d.consultation_fee).toLocaleString('es-AR')}</span></div>`:''}
-        <div class="doc-actions">
-          <button class="btn btn-book">Reservar turno</button>
+        <div class="meta">
+          ${d.org_name?`<div><svg><use href="#i-doc"/></svg>${esc(d.org_name)}</div>`:''}
+          ${d.address?`<div><svg><use href="#i-card"/></svg>${esc(d.address)}${d.city?', '+esc(d.city):''}</div>`:''}
         </div>
-      </div>
-    `).join('')}</div>`;
+        <div class="go">${d.consultation_fee?`<span class="fee">$${Number(d.consultation_fee).toLocaleString('es-AR')}</span>`:'<span></span>'}<span class="btn btn-pri">Reservar turno</span></div>
+      </a>`).join('')}</div>`;
+  window.trmReveal&&window.trmReveal();
 }
 
-// Init
 loadSpecialties();
 doSearch();
 </script>
