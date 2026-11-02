@@ -162,7 +162,7 @@ export class ActivityService implements OnModuleInit, OnModuleDestroy {
 <ul style="font-size:15px;line-height:1.45;padding-left:20px;margin:0 0 14px">${lista}</ul>
 <p style="font-size:13px;line-height:1.5;background:#FFF6E5;border:1px solid #F1DFC0;border-radius:10px;padding:10px 12px;margin:0 0 18px"><b>Importante:</b> subí una foto <b>clara y legible</b> del frente de tu DNI y de tu credencial de matrícula. No envíes selfies ni fotos borrosas. Solo la usa el equipo de verificación.</p>
 <p style="text-align:center;margin:0 0 18px"><a href="${base}/portal#matricula" style="display:inline-block;background:#9A6B3F;color:#fff;text-decoration:none;font-weight:700;padding:13px 26px;border-radius:12px">Completar mi alta</a></p>
-<p style="font-size:13px;color:#7A6E62;line-height:1.5;margin:0">Mientras tanto ya podés configurar tu agenda y recibir turnos online. ¿Dudas? Respondé este correo o escribinos a contact@rispy.io.</p>
+<p style="font-size:13px;color:#7A6E62;line-height:1.5;margin:0">Mientras tanto ya podés configurar tu agenda y recibir turnos online. ¿Dudas? Respondé este correo o escribinos a soporte@tusrecetasmed.com.</p>
 </td></tr>
 <tr><td style="padding:14px 28px;border-top:1px solid #F0E8DC;font-size:11px;color:#9A8B7A;text-align:center">Recibís este correo porque iniciaste el alta en TusRecetasMed con este email.<br><a href="${baja}" style="color:#9A8B7A">No quiero recibir más estos avisos</a></td></tr>
 </table></td></tr></table></body></html>`;

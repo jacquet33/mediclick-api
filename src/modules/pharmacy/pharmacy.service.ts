@@ -165,7 +165,7 @@ export class PharmacyService {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(dto.email || ''))) throw new BadRequestException('Email inválido');
     const cuit = String(dto.cuit).replace(/\D/g, '');
     const ya = await this.db.queryOne(`SELECT id FROM pharmacies WHERE regexp_replace(COALESCE(cuit,''), '\\D', '', 'g') = $1 AND habilitacion = $2`, [cuit, String(dto.habilitacion).trim()]);
-    if (ya) throw new BadRequestException('Esa farmacia ya está registrada. Si perdiste la clave escribinos a contact@rispy.io');
+    if (ya) throw new BadRequestException('Esa farmacia ya está registrada. Si perdiste la clave escribinos a soporte@tusrecetasmed.com');
     const k = this.nuevaClave();
     const ph = await this.db.queryOne(
       `INSERT INTO pharmacies (name, cuit, habilitacion, pharmacist_name, pharmacist_license, email, phone, address, city, province,
