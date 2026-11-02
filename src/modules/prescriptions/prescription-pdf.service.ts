@@ -102,7 +102,7 @@ export class PrescriptionPdfService {
     rx.items = items;
 
     // 2) Generar QR de verificación
-    const baseUrl = this.config.get('BASE_URL') || 'https://tuconsultorio.rispy.io';
+    const baseUrl = this.config.get('BASE_URL') || 'https://tusrecetasmed.com';
     const verifyUrl = `${baseUrl}/verificar-receta?code=${rx.verification_code}`;
     let qrDataUrl: string | null = null;
     try {
@@ -124,7 +124,7 @@ export class PrescriptionPdfService {
           Title: `Receta - ${rx.patient_first_name} ${rx.patient_last_name}`,
           Author: `Dr. ${rx.doctor_first_name} ${rx.doctor_last_name}`,
           Subject: 'Receta Médica Digital',
-          Creator: 'TuConsultorioOnline by Rispy',
+          Creator: 'TusRecetasMed',
         },
       });
 
@@ -158,9 +158,9 @@ export class PrescriptionPdfService {
       doc.rect(LEFT, y, W * 0.4, 2).fill('#9A6B3F');
       y += 10;
 
-      // Marca TuConsultorioOnline
+      // Marca TusRecetasMed
       doc.fontSize(18).font('Helvetica-Bold').fillColor('#2B241F')
-        .text('TuConsultorioOnline', LEFT, y, { width: W / 2 });
+        .text('TusRecetasMed', LEFT, y, { width: W / 2 });
 
       doc.fontSize(8).font('Helvetica').fillColor('#9A6B3F')
         .text('RECETARIO DIGITAL', LEFT, y + 20, { width: W / 2 });

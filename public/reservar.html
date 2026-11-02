@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#2B241F">
-<title>Reservar turno — TuConsultorioOnline by Rispy</title>
+<title>Reservar turno — TusRecetasMed</title>
 <meta property="og:type" content="website">
-<meta property="og:title" content="Reservar turno — TuConsultorioOnline">
+<meta property="og:title" content="Reservar turno — TusRecetasMed">
 <meta property="og:description" content="Reservá tu turno médico online de forma rápida y segura.">
-<meta property="og:site_name" content="TuConsultorioOnline">
+<meta property="og:site_name" content="TusRecetasMed">
 <meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,700;1,500&display=swap" rel="stylesheet">
@@ -195,6 +195,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--crema);min-height
 body{padding-bottom:96px}
 </style>
 <script src="/js/captcha.js"></script>
+<link rel="icon" type="image/svg+xml" href="/img/logo.svg">
+<meta name="theme-color" content="#7F8F5E">
 </head>
 <body>
 <div class="toast" id="toast"><div class="toast-inner" id="toastMsg"></div></div>
@@ -204,7 +206,7 @@ body{padding-bottom:96px}
 <div class="header" id="headerBlock">
   <div class="brand">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 8v8M8 12h8"/></svg>
-    TuConsultorioOnline <span style="opacity:.6;font-weight:500">by Rispy</span>
+    TusRecetasMed
   </div>
   <div class="doc-card">
     <div class="avatar" id="avatar"></div>
@@ -646,7 +648,7 @@ function renderLocationPicker(data){
   if(data.avatar_url) av.innerHTML=`<img src="${data.avatar_url}" alt="">`;
   else av.textContent = initials;
   document.getElementById('orgInfo').innerHTML = '';
-  document.title = `Turno con Dr/a. ${data.doctor_name} — TuConsultorioOnline`;
+  document.title = `Turno con Dr/a. ${data.doctor_name} — TusRecetasMed`;
 
   // Hide all content after header, show location picker
   const cards = wrap.querySelectorAll('.card, .steps');
@@ -718,7 +720,7 @@ function renderProfile(){
   if(profile.address) info += `<div>📍 ${profile.address}${profile.city?', '+profile.city:''}</div>`;
   if(profile.org_phone) info += `<div>📞 ${profile.org_phone}</div>`;
   document.getElementById('orgInfo').innerHTML = info;
-  document.title = `Turno con Dr/a. ${profile.doctor_name} — TuConsultorioOnline`;
+  document.title = `Turno con Dr/a. ${profile.doctor_name} — TusRecetasMed`;
 }
 
 // ─── Insurance search ────────────────────────────────────
@@ -1045,13 +1047,13 @@ function showConfirmation(data){
   const waNum=telConsultorio?(telConsultorio.startsWith('54')?telConsultorio:'549'+telConsultorio.replace(/^0/,'')):'';
   const estadoTxt=status==='confirmed'?'confirmado':'solicitado';
   const msgConsultorio=`Hola! Soy ${nombre}. Reservé turno con Dr/a. ${profile.doctor_name} para el ${fmt} a las ${hora} hs (${estadoTxt}). Confirmo mi asistencia.`;
-  const msgCompartir=`Turno ${estadoTxt} 📅\n\nPaciente: ${nombre}\nDr/a. ${profile.doctor_name}\n📅 ${fmt}\n⏰ ${hora} hs\n🏥 ${profile.org_name||''}${profile.address?'\n📍 '+profile.address:''}\n\n— TuConsultorioOnline`;
+  const msgCompartir=`Turno ${estadoTxt} 📅\n\nPaciente: ${nombre}\nDr/a. ${profile.doctor_name}\n📅 ${fmt}\n⏰ ${hora} hs\n🏥 ${profile.org_name||''}${profile.address?'\n📍 '+profile.address:''}\n\n— TusRecetasMed`;
 
   // Recordatorio: evento en el calendario del celular (1 día antes lo avisa el propio calendario)
   const ini=selectedDate.replace(/-/g,'')+'T'+hora.replace(':','')+'00';
   const finH=(selectedSlot.end||selectedSlot.start).substring(0,5);
   const fin=selectedDate.replace(/-/g,'')+'T'+finH.replace(':','')+'00';
-  const gcal=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Turno Dr/a. '+profile.doctor_name)}&dates=${ini}/${fin}&ctz=America/Argentina/Buenos_Aires&location=${encodeURIComponent([profile.org_name,profile.address].filter(Boolean).join(', '))}&details=${encodeURIComponent('Reservado en TuConsultorioOnline'+(isParticular&&pagaAca?'. Abonar la consulta en el consultorio.':''))}`;
+  const gcal=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Turno Dr/a. '+profile.doctor_name)}&dates=${ini}/${fin}&ctz=America/Argentina/Buenos_Aires&location=${encodeURIComponent([profile.org_name,profile.address].filter(Boolean).join(', '))}&details=${encodeURIComponent('Reservado en TusRecetasMed'+(isParticular&&pagaAca?'. Abonar la consulta en el consultorio.':''))}`;
 
   document.getElementById('summaryContent').innerHTML+=`
     <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">
@@ -1217,10 +1219,10 @@ async function registerAccount(){
 function descargarIcs(){
   const e=window._ics;if(!e)return;
   const t=x=>x.replace(/[,;\\]/g,m=>'\\'+m);
-  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//TuConsultorioOnline//ES','BEGIN:VEVENT',
-    'UID:'+Date.now()+'@tuconsultorio.rispy.io','DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z',
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//TusRecetasMed//ES','BEGIN:VEVENT',
+    'UID:'+Date.now()+'@tusrecetasmed.com','DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z',
     'DTSTART;TZID=America/Argentina/Buenos_Aires:'+e.ini,'DTEND;TZID=America/Argentina/Buenos_Aires:'+e.fin,
-    'SUMMARY:'+t(e.titulo),'LOCATION:'+t(e.lugar),'DESCRIPTION:'+t(e.nota||'Reservado en TuConsultorioOnline'),
+    'SUMMARY:'+t(e.titulo),'LOCATION:'+t(e.lugar),'DESCRIPTION:'+t(e.nota||'Reservado en TusRecetasMed'),
     'BEGIN:VALARM','TRIGGER:-P1D','ACTION:DISPLAY','DESCRIPTION:'+t(e.titulo)+' mañana','END:VALARM',
     'BEGIN:VALARM','TRIGGER:-PT2H','ACTION:DISPLAY','DESCRIPTION:'+t(e.titulo),'END:VALARM',
     'END:VEVENT','END:VCALENDAR'].join('\r\n');

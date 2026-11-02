@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Farmacias · TuConsultorioOnline by Rispy</title>
+<title>Farmacias · TusRecetasMed</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#F5F1EA;--surface:#FFFDF9;--line:#ECE5D9;--text:#2B241F;--soft:#7A6E62;--muted:#A99D90;--primary:#9A6B3F;--cyan:#C08A55;--deep:#6F4A2A;--ok:#0f6e56;--okbg:#e0f7ed;--bad:#993535;--badbg:#fce8e8;--warn:#85500b;--warnbg:#fff3d9}
@@ -34,20 +34,22 @@ video{width:100%;max-height:280px;border-radius:12px;background:#000;margin-top:
 code{background:#F5ECE1;padding:2px 6px;border-radius:6px;font-size:12px}
 </style>
 <script src="/js/captcha.js"></script>
+<link rel="icon" type="image/svg+xml" href="/img/logo.svg">
+<meta name="theme-color" content="#7F8F5E">
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="brand">TuConsultorioOnline <span>by Rispy · Farmacias</span></div>
+    <div class="brand">TusRecetasMed <span>Farmacias</span></div>
     <div id="phInfo" class="muted"></div>
   </header>
 
   <div class="card" id="cardClave">
     <h2>🔑 Clave de la farmacia</h2>
-    <p class="muted" style="margin-bottom:10px">La entrega TuConsultorioOnline al habilitar la farmacia (escribinos a contact@rispy.io). Queda guardada solo en este equipo.</p>
+    <p class="muted" style="margin-bottom:10px">La entrega TusRecetasMed al habilitar la farmacia (escribinos a contact@rispy.io). Queda guardada solo en este equipo.</p>
     <div style="display:flex;gap:8px"><input id="clave" type="password" placeholder="tco_ph_…" autocomplete="off"><button class="btn" id="btnClave">Ingresar</button></div>
     <p id="errClave" class="err hidden"></p>
-    <p class="muted" style="margin-top:12px">¿Tu farmacia todavía no tiene clave? <a href="#" id="verRegistro" style="color:var(--primary);font-weight:600">Registrala gratis</a>. Cualquier farmacia habilitada del país puede dispensar las recetas de TuConsultorioOnline.</p>
+    <p class="muted" style="margin-top:12px">¿Tu farmacia todavía no tiene clave? <a href="#" id="verRegistro" style="color:var(--primary);font-weight:600">Registrala gratis</a>. Cualquier farmacia habilitada del país puede dispensar las recetas de TusRecetasMed.</p>
   </div>
 
   <div class="card hidden" id="cardRegistro">

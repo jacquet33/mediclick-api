@@ -1,4 +1,4 @@
-// TuConsultorioOnline — firma digital con certificado (Ley 25.506) en el navegador.
+// TusRecetasMed — firma digital con certificado (Ley 25.506) en el navegador.
 // El .p12/.pfx y su contraseña nunca salen de este equipo: al servidor solo va el certificado público
 // y la firma PKCS#7 (CMS) del PDF.
 (function () {

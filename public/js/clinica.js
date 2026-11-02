@@ -1,4 +1,4 @@
-// TuConsultorioOnline — historia clínica, recetas, matrícula y firma (portal web)
+// TusRecetasMed — historia clínica, recetas, matrícula y firma (portal web)
 // Misma estructura y formato de datos que las apps de iOS y Android.
 (function () {
   const H = () => window.HC_DATA || { personales: [], familiares: [], examen: [], revision: [], cie10: [] };

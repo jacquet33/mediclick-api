@@ -272,7 +272,7 @@ const RUTAS_RESERVADAS = new Set([
   'portal', 'medicos', 'para-medicos', 'reservar', 'registro', 'turno', 'cobertura', 'farmacia', 'farmacias',
   'privacidad', 'terminos', 'verificar-receta', 'receta', 'recetas', 'payment-result', 'index', 'health',
   'login', 'ingresar', 'registrarse', 'precios', 'planes', 'ayuda', 'soporte', 'contacto', 'blog', 'favicon',
-  'robots', 'sitemap', 'manifest', 'hospital', 'clinica', 'consultorio', 'tuconsultorio', 'tuconsultorioonline', 'rispy',
+  'robots', 'sitemap', 'manifest', 'hospital', 'clinica', 'consultorio', 'tuconsultorio', 'tuconsultorioonline', 'tusrecetasmed', 'tusrecetas', 'rispy',
 ]);
 
 async function bootstrap() {
@@ -283,7 +283,7 @@ async function bootstrap() {
     .filter(Boolean);
   // Dominios propios: siempre permitidos (el nuevo de Rispy Health y el anterior, mientras dure la migración)
   if (allowedOrigins.length) {
-    for (const o of ['https://tuconsultorio.rispy.io', 'https://medicos.rispy.io', 'https://mediclick.art3d-studio.com.ar']) {
+    for (const o of ['https://tusrecetasmed.com', 'https://medicos.rispy.io', 'https://mediclick.art3d-studio.com.ar']) {
       if (!allowedOrigins.includes(o)) allowedOrigins.push(o);
     }
   }
@@ -343,14 +343,23 @@ async function bootstrap() {
     if (host === 'medicos.rispy.io' && (url === '/' || url.startsWith('/?'))) {
       req.url = '/medicos.html' + url.slice(1);
     }
-    // Link corto del médico: tuconsultorioonline.com/su-nombre → su página de reservas
+    // Link corto del médico: tusrecetasmed.com/su-nombre → su página de reservas
     if ((req.method === 'GET' || req.method === 'HEAD')) {
       const m = url.match(/^\/([a-z0-9][a-z0-9-]{2,59})\/?(\?.*)?$/i);
       if (m && !RUTAS_RESERVADAS.has(m[1].toLowerCase())) req.url = '/reservar.html' + (m[2] || '');
     }
-    if (host === 'mediclick.art3d-studio.com.ar' && (req.method === 'GET' || req.method === 'HEAD') && !url.startsWith('/api/')) {
+    // Dominios anteriores → tusrecetasmed.com (solo páginas: la API sigue respondiendo en todos para las apps viejas).
+    // REDIRECT_OLD_DOMAINS=true se activa recién cuando el dominio nuevo ya tiene certificado.
+    if ((req.method === 'GET' || req.method === 'HEAD') && !url.startsWith('/api/') && !url.startsWith('/.well-known/')) {
+      const nuevo = process.env.PUBLIC_DOMAIN || 'tusrecetasmed.com';
+      const migrar = process.env.REDIRECT_OLD_DOMAINS === 'true';
       const destino = url.replace(/^\/portal\.html/, '/portal');
-      return res.redirect(301, 'https://tuconsultorio.rispy.io' + destino);
+      if (host === 'www.' + nuevo) return res.redirect(301, `https://${nuevo}${destino}`);
+      if (migrar && ['tuconsultorio.rispy.io', 'medicos.rispy.io', 'mediclick.art3d-studio.com.ar'].includes(host)) {
+        const ruta = host === 'medicos.rispy.io' && (url === '/' || url.startsWith('/?')) ? '/medicos' + url.slice(1) : destino;
+        return res.redirect(301, `https://${nuevo}${ruta}`);
+      }
+      if (!migrar && host === 'mediclick.art3d-studio.com.ar') return res.redirect(301, 'https://tuconsultorio.rispy.io' + destino);
     }
     next();
   });
@@ -375,7 +384,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');
-  console.log(`TuConsultorioOnline API v1.0.0 running on port ${port}`);
+  console.log(`TusRecetasMed API v1.0.0 running on port ${port}`);
   console.log(`Health: http://localhost:${port}/api/v1/health`);
 }
 bootstrap();

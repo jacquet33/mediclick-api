@@ -145,18 +145,18 @@ export class ActivityService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async enviarRecordatorio(d: any, step: number) {
-    const base = this.config.get<string>('BASE_URL') || 'https://tuconsultorio.rispy.io';
+    const base = this.config.get<string>('BASE_URL') || 'https://tusrecetasmed.com';
     const nombre = [d.title_prefix || 'Dr./a', d.last_name || d.first_name].filter(Boolean).join(' ');
-    const asunto = step === 1 ? '¡Estás a un paso de usar TuConsultorioOnline!' : step === 2 ? 'Te falta muy poco para emitir recetas' : 'Tu consultorio te espera — completá tu alta';
+    const asunto = step === 1 ? '¡Estás a un paso de usar TusRecetasMed!' : step === 2 ? 'Te falta muy poco para emitir recetas' : 'Tu consultorio te espera — completá tu alta';
     const lista = this.faltantes(d).map((x) => `<li style="margin:6px 0">${esc(x)}</li>`).join('');
     const baja = `${base}/api/v1/public/onboarding/baja?d=${d.id}&t=${this.firma(d.id)}`;
     const html = `<!doctype html><html><body style="margin:0;background:#F5F1EA;font-family:Helvetica,Arial,sans-serif;color:#2B241F">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F1EA;padding:24px 0"><tr><td align="center">
 <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#fff;border-radius:16px;overflow:hidden">
 <tr><td style="background:linear-gradient(135deg,#9A6B3F,#3E7468);background-color:#6F4A2A;padding:28px 24px;text-align:center;color:#fff">
-<div style="font-size:24px;font-weight:800">TuConsultorio<span style="font-weight:500">Online</span></div><div style="font-size:12px;opacity:.85">by Rispy</div></td></tr>
+<div style="font-size:24px;font-weight:800">TusRecetas<span style="font-weight:500;color:#E7D9BE">Med</span></div></td></tr>
 <tr><td style="padding:26px 28px">
-<h1 style="font-size:21px;margin:0 0 6px;color:#3E7468">¡Estás a un paso de usar TuConsultorioOnline!</h1>
+<h1 style="font-size:21px;margin:0 0 6px;color:#3E7468">¡Estás a un paso de usar TusRecetasMed!</h1>
 <p style="font-size:15px;margin:0 0 14px">Hola, ${esc(nombre)}:</p>
 <p style="font-size:15px;line-height:1.55;margin:0 0 12px">Para validar tu perfil profesional en <b>REFEPS</b> (Ministerio de Salud) y habilitarte a <b>emitir recetas electrónicas</b>, nos falta:</p>
 <ul style="font-size:15px;line-height:1.45;padding-left:20px;margin:0 0 14px">${lista}</ul>
@@ -164,7 +164,7 @@ export class ActivityService implements OnModuleInit, OnModuleDestroy {
 <p style="text-align:center;margin:0 0 18px"><a href="${base}/portal#matricula" style="display:inline-block;background:#9A6B3F;color:#fff;text-decoration:none;font-weight:700;padding:13px 26px;border-radius:12px">Completar mi alta</a></p>
 <p style="font-size:13px;color:#7A6E62;line-height:1.5;margin:0">Mientras tanto ya podés configurar tu agenda y recibir turnos online. ¿Dudas? Respondé este correo o escribinos a contact@rispy.io.</p>
 </td></tr>
-<tr><td style="padding:14px 28px;border-top:1px solid #F0E8DC;font-size:11px;color:#9A8B7A;text-align:center">Recibís este correo porque iniciaste el alta en TuConsultorioOnline con este email.<br><a href="${baja}" style="color:#9A8B7A">No quiero recibir más estos avisos</a></td></tr>
+<tr><td style="padding:14px 28px;border-top:1px solid #F0E8DC;font-size:11px;color:#9A8B7A;text-align:center">Recibís este correo porque iniciaste el alta en TusRecetasMed con este email.<br><a href="${baja}" style="color:#9A8B7A">No quiero recibir más estos avisos</a></td></tr>
 </table></td></tr></table></body></html>`;
     const ok = await this.email.send({ to: d.email, subject: asunto, html } as any);
     this.logger.log(`Recordatorio de alta ${step} a médico ${d.id}: ${ok ? 'enviado' : 'no enviado'}`);

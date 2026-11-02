@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#2B241F">
-<title>TuConsultorioOnline by Rispy — Portal</title>
+<title>TusRecetasMed — Portal</title>
 <meta property="og:type" content="website">
-<meta property="og:title" content="TuConsultorioOnline — Portal profesional">
+<meta property="og:title" content="TusRecetasMed — Portal profesional">
 <meta property="og:description" content="Accedé al portal de gestión de tu consultorio. Turnos, pacientes, recetas y más.">
-<meta property="og:site_name" content="TuConsultorioOnline">
+<meta property="og:site_name" content="TusRecetasMed">
 <meta name="twitter:card" content="summary">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -402,6 +402,8 @@ details.rec p{font-size:13px;margin-top:6px;white-space:pre-wrap}
 }
 </style>
 <script src="/js/captcha.js"></script>
+<link rel="icon" type="image/svg+xml" href="/img/logo.svg">
+<meta name="theme-color" content="#7F8F5E">
 </head>
 <body>
 
@@ -409,9 +411,8 @@ details.rec p{font-size:13px;margin-top:6px;white-space:pre-wrap}
 <div id="loginPage" class="login-wrap">
   <div class="login-box">
     <div class="login-header">
-      <h1>TuConsultorio<span style="font-weight:500;opacity:.75">Online</span></h1>
-      <p class="muted" style="font-size:12px;margin-top:-4px;letter-spacing:.04em">by Rispy</p>
-      <p>Ingresá a tu cuenta</p>
+      <img src="/img/logo.svg" width="52" height="52" alt="" style="display:block;margin:0 auto 10px;border-radius:14px"><h1>TusRecetas<span style="font-style:normal;font-weight:inherit;opacity:1;color:#7F8F5E;-webkit-text-fill-color:#7F8F5E">Med</span></h1>
+            <p>Ingresá a tu cuenta</p>
     </div>
     <div class="card">
       <div class="field">
@@ -460,7 +461,7 @@ details.rec p{font-size:13px;margin-top:6px;white-space:pre-wrap}
   <aside class="sidebar" id="sidebar">
     <div class="brand">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
-      TuConsultorioOnline <span style="opacity:.6;font-weight:500">by Rispy</span>
+      TusRecetasMed
     </div>
     <div class="user-info">
       <div class="user-name" id="userName"></div>
@@ -856,7 +857,7 @@ function prepararImport(filas){
     <div class="table-wrap"><table><tr>${head.map((h,i)=>`<th><div style="font-size:11px;color:var(--text-soft);margin-bottom:4px">${esc(h||'Columna '+(i+1))}</div><select data-col="${i}" onchange="_imp.map[${i}]=this.value" style="font:inherit;font-size:12px;padding:4px;border-radius:6px;border:1px solid #E3DACC">${IMP_CAMPOS.map(([k,l])=>`<option value="${k}" ${map[i]===k?'selected':''}>${l}</option>`).join('')}</select></th>`).join('')}</tr>
       ${prev.map(f=>`<tr>${head.map((_,i)=>`<td>${esc(f[i]??'')}</td>`).join('')}</tr>`).join('')}</table></div>
     <p class="muted" style="font-size:12px;margin-top:8px">Mostramos las primeras 5 filas. Ajustá a qué dato corresponde cada columna.</p>
-    <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:12px 0"><input type="checkbox" id="impOk" style="width:18px;height:18px;accent-color:var(--primary);flex-shrink:0"> Confirmo que estoy autorizado/a a trasladar estos datos de mis pacientes a TuConsultorioOnline (Ley 25.326).</label>
+    <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:12px 0"><input type="checkbox" id="impOk" style="width:18px;height:18px;accent-color:var(--primary);flex-shrink:0"> Confirmo que estoy autorizado/a a trasladar estos datos de mis pacientes a TusRecetasMed (Ley 25.326).</label>
     <button class="btn btn-primary" style="max-width:320px" id="impGo" onclick="confirmarImport()">Importar ${_imp.datos.length} pacientes</button>
     <div id="impRes"></div></div>`;
 }
@@ -889,9 +890,9 @@ async function confirmarImport(){
 async function renderCrecimiento(elId){
   const el=document.getElementById(elId);if(!el||userType!=='doctor')return;
   const [m,r]=await Promise.all([apiFetch('/api/v1/metrics/time-saved').catch(()=>null),apiFetch('/api/v1/referrals/me').catch(()=>null)]);
-  const link=r?.codigo?`${location.origin.includes("localhost")?location.origin:"https://tuconsultorio.rispy.io"}/medicos?ref=${r.codigo}`:'';
-  const msg=`Hola! Estoy usando TuConsultorioOnline para turnos, historia clínica y recetas electrónicas. Es gratis para empezar y me ahorra mucho tiempo. Registrate acá: ${link}`;
-  el.innerHTML=`${m?`<div class="card"><div class="card-title">⏱️ Este mes con TuConsultorioOnline</div>
+  const link=r?.codigo?`${location.origin.includes("localhost")?location.origin:"https://tusrecetasmed.com"}/medicos?ref=${r.codigo}`:'';
+  const msg=`Hola! Estoy usando TusRecetasMed para turnos, historia clínica y recetas electrónicas. Es gratis para empezar y me ahorra mucho tiempo. Registrate acá: ${link}`;
+  el.innerHTML=`${m?`<div class="card"><div class="card-title">⏱️ Este mes con TusRecetasMed</div>
       <div class="ahorro"><div><b>${m.minutos_ahorrados>=60?Math.floor(m.minutos_ahorrados/60)+' h '+(m.minutos_ahorrados%60)+' min':m.minutos_ahorrados+' min'}</b><span>ahorrados (estimado)</span></div>
       <div><b>${m.recetas_mes||0}</b><span>recetas${m.seg_promedio?' · '+m.seg_promedio+' s c/u':''}</span></div>
       <div><b>${m.online||0}</b><span>turnos online</span></div>
@@ -913,7 +914,7 @@ async function abrirActividad(){
     const hace=t=>{if(!t)return '—';const m=Math.round((Date.now()-new Date(t))/60000);return m<60?`hace ${m} min`:m<1440?`hace ${Math.round(m/60)} h`:new Date(t).toLocaleDateString('es-AR',{day:'numeric',month:'short'})};
     const max=Math.max(1,...d.porDia.map(x=>x.logins+x.medicos+x.pacientes));
     const falta=m=>[!m.tiene_dni&&'DNI',!m.tiene_foto_dni&&'foto DNI',!m.tiene_matricula&&'matrícula'].filter(Boolean);
-    const msgWa=m=>`Hola ${m.first_name||''}! Te escribo de TuConsultorioOnline. Vi que empezaste el alta y te falta ${falta(m).join(', ')||'confirmar tus datos'} para que podamos validar tu matrícula y puedas emitir recetas. ¿Te ayudo a terminarla? Podés hacerlo acá: https://tuconsultorio.rispy.io/portal#matricula`;
+    const msgWa=m=>`Hola ${m.first_name||''}! Te escribo de TusRecetasMed. Vi que empezaste el alta y te falta ${falta(m).join(', ')||'confirmar tus datos'} para que podamos validar tu matrícula y puedas emitir recetas. ¿Te ayudo a terminarla? Podés hacerlo acá: https://tusrecetasmed.com/portal#matricula`;
     main.innerHTML=`<div class="topbar"><button class="btn btn-sm btn-outline" onclick="abrirMatricula()">← Volver</button><h1>Altas y accesos</h1><button class="btn btn-sm btn-soft" onclick="abrirActividad()">↻</button></div>
       <div class="stats">
         <div class="stat-card primary"><div class="stat-value">${r.medicos}</div><div class="stat-label">Médicos (${r.medicos_7d} esta semana)</div></div>
@@ -933,7 +934,7 @@ async function abrirActividad(){
           <td style="font-size:12px">${m.estado==='verified'?'—':(f.join(', ')||'revisión')}${m.recordatorios?`<br><small class="muted">📧 ${m.recordatorios} recordatorio${m.recordatorios>1?'s':''}</small>`:''}${m.desuscripto?'<br><small class="muted">no quiere emails</small>':''}</td>
           <td style="font-size:12px">${hace(m.created_at)}</td><td style="font-size:12px">${hace(m.last_login_at)}</td>
           <td style="font-size:12px">${m.turnos} turnos · ${m.recetas} recetas</td>
-          <td>${m.estado!=='verified'&&m.phone?`<a class="btn btn-sm wa-btn" style="text-decoration:none" target="_blank" href="${waLink(m.phone,msgWa(m))}">WhatsApp</a>`:''}${m.estado!=='verified'&&m.email?`<a class="btn btn-sm btn-soft" style="text-decoration:none" href="mailto:${esc(m.email)}?subject=${encodeURIComponent('Tu alta en TuConsultorioOnline')}&body=${encodeURIComponent(msgWa(m))}">Email</a>`:''}</td></tr>`}).join('')}</table></div></div>
+          <td>${m.estado!=='verified'&&m.phone?`<a class="btn btn-sm wa-btn" style="text-decoration:none" target="_blank" href="${waLink(m.phone,msgWa(m))}">WhatsApp</a>`:''}${m.estado!=='verified'&&m.email?`<a class="btn btn-sm btn-soft" style="text-decoration:none" href="mailto:${esc(m.email)}?subject=${encodeURIComponent('Tu alta en TusRecetasMed')}&body=${encodeURIComponent(msgWa(m))}">Email</a>`:''}</td></tr>`}).join('')}</table></div></div>
       <div class="card"><div class="card-title">🔐 Accesos recientes</div>
         ${d.eventos.length?`<div class="table-wrap"><table><tr><th>Cuándo</th><th>Qué</th><th>Cuenta</th><th>Detalle</th></tr>${d.eventos.map(x=>{const t=EV_TXT[x.kind]||[x.kind,''];return `<tr><td style="font-size:12px;white-space:nowrap">${new Date(x.created_at).toLocaleString('es-AR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</td><td><span class="badge-sm ${t[1]}">${t[0]}</span></td><td style="font-size:12px">${esc(x.email||'—')}${x.user_type?` <small class="muted">(${esc(x.user_type)})</small>`:''}</td><td style="font-size:12px" class="muted">${esc(x.detail||'')}</td></tr>`}).join('')}</table></div>`:'<p class="muted">Todavía no hay accesos registrados: se empiezan a guardar desde ahora.</p>'}</div>
       <div class="card"><div class="card-title">👤 Últimos pacientes con cuenta</div>
@@ -1487,7 +1488,7 @@ async function loadConfigAgenda(){
         ${asList(exc).length?asList(exc).map(e=>`<div class="appt-row"><div class="who"><strong>${fmtDateLong(String(e.date).slice(0,10))}</strong><small>${esc(e.reason||'Sin atención')}</small></div><button class="btn btn-sm btn-no" onclick="borrarExcepcion('${e.id}')">Quitar</button></div>`).join(''):'<p class="muted">No hay días bloqueados próximos.</p>'}
       </div>
       ${bk?`<div class="card"><div class="card-title">🔗 Página de reservas</div>
-        <p style="font-size:13px">Tus pacientes reservan en <a href="/reservar/${esc(bk.public_slug||bk.slug||'')}" target="_blank" style="color:var(--primary);font-weight:600">tuconsultorio.rispy.io/reservar/${esc(bk.public_slug||bk.slug||'')}</a></p>
+        <p style="font-size:13px">Tus pacientes reservan en <a href="/reservar/${esc(bk.public_slug||bk.slug||'')}" target="_blank" style="color:var(--primary);font-weight:600">tusrecetasmed.com/reservar/${esc(bk.public_slug||bk.slug||'')}</a></p>
         <div class="filters" style="margin-top:10px">
           <label class="muted" for="bkModo">Cuando un paciente reserva</label>
           <select id="bkModo" onchange="guardarModoReserva(this.value)">
@@ -1782,7 +1783,7 @@ async function loadEquipo(){
         </div>
         <p id="stMsg" class="error hidden"></p>
         <button class="btn btn-sm btn-primary" onclick="crearStaff()">Crear acceso</button>
-        <p class="muted" style="margin-top:8px">Entra en tuconsultorio.rispy.io/portal con ese email y contraseña.</p>
+        <p class="muted" style="margin-top:8px">Entra en tusrecetasmed.com/portal con ese email y contraseña.</p>
       </div>`:''}`;
   }catch(e){main.innerHTML=`<div class="card"><p class="error">${esc(e.message)}</p></div>`}
 }
@@ -2518,7 +2519,7 @@ function loadMiPerfil(){
     </div>`;
 }
 async function descargarMisDatos(){
-  try{const d=await apiFetch('/api/v1/me/data-export');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));a.download='mis-datos-tuconsultorio.json';document.body.appendChild(a);a.click();a.remove()}catch(e){alert(e.message)}
+  try{const d=await apiFetch('/api/v1/me/data-export');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}));a.download='mis-datos-tusrecetasmed.json';document.body.appendChild(a);a.click();a.remove()}catch(e){alert(e.message)}
 }
 async function pedirSobreMisDatos(kind){
   const det=prompt(kind==='rectificacion'?'¿Qué dato hay que corregir y cuál es el correcto?':'Contanos qué datos querés que suprimamos:','');
@@ -2583,17 +2584,17 @@ function waLink(phone,msg){
 }
 function waConfirmBtn(phone,patientName,date,time,doctorName,orgName){
   if(!phone)return '';
-  const msg=`Hola ${patientName}! 👋\n\nTu turno está *confirmado*:\n📅 ${date}\n⏰ ${time} hs\n👨‍⚕️ Dr/a. ${doctorName}\n🏥 ${orgName}\n\nTe esperamos!\n— TuConsultorioOnline`;
+  const msg=`Hola ${patientName}! 👋\n\nTu turno está *confirmado*:\n📅 ${date}\n⏰ ${time} hs\n👨‍⚕️ Dr/a. ${doctorName}\n🏥 ${orgName}\n\nTe esperamos!\n— TusRecetasMed`;
   return `<a href="${waLink(phone,msg)}" target="_blank" class="btn btn-sm" style="background:#25D366;color:#fff;border:none;font-size:11px;padding:6px 10px" title="Enviar por WhatsApp">📱 WA</a>`;
 }
 function waReminderBtn(phone,patientName,date,time){
   if(!phone)return '';
-  const msg=`Hola ${patientName}! 👋\n\nTe recordamos que tenés turno:\n📅 ${date}\n⏰ ${time} hs\n\n¿Confirmás asistencia?\n— TuConsultorioOnline`;
+  const msg=`Hola ${patientName}! 👋\n\nTe recordamos que tenés turno:\n📅 ${date}\n⏰ ${time} hs\n\n¿Confirmás asistencia?\n— TusRecetasMed`;
   return `<a href="${waLink(phone,msg)}" target="_blank" class="btn btn-sm" style="background:#25D366;color:#fff;border:none;font-size:11px;padding:6px 10px" title="Recordatorio WA">📱 Recordar</a>`;
 }
 function waSlotReleasedBtn(phone,contactName,date,time,doctorName){
   if(!phone)return '';
-  const msg=`Hola ${contactName}! 👋\n\n¡Se liberó un turno!\n📅 ${date}\n⏰ ${time} hs\n👨‍⚕️ Dr/a. ${doctorName}\n\n¿Querés reservarlo? Respondé este mensaje.\n— TuConsultorioOnline`;
+  const msg=`Hola ${contactName}! 👋\n\n¡Se liberó un turno!\n📅 ${date}\n⏰ ${time} hs\n👨‍⚕️ Dr/a. ${doctorName}\n\n¿Querés reservarlo? Respondé este mensaje.\n— TusRecetasMed`;
   return `<a href="${waLink(phone,msg)}" target="_blank" class="btn btn-sm" style="background:#25D366;color:#fff;border:none;font-size:11px;padding:6px 10px" title="Avisar turno libre">📱 Avisar</a>`;
 }
 

@@ -49,7 +49,7 @@ export class PrescriptionController {
     const to = (email || rx.patient_email || '').trim();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) throw new BadRequestException('Indicá un email válido');
     const buffer = (await this.rxService.signedPdf(id)) || await this.pdfService.generatePdf(orgId, id);
-    const base = process.env.BASE_URL || 'https://tuconsultorio.rispy.io';
+    const base = process.env.BASE_URL || 'https://tusrecetasmed.com';
     const sent = await this.emailService.sendWithAttachment({
       to,
       subject: `Receta — Dr/a. ${rx.doctor_name}`,

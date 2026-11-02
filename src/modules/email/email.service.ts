@@ -65,7 +65,7 @@ export class EmailService {
   // ─── ENVIAR ──────────────────────────────────────────────
 
   async send(options: EmailOptions): Promise<boolean> {
-    const from = this.config.get('SMTP_FROM') || 'TuConsultorioOnline <no-reply@mediclick.app>';
+    const from = this.config.get('SMTP_FROM') || 'TusRecetasMed <no-reply@tusrecetasmed.com>';
 
     if (!this.transporter) {
       this.logger.log(`[EMAIL] To: ${options.to} | Subject: ${options.subject}`);
@@ -92,7 +92,7 @@ export class EmailService {
   // ─── ENVIAR CON ADJUNTOS ─────────────────────────────────
 
   async sendWithAttachment(options: EmailWithAttachmentOptions): Promise<boolean> {
-    const from = this.config.get('SMTP_FROM') || 'TuConsultorioOnline <no-reply@mediclick.app>';
+    const from = this.config.get('SMTP_FROM') || 'TusRecetasMed <no-reply@tusrecetasmed.com>';
 
     if (!this.transporter) {
       this.logger.log(`[EMAIL+ATTACHMENT] To: ${options.to} | Subject: ${options.subject} | Files: ${options.attachments.map(a => a.filename).join(', ')}`);
@@ -126,10 +126,10 @@ export class EmailService {
   async sendWelcome(email: string, name: string): Promise<boolean> {
     return this.send({
       to: email,
-      subject: '¡Bienvenido a TuConsultorioOnline!',
+      subject: '¡Bienvenido a TusRecetasMed!',
       html: this.wrapTemplate(`
         <h2 style="color:#2B241F;margin-bottom:16px;">¡Hola Dr/a. ${name}!</h2>
-        <p>Tu cuenta de TuConsultorioOnline fue creada exitosamente.</p>
+        <p>Tu cuenta de TusRecetasMed fue creada exitosamente.</p>
         <p>Ya tenés todo listo para empezar:</p>
         <ul style="padding-left:20px;">
           <li>📅 Tu agenda Lunes a Viernes de 9 a 18hs ya está configurada</li>
@@ -137,7 +137,7 @@ export class EmailService {
           <li>📱 Descargá la app para gestionar desde tu celular</li>
         </ul>
         <p style="margin-top:24px;">
-          <a href="https://tuconsultorio.rispy.io/para-medicos"
+          <a href="https://tusrecetasmed.com/para-medicos"
              style="background:#9A6B3F;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:600;">
             Ver mi panel
           </a>
@@ -211,13 +211,13 @@ export class EmailService {
   ): Promise<boolean> {
     return this.send({
       to: email,
-      subject: `Pago confirmado — TuConsultorioOnline ${plan}`,
+      subject: `Pago confirmado — TusRecetasMed ${plan}`,
       html: this.wrapTemplate(`
         <h2 style="color:#2B241F;margin-bottom:16px;">¡Pago confirmado!</h2>
         <p>Hola Dr/a. ${name},</p>
         <p>Tu pago fue procesado exitosamente:</p>
         <div style="background:#F7F2EA;border-radius:12px;padding:20px;margin:16px 0;">
-          <p style="margin:4px 0;"><strong>Plan:</strong> TuConsultorioOnline ${plan}</p>
+          <p style="margin:4px 0;"><strong>Plan:</strong> TusRecetasMed ${plan}</p>
           <p style="margin:4px 0;"><strong>Monto:</strong> ${amount}</p>
           <p style="margin:4px 0;"><strong>Estado:</strong> ✅ Aprobado</p>
         </div>
@@ -240,7 +240,7 @@ export class EmailService {
     <!-- Header -->
     <tr>
       <td style="background:#2B241F;padding:24px 32px;">
-        <h1 style="color:#9A6B3F;margin:0;font-size:24px;font-weight:700;">TuConsultorioOnline</h1><p style="margin:4px 0 0;color:#8A7E72;font-size:12px;">by Rispy</p>
+        <h1 style="color:#9A6B3F;margin:0;font-size:24px;font-weight:700;">TusRecetasMed</h1>
       </td>
     </tr>
     <!-- Content -->
@@ -253,9 +253,9 @@ export class EmailService {
     <tr>
       <td style="background:#F7F2EA;padding:16px 32px;text-align:center;">
         <p style="margin:0;color:#999;font-size:12px;">
-          © ${new Date().getFullYear()} TuConsultorioOnline by Rispy ·
-          <a href="https://tuconsultorio.rispy.io/privacidad" style="color:#9A6B3F;">Privacidad</a> ·
-          <a href="https://tuconsultorio.rispy.io/terminos" style="color:#9A6B3F;">Términos</a>
+          © ${new Date().getFullYear()} TusRecetasMed ·
+          <a href="https://tusrecetasmed.com/privacidad" style="color:#9A6B3F;">Privacidad</a> ·
+          <a href="https://tusrecetasmed.com/terminos" style="color:#9A6B3F;">Términos</a>
         </p>
       </td>
     </tr>

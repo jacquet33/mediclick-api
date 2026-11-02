@@ -24,7 +24,7 @@ export class FhirService {
     if (!rx) throw new NotFoundException('Receta no encontrada');
     const items = await this.db.queryMany(
       `SELECT * FROM prescription_items WHERE prescription_id = $1 ORDER BY sort_order, created_at`, [prescriptionId]);
-    const base = this.config.get('BASE_URL') || 'https://tuconsultorio.rispy.io';
+    const base = this.config.get('BASE_URL') || 'https://tusrecetasmed.com';
     const fecha = (d: any) => (d ? new Date(d).toISOString() : undefined);
     const genero = ({ male: 'male', female: 'female', other: 'other' } as any)[rx.p_gender] || 'unknown';
     const patientRef = `urn:uuid:${rx.patient_id}`, practRef = `urn:uuid:${rx.doctor_id}`, orgRef = `urn:uuid:${rx.organization_id}`;

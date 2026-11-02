@@ -36,7 +36,7 @@ export class CentralRepoService implements OnModuleInit, OnModuleDestroy {
        FROM prescriptions rx JOIN doctors d ON d.id = rx.doctor_id WHERE rx.id = $1`, [prescriptionId]);
     if (!rx) return null;
     const items = await this.db.queryMany(`SELECT cuir FROM prescription_items WHERE prescription_id = $1 ORDER BY sort_order, created_at`, [prescriptionId]);
-    const base = this.config.get('BASE_URL') || 'https://tuconsultorio.rispy.io';
+    const base = this.config.get('BASE_URL') || 'https://tusrecetasmed.com';
     return {
       fechaPrescripcion: new Date(rx.issued_at).toISOString(),
       profesional: {

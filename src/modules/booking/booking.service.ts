@@ -920,7 +920,7 @@ export class BookingService {
   }
 
   private async uniqueSlug(base: string): Promise<string> {
-    // El link corto es tuconsultorioonline.com/<slug>: no puede pisar páginas del sitio
+    // El link corto es tusrecetasmed.com/<slug>: no puede pisar páginas del sitio
     const reservadas = ['portal', 'medicos', 'reservar', 'registro', 'turno', 'farmacia', 'privacidad', 'terminos', 'api', 'admin', 'app', 'precios', 'login'];
     if (!base || base.length < 3 || reservadas.includes(base)) base = `dr-${base || 'consultorio'}`;
     let slug = base;
