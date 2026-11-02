@@ -47,6 +47,8 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
     let d = String(raw || '').replace(/\D/g, '');
     if (!d) return null;
     if (d.startsWith('00')) d = d.slice(2);
+    // Otros países (+598 Uruguay, +55 Brasil, +56 Chile, …): viene con código internacional; se usa tal cual (E.164)
+    if (/^\s*(\+|00)/.test(String(raw)) && !d.startsWith('54')) return d.length >= 8 && d.length <= 15 ? d : null;
     if (!d.startsWith('54')) {
       d = d.replace(/^0/, '');
       d = '54' + d;

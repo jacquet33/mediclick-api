@@ -2614,8 +2614,11 @@ function fmtDateLong(d){const dt=new Date(String(d).slice(0,10)+'T12:00:00');ret
 
 // WhatsApp helpers
 function waLink(phone,msg){
-  const clean=(phone||'').replace(/[^0-9]/g,'');
-  const num=clean.startsWith('54')?clean:'54'+clean;
+  const raw=String(phone||'').trim();let clean=raw.replace(/[^0-9]/g,'');
+  if(clean.startsWith('00'))clean=clean.slice(2);
+  let num;
+  if(raw.startsWith('+')&&!clean.startsWith('54')) num=clean;           // otro país: ya viene con su código
+  else{ let n=clean.startsWith('54')?clean.slice(2):clean.replace(/^0/,''); if(n.length===10)n='9'+n; num='54'+n; }
   return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
 }
 function waConfirmBtn(phone,patientName,date,time,doctorName,orgName){

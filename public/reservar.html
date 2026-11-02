@@ -92,6 +92,10 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--crema);min-height
 .wa-rem-edit{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#1D6B3B;padding:0 4px}
 .wa-link{background:none;border:none;color:#128C4A;font-weight:700;text-decoration:underline;cursor:pointer;font:inherit;font-size:13px}
 .wa-rem-form input{background:#fff}
+.tel-row{display:flex;gap:8px}
+.tel-cc{width:auto!important;flex:0 0 auto;padding-left:10px!important;padding-right:26px!important;font-size:15px}
+.tel-hint.ok{color:#15803D;font-weight:600}
+.tel-hint.bad{color:#B45309;font-weight:600}
 .wa-rem-num{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border-radius:12px;padding:10px 12px}
 .wa-rem-num span{font-size:12px;color:#1D6B3B;font-weight:600;width:100%}
 .wa-rem-num b{font-size:20px;letter-spacing:.5px;color:#14532D;flex:1}
@@ -289,11 +293,11 @@ body{padding-bottom:96px}
 
     <div class="field">
       <label>Celular *</label>
-      <div style="display:flex;gap:8px">
-        <input value="+54" style="width:64px;text-align:center;flex-shrink:0" readonly>
-        <input id="phone" type="tel" placeholder="3447 412345" autocomplete="tel" style="flex:1">
+      <div class="tel-row">
+        <select id="phoneCC" class="tel-cc" aria-label="País"></select>
+        <input id="phone" type="tel" inputmode="tel" placeholder="3447 412345" autocomplete="tel-national" style="flex:1">
       </div>
-      <div class="hint">Con código de área, sin 0 ni 15</div>
+      <div class="hint tel-hint" id="phoneHint">Con código de área, sin 0 ni 15</div>
     </div>
 
     <div class="field">
@@ -427,7 +431,8 @@ body{padding-bottom:96px}
     </div>
     <div class="field">
       <label>Celular *</label>
-      <input id="wlPhone" type="tel" placeholder="3447 412345">
+      <div class="tel-row"><select id="wlPhoneCC" class="tel-cc" aria-label="País"></select><input id="wlPhone" type="tel" inputmode="tel" placeholder="3447 412345" autocomplete="tel-national" style="flex:1"></div>
+      <div class="hint tel-hint" id="wlPhoneHint"></div>
     </div>
     <div class="field">
       <label>Email (opcional)</label>
@@ -961,36 +966,106 @@ function goStep(n){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
+// ─── Teléfonos: país + validación de largo ───────────────
+// n = dígitos del número nacional (sin código de país, sin 0 inicial). ej = ejemplo para el placeholder
+const PAISES=[
+  {iso:'AR',f:'🇦🇷',c:'54', n:[10],   ej:'3447 412345', h:'Con código de área, sin 0 ni 15'},
+  {iso:'UY',f:'🇺🇾',c:'598',n:[8],    ej:'99 123 456',  h:'8 dígitos, sin el 0'},
+  {iso:'BR',f:'🇧🇷',c:'55', n:[10,11],ej:'11 91234 5678',h:'DDD + número'},
+  {iso:'CL',f:'🇨🇱',c:'56', n:[9],    ej:'9 1234 5678', h:'9 dígitos'},
+  {iso:'PY',f:'🇵🇾',c:'595',n:[9],    ej:'981 123456',  h:'9 dígitos, sin el 0'},
+  {iso:'BO',f:'🇧🇴',c:'591',n:[8],    ej:'7123 4567',   h:'8 dígitos'},
+  {iso:'PE',f:'🇵🇪',c:'51', n:[9],    ej:'912 345 678', h:'9 dígitos'},
+  {iso:'CO',f:'🇨🇴',c:'57', n:[10],   ej:'301 234 5678',h:'10 dígitos'},
+  {iso:'EC',f:'🇪🇨',c:'593',n:[9],    ej:'99 123 4567', h:'9 dígitos, sin el 0'},
+  {iso:'VE',f:'🇻🇪',c:'58', n:[10],   ej:'412 123 4567',h:'10 dígitos, sin el 0'},
+  {iso:'MX',f:'🇲🇽',c:'52', n:[10],   ej:'55 1234 5678',h:'10 dígitos'},
+  {iso:'US',f:'🇺🇸',c:'1',  n:[10],   ej:'201 555 0123',h:'10 dígitos'},
+  {iso:'ES',f:'🇪🇸',c:'34', n:[9],    ej:'612 34 56 78',h:'9 dígitos'},
+  {iso:'IT',f:'🇮🇹',c:'39', n:[9,10], ej:'312 345 6789',h:'Número móvil'},
+];
+const paisDe=iso=>PAISES.find(p=>p.iso===iso)||PAISES[0];
+/** Dígitos nacionales limpios: sin código de país, sin 0 inicial y, en Argentina, sin 9 ni 15 */
+function telNacional(raw,iso){
+  const p=paisDe(iso);let d=String(raw||'').replace(/\D/g,'');
+  if(d.startsWith('00'))d=d.slice(2);
+  if(String(raw||'').trim().startsWith('+')||d.length>Math.max(...p.n)+1){if(d.startsWith(p.c))d=d.slice(p.c.length)}
+  d=d.replace(/^0+/,'');
+  if(p.iso==='AR'){
+    if(d.length===11&&d.startsWith('9'))d=d.slice(1);
+    const m=d.match(/^(\d{2,4})15(\d{6,8})$/);if(m&&(m[1]+m[2]).length===10)d=m[1]+m[2];
+  }
+  return d;
+}
+function telEstado(raw,iso){
+  const p=paisDe(iso),d=telNacional(raw,iso);
+  if(!d)return{ok:false,msg:p.h};
+  if(p.n.includes(d.length))return{ok:true,msg:'✓ Número válido',d};
+  const min=Math.min(...p.n),max=Math.max(...p.n);
+  return{ok:false,msg:d.length<min?`Faltan ${min-d.length} dígito${min-d.length>1?'s':''} (${p.h.toLowerCase()})`:`Sobran ${d.length-max} dígito${d.length-max>1?'s':''}`,d};
+}
+/** Valor para guardar: +código + número nacional (Argentina queda como +54 + 10 dígitos) */
+function telCompleto(raw,iso){const e=telEstado(raw,iso);return e.ok?'+'+paisDe(iso).c+e.d:null}
+function telLegible(raw,iso){const p=paisDe(iso),d=telNacional(raw,iso);return d?`${p.f} +${p.c} ${d}`:'(sin número)'}
+function montarTel(selId,inpId,hintId,isoIni){
+  const sel=document.getElementById(selId),inp=document.getElementById(inpId),hint=document.getElementById(hintId);
+  if(!sel||!inp)return;
+  sel.innerHTML=PAISES.map(p=>`<option value="${p.iso}">${p.f} +${p.c}</option>`).join('');
+  sel.value=isoIni||'AR';
+  const pintar=(final)=>{
+    const p=paisDe(sel.value);inp.placeholder=p.ej;
+    if(!hint)return;
+    const e=telEstado(inp.value,sel.value);
+    if(!inp.value.trim()){hint.textContent=p.h;hint.className='hint tel-hint';return}
+    // Mientras escribe solo avisa cuando ya es válido o se pasó; al salir del campo, dice cuánto falta
+    hint.textContent=e.ok?e.msg:(final||e.msg.startsWith('Sobran')?e.msg:p.h);
+    hint.className='hint tel-hint '+(e.ok?'ok':(final||e.msg.startsWith('Sobran')?'bad':''));
+  };
+  sel.onchange=()=>{pintar(false);inp.focus()};
+  inp.addEventListener('input',()=>{
+    // Si pegan un número con +código de otro país, se elige ese país solo
+    const v=inp.value.trim();
+    if(v.startsWith('+')){const d=v.replace(/\D/g,'');const p=[...PAISES].sort((a,b)=>b.c.length-a.c.length).find(x=>d.startsWith(x.c));if(p&&p.iso!==sel.value)sel.value=p.iso}
+    pintar(false);
+  });
+  inp.addEventListener('blur',()=>pintar(true));
+  pintar(false);
+}
+(function(){const m=()=>{montarTel('phoneCC','phone','phoneHint');montarTel('wlPhoneCC','wlPhone','wlPhoneHint')};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',m);else m()})();
+
 // ─── Recordatorio por WhatsApp ───────────────────────────
 let _bookingToken='';
-function formatoCel(v){
-  // Se muestra tal como lo escribió el paciente (sin 0 ni 15), para que lo reconozca y lo verifique
-  const d=String(v||'').replace(/[^\d ]/g,'').trim().replace(/^54\s*9?\s*/,'');
-  return d?'+54 '+d:'(sin número)';
+function formatoCel(v,iso){
+  // Se muestra con la bandera y el código del país para que el paciente lo reconozca y lo verifique
+  return telLegible(v,iso||document.getElementById('phoneCC')?.value||'AR');
 }
 function editarCelWa(){
   document.getElementById('waRemForm').classList.remove('hidden');
-  const i=document.getElementById('waRemInput');i.focus();i.select();
-  i.oninput=()=>{document.getElementById('waRemNum').textContent=formatoCel(i.value)};
+  if(!document.getElementById('waRemCC').options.length)montarTel('waRemCC','waRemInput','waRemHint',document.getElementById('phoneCC').value);
+  const i=document.getElementById('waRemInput'),c=document.getElementById('waRemCC');i.focus();i.select();
+  const act=()=>{document.getElementById('waRemNum').textContent=formatoCel(i.value,c.value)};
+  i.addEventListener('input',act);c.addEventListener('change',act);
 }
 async function pedirRecordatorioWa(){
   const btn=document.getElementById('waRemBtn');
   const form=document.getElementById('waRemForm');
-  const crudo=!form.classList.contains('hidden')?document.getElementById('waRemInput').value:document.getElementById('phone').value;
-  const tel=crudo.replace(/\D/g,'').replace(/^0/,'');
-  if(tel.replace(/^54/,'').replace(/^9/,'').length<10){showToast('Revisá el celular: código de área y número, sin 0 ni 15');editarCelWa();return}
+  const editando=!form.classList.contains('hidden');
+  const crudo=editando?document.getElementById('waRemInput').value:document.getElementById('phone').value;
+  const iso=editando?document.getElementById('waRemCC').value:document.getElementById('phoneCC').value;
+  const completo=telCompleto(crudo,iso);
+  if(!completo){showToast('Revisá el celular: '+telEstado(crudo,iso).msg.toLowerCase());editarCelWa();return}
   btn.disabled=true;
   try{
-    const r=await fetch(`${API}/api/v1/public/booking/status/${_bookingToken}/whatsapp-reminder`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:'+54'+tel.replace(/^54/,'')})});
+    const r=await fetch(`${API}/api/v1/public/booking/status/${_bookingToken}/whatsapp-reminder`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:completo})});
     const d=await r.json().catch(()=>({}));
     if(!r.ok) throw new Error(d.message||'No se pudo agendar');
     const dia=new Date(selectedDate+'T12:00:00');dia.setDate(dia.getDate()-1);
     const cuando=dia.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'numeric'});
     const yaLlega=d.confirmacion==='enviada';
     document.getElementById('waRem').innerHTML=`<div class="wa-rem-ok"><strong>✓ Recordatorio agendado</strong>
-      <span>${yaLlega?`Te enviamos un WhatsApp de confirmación al <b>${formatoCel(crudo)}</b>. Si no te llegó en unos minutos, revisá el número.`:`Te escribimos por WhatsApp el ${cuando} al <b>${formatoCel(crudo)}</b>.`}</span>
+      <span>${yaLlega?`Te enviamos un WhatsApp de confirmación al <b>${formatoCel(crudo,iso)}</b>. Si no te llegó en unos minutos, revisá el número.`:`Te escribimos por WhatsApp el ${cuando} al <b>${formatoCel(crudo,iso)}</b>.`}</span>
       ${yaLlega?'':'<span style="font-size:12px;opacity:.8">Verificá que el número sea correcto: es donde te va a llegar el aviso.</span>'}</div>`;
-    document.getElementById('phone').value=String(d.phone||tel).replace(/^\+?54/,'').replace(/^9/,'');
+    document.getElementById('phoneCC').value=iso;document.getElementById('phone').value=telNacional(crudo,iso);
   }catch(e){showToast(e.message,4000);btn.disabled=false}
 }
 
@@ -1007,6 +1082,8 @@ async function submitBooking(){
   const lastName=document.getElementById('lastName').value.trim();
   const phone=document.getElementById('phone').value.trim();
   if(!firstName||!lastName||!phone){showToast('Completá nombre, apellido y celular');return}
+  const phoneOk=telCompleto(phone,document.getElementById('phoneCC').value);
+  if(!phoneOk){const e=telEstado(phone,document.getElementById('phoneCC').value);showToast('Revisá el celular: '+e.msg.toLowerCase(),4000);const h=document.getElementById('phoneHint');h.textContent=e.msg;h.className='hint tel-hint bad';document.getElementById('phone').focus();return}
 
   // Tipo de turno: con cobertura (obra social obligatoria) o particular
   if(!cobertura){showToast('Elegí si el turno es con cobertura o particular');document.querySelector('.cov-opts').scrollIntoView({behavior:'smooth',block:'center'});return}
@@ -1021,7 +1098,7 @@ async function submitBooking(){
   btn.disabled=true;btn.innerHTML='<div class="spinner" style="width:20px;height:20px;margin:0;border-width:2px"></div> Enviando...';
 
   const body={
-    firstName,lastName,phone:'+54'+phone.replace(/\D/g,''),
+    firstName,lastName,phone:phoneOk,
     email:document.getElementById('email')?.value.trim()||undefined,
     dni:document.getElementById('dni')?.value.trim()||undefined,
     dateOfBirth:document.getElementById('dob')?.value||undefined,
@@ -1123,11 +1200,11 @@ function showConfirmation(data){
           <button type="button" class="wa-link" onclick="editarCelWa()">✏️ Corregir</button>
         </div>
         <div class="wa-rem-form hidden" id="waRemForm">
-          <div style="display:flex;gap:8px">
-            <input value="+54" readonly style="width:58px;text-align:center;flex-shrink:0">
-            <input id="waRemInput" type="tel" inputmode="tel" placeholder="3447 412345" value="${esc(document.getElementById('phone').value)}" style="flex:1">
+          <div class="tel-row">
+            <select id="waRemCC" class="tel-cc" aria-label="País"></select>
+            <input id="waRemInput" type="tel" inputmode="tel" value="${esc(document.getElementById('phone').value)}" style="flex:1">
           </div>
-          <div class="hint">Con código de área, sin 0 ni 15</div>
+          <div class="hint tel-hint" id="waRemHint"></div>
         </div>
         <button type="button" class="wa-rem-btn" id="waRemBtn" onclick="pedirRecordatorioWa()">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.5 14.4c-.3-.1-1.8-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-.3-.1-1.3-.5-2.4-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6l.4-.5c.2-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5 2.5 1 3 .8 3.6.7.6-.1 1.8-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.2-.3-.3-.6-.4zM12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2z"/></svg>
@@ -1182,6 +1259,8 @@ async function submitWaitlist(){
   const name=document.getElementById('wlName').value.trim();
   const phone=document.getElementById('wlPhone').value.trim();
   if(!name||!phone){showToast('Completá nombre y celular');return}
+  const wlTel=telCompleto(phone,document.getElementById('wlPhoneCC').value);
+  if(!wlTel){showToast('Revisá el celular: '+telEstado(phone,document.getElementById('wlPhoneCC').value).msg.toLowerCase(),4000);return}
 
   const btn=document.getElementById('btnWaitlist');
   btn.disabled=true;btn.textContent='Enviando...';
@@ -1193,7 +1272,7 @@ async function submitWaitlist(){
   const body={
     firstName:names[0]||name,
     lastName:names.slice(1).join(' ')||'',
-    phone:'+54'+phone.replace(/\D/g,''),
+    phone:wlTel,
     email:document.getElementById('wlEmail').value.trim()||undefined,
     desiredDate:selectedDate,
     preferredStartTime:range?range[0]:undefined,
@@ -1249,7 +1328,7 @@ async function registerAccount(){
         email,password:pw,
         firstName:document.getElementById('firstName').value.trim(),
         lastName:document.getElementById('lastName').value.trim(),
-        phone:'+54'+document.getElementById('phone').value.replace(/\D/g,''),
+        phone:telCompleto(document.getElementById('phone').value,document.getElementById('phoneCC').value)||undefined,
         dni:document.getElementById('dni')?.value.trim()||undefined,
         dateOfBirth:document.getElementById('dob')?.value||undefined,
         insuranceProvider:cobertura==='particular'?'Particular (sin obra social)':(document.getElementById('insurance')?.value.trim()||undefined),
