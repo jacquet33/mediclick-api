@@ -72,13 +72,13 @@ nav{background:var(--surface);border-bottom:0.5px solid var(--arena);position:st
 .how-step p{font-size:13px;color:rgba(255,255,255,.7);line-height:1.5}
 
 /* Pricing */
-.pricing-section{max-width:900px;margin:60px auto;padding:0 20px}
+.pricing-section{max-width:1120px;margin:60px auto;padding:0 20px}
 .pricing-section h2{font-size:28px;font-weight:700;text-align:center;margin-bottom:8px}
 .pricing-section .sub{text-align:center;color:var(--soft);margin-bottom:40px;font-size:15px}
-.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;max-width:1080px;margin:0 auto}
 .plan{background:var(--surface);border-radius:var(--radius);padding:32px;border:0.5px solid var(--arena);position:relative}
 .plan.popular{border:2px solid var(--lavanda)}
-.plan.popular::before{content:'Más elegido';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--lavanda);color:#fff;font-size:11px;font-weight:600;padding:4px 14px;border-radius:20px}
+.plan.popular::before{content:'Para empezar hoy';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--lavanda);color:#fff;font-size:11px;font-weight:600;padding:4px 14px;border-radius:20px}
 .plan h3{font-size:18px;font-weight:700;margin-bottom:4px}
 .plan .price{font-size:32px;font-weight:800;color:var(--lavanda);margin-bottom:4px}
 .plan .price span{font-size:14px;font-weight:500;color:var(--muted)}
@@ -221,51 +221,53 @@ footer a{color:var(--lavanda)}
 
 <section class="pricing-section" id="pricing">
   <h2>Planes simples, sin sorpresas</h2>
-  <p class="sub">Empezá gratis y escalá cuando lo necesites</p>
+  <p class="sub">Recetá y dá turnos gratis, para siempre. Pagás solo si querés más.</p>
   <div class="pricing-grid">
-    <div class="plan">
+    <div class="plan popular plan-free">
       <h3>Gratis</h3>
-      <div class="price">$0 <span>/mes</span></div>
-      <div class="desc">Para arrancar tu consultorio digital</div>
+      <div class="price">$0 <span>para siempre</span></div>
+      <div class="desc">Todo lo que necesitás para atender y recetar. Sin tarjeta.</div>
       <ul>
-        <li>Agenda online con turnos</li>
-        <li>Hasta 50 pacientes</li>
-        <li>Historia clínica básica</li>
-        <li>Página de reservas pública</li>
-        <li>Notificaciones push</li>
+        <li>Recetas electrónicas ilimitadas, con firma y QR</li>
+        <li>Pacientes y turnos ilimitados</li>
+        <li>Tu página de turnos: tusrecetasmed.com/tu-nombre</li>
+        <li>Historia clínica con evoluciones y antecedentes</li>
+        <li>Recordatorios por WhatsApp con un toque</li>
+        <li>App para iPhone y Android</li>
+        <li>Importá tus pacientes desde Excel</li>
       </ul>
-      <a href="/registro.html" class="plan-btn outline">Empezar gratis</a>
+      <a href="/medicos#alta" class="plan-btn primary">Crear mi cuenta gratis</a>
     </div>
-    <div class="plan popular">
+    <div class="plan">
       <h3>Profesional</h3>
-      <div class="price">$9.990 <span>/mes</span></div>
-      <div class="desc">Para el médico que quiere todo</div>
+      <div class="price">$9.000 <span>/mes</span></div>
+      <div class="desc">Incluido sin costo hasta el 31/03/2027</div>
       <ul>
-        <li>Pacientes ilimitados</li>
-        <li>Recetas digitales con firma</li>
-        <li>HC completa (Ley 26.529)</li>
-        <li>Facturación y cobros</li>
-        <li>Multi-consultorio</li>
-        <li>Recordatorios por WhatsApp</li>
+        <li>Todo lo de Gratis</li>
+        <li>Asistente: resumen, dictado e indicaciones</li>
+        <li>Recordatorios automáticos por WhatsApp</li>
+        <li>Estudios y documentos compartidos con el paciente</li>
+        <li>Sala de espera y lista de espera</li>
+        <li>Firma digital con certificado</li>
         <li>Soporte prioritario</li>
       </ul>
-      <a href="/registro.html" class="plan-btn primary">Probar 30 días gratis</a>
+      <a href="/medicos#alta" class="plan-btn outline">Empezar gratis</a>
     </div>
     <div class="plan">
-      <h3>Centro Médico</h3>
-      <div class="price">Consultar</div>
-      <div class="desc">Para clínicas con múltiples profesionales</div>
+      <h3>Consultorio</h3>
+      <div class="price">$19.000 <span>/mes</span></div>
+      <div class="desc">Hasta 5 profesionales · De 6 a 10: $34.000/mes</div>
       <ul>
-        <li>Todo lo de Profesional</li>
-        <li>Médicos ilimitados</li>
-        <li>Roles y permisos avanzados</li>
-        <li>Reportes consolidados</li>
-        <li>Integraciones personalizadas</li>
-        <li>Onboarding dedicado</li>
+        <li>Todo lo de Profesional, para cada médico</li>
+        <li>Secretarías sin costo adicional</li>
+        <li>Agenda de todo el equipo y permisos</li>
+        <li>Facturación y obras sociales</li>
+        <li>Más de 10 profesionales: precio a medida</li>
       </ul>
-      <a href="mailto:contact@rispy.io" class="plan-btn outline">Contactar ventas</a>
+      <a href="mailto:contact@rispy.io?subject=TusRecetasMed%20para%20consultorios" class="plan-btn outline">Hablemos</a>
     </div>
   </div>
+  <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:16px">Precios finales en pesos argentinos, sin permanencia. Emitir recetas nunca va a ser un extra pago.</p>
 </section>
 
 <section class="cta-section">
