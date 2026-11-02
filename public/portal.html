@@ -409,6 +409,8 @@ details.rec p{font-size:13px;margin-top:6px;white-space:pre-wrap}
 .link-pac p{font-size:13px;color:#6B5F55;margin:0 0 12px}
 .link-pac .lp-btns{display:flex;flex-wrap:wrap;gap:8px}
 .link-pac .lp-btns .btn{width:auto;text-decoration:none;display:inline-flex}
+.link-pac .lp-qr-a{display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none;font-size:12px;font-weight:700;color:#5E6E44}
+.link-pac .lp-qr-a:hover .lp-qr{box-shadow:0 8px 20px -10px rgba(35,28,23,.4)}
 .link-pac .lp-qr{width:132px;height:132px;border-radius:14px;border:1px solid #E7DED1;background:#fff;padding:6px;flex-shrink:0}
 @media(max-width:640px){.link-pac{flex-direction:column;align-items:flex-start}.link-pac .lp-qr{width:120px;height:120px}}
 </style>
@@ -914,10 +916,11 @@ async function renderLinkPacientes(elId){
         <button class="btn btn-sm btn-primary" onclick="navigator.clipboard.writeText('${esc(link)}');this.textContent='✓ Copiado';setTimeout(()=>this.textContent='Copiar link',1800)">Copiar link</button>
         <a class="btn btn-sm wa-btn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg)}">Enviar por WhatsApp</a>
         <a class="btn btn-sm btn-outline" target="_blank" rel="noopener" href="${esc(link)}">Ver mi página</a>
-        <a class="btn btn-sm btn-soft" download="turnos-${esc(slug)}.png" href="/api/v1/public/booking/${encodeURIComponent(slug)}/qr">Descargar QR</a>
+        <a class="btn btn-sm btn-soft" target="_blank" rel="noopener" href="/api/v1/public/booking/${encodeURIComponent(slug)}/cartel.pdf">🖨️ Imprimir cartel con QR</a>
+        <a class="btn btn-sm btn-outline" download="turnos-${esc(slug)}.png" href="/api/v1/public/booking/${encodeURIComponent(slug)}/qr">Descargar QR</a>
       </div>
     </div>
-    <img class="lp-qr" src="/api/v1/public/booking/${encodeURIComponent(slug)}/qr" alt="QR de tu link de turnos" loading="lazy">
+    <a href="/api/v1/public/booking/${encodeURIComponent(slug)}/cartel.pdf" target="_blank" rel="noopener" title="Imprimir cartel para el consultorio" class="lp-qr-a"><img class="lp-qr" src="/api/v1/public/booking/${encodeURIComponent(slug)}/qr" alt="QR de tu link de turnos" loading="lazy"><span>🖨️ Imprimir</span></a>
   </div>`;
 }
 

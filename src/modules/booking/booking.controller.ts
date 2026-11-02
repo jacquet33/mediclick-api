@@ -1,3 +1,5 @@
+const PDFDocument = require('pdfkit');
+import { join } from 'path';
 const QRCode = require('qrcode');
 import { Response } from 'express';
 import { ScheduleService } from '../schedules/schedule.service';
@@ -49,6 +51,65 @@ export class PublicBookingController {
     const png: Buffer = await QRCode.toBuffer(`${base}/${p.public_slug}`, { width: 720, margin: 2, color: { dark: '#231C17', light: '#FFFFFF' } });
     res.set({ 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400', 'Content-Disposition': `inline; filename="turnos-${p.public_slug}.png"` });
     res.end(png);
+  }
+
+  /** GET /public/booking/:slug/cartel.pdf — cartel A4 con el QR para imprimir y pegar en el consultorio */
+  @Get(':slug/cartel.pdf')
+  async getCartel(@Param('slug') slug: string, @Res() res: Response) {
+    const p: any = await this.bookingService.getPublicProfile(slug);
+    const base = (process.env.BASE_URL || 'https://tusrecetasmed.com').replace(/\/$/, '');
+    const link = `${base}/${p.public_slug}`;
+    const qr: Buffer = await QRCode.toBuffer(link, { width: 900, margin: 1, errorCorrectionLevel: 'M', color: { dark: '#231C17', light: '#FFFFFF' } });
+    const doc = new PDFDocument({ size: 'A4', margin: 0, info: { Title: `Turnos online — Dr/a. ${p.doctor_name}`, Author: 'TusRecetasMed' } });
+    const chunks: Buffer[] = [];
+    doc.on('data', (c: Buffer) => chunks.push(c));
+    const fin = new Promise<Buffer>((ok) => doc.on('end', () => ok(Buffer.concat(chunks))));
+    const W = 595.28, H = 841.89, cx = W / 2;
+    const tinta = '#231C17', cara = '#9A6B3F', salvia = '#5E6E44', suave = '#6B5F55';
+
+    // Fondo crema y franja superior
+    doc.rect(0, 0, W, H).fill('#FBF7EF');
+    doc.rect(0, 0, W, 150).fill('#2B241F');
+    try { doc.image(join(__dirname, '..', '..', '..', 'public', 'img', 'logo-256.png'), cx - 26, 30, { width: 52 }); } catch { /* sin logo */ }
+    doc.font('Helvetica-Bold').fontSize(20).fillColor('#FFFFFF');
+    const marca1 = 'TusRecetas', marca2 = 'Med';
+    const wMarca = doc.widthOfString(marca1) + doc.widthOfString(marca2);
+    doc.text(marca1, cx - wMarca / 2, 94, { continued: true }).fillColor('#B9C79B').text(marca2);
+
+    // Titular
+    doc.font('Helvetica-Bold').fontSize(34).fillColor(tinta).text('Sacá tu turno online', 0, 190, { width: W, align: 'center' });
+    doc.font('Helvetica').fontSize(15).fillColor(suave).text('Sin llamar, las 24 horas, desde tu celular', 0, 234, { width: W, align: 'center' });
+
+    // Médico
+    const prof = `Dr/a. ${p.doctor_name}`;
+    doc.font('Helvetica-Bold').fontSize(20).fillColor(cara).text(prof, 40, 280, { width: W - 80, align: 'center' });
+    const sub = [p.specialty, p.medical_license ? `MP ${p.medical_license}` : null, p.org_name && p.org_name !== `Dr. ${p.doctor_name}` ? p.org_name : null].filter(Boolean).join('  ·  ');
+    if (sub) doc.font('Helvetica').fontSize(12).fillColor(suave).text(sub, 40, 308, { width: W - 80, align: 'center' });
+
+    // QR en tarjeta blanca
+    const q = 300, qx = cx - q / 2, qy = 345;
+    doc.roundedRect(qx - 22, qy - 22, q + 44, q + 44, 26).lineWidth(1.2).fillAndStroke('#FFFFFF', '#E7DED1');
+    doc.image(qr, qx, qy, { width: q });
+
+    // Link
+    const corto = link.replace(/^https?:\/\//, '');
+    doc.font('Helvetica-Bold').fontSize(19).fillColor(tinta).text(corto, 0, qy + q + 40, { width: W, align: 'center' });
+
+    // Pasos
+    const pasos = ['Abrí la cámara y apuntá al código', 'Elegí el día y el horario', 'Listo: te llega el recordatorio por WhatsApp'];
+    const py = qy + q + 86, colW = (W - 80) / 3;
+    pasos.forEach((t, i) => {
+      const x = 40 + i * colW;
+      doc.circle(x + colW / 2, py + 14, 14).fill(salvia);
+      doc.font('Helvetica-Bold').fontSize(13).fillColor('#FFFFFF').text(String(i + 1), x, py + 7, { width: colW, align: 'center' });
+      doc.font('Helvetica').fontSize(11).fillColor(tinta).text(t, x + 10, py + 36, { width: colW - 20, align: 'center' });
+    });
+
+    doc.font('Helvetica').fontSize(9).fillColor('#9A8B7A').text('tusrecetasmed.com · Turnos, recetas e historia clínica', 0, H - 34, { width: W, align: 'center' });
+    doc.end();
+    const pdf = await fin;
+    res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="cartel-turnos-${p.public_slug}.pdf"`, 'Cache-Control': 'no-store' });
+    res.end(pdf);
   }
 
   /** GET /public/booking/:slug/days — días de la semana con atención y fechas bloqueadas (el resto va en gris) */
