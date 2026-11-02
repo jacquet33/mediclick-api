@@ -1,5 +1,7 @@
+const QRCode = require('qrcode');
+import { Response } from 'express';
 import { ScheduleService } from '../schedules/schedule.service';
-import { UseGuards } from '@nestjs/common';
+import { UseGuards, Res } from '@nestjs/common';
 import { CaptchaGuard } from '../../common/guards/captcha.guard';
 import { Controller, Get, Post, Put, Patch, Body, Param, Query } from '@nestjs/common';
 import { BookingService } from './booking.service';
@@ -37,6 +39,16 @@ export class PublicBookingController {
   @Get(':slug')
   getProfile(@Param('slug') slug: string) {
     return this.bookingService.getPublicProfile(slug);
+  }
+
+  /** GET /public/booking/:slug/qr — QR (PNG) del link de turnos del médico, para imprimir en el consultorio */
+  @Get(':slug/qr')
+  async getQr(@Param('slug') slug: string, @Res() res: Response) {
+    const p: any = await this.bookingService.getPublicProfile(slug);
+    const base = (process.env.BASE_URL || 'https://tusrecetasmed.com').replace(/\/$/, '');
+    const png: Buffer = await QRCode.toBuffer(`${base}/${p.public_slug}`, { width: 720, margin: 2, color: { dark: '#231C17', light: '#FFFFFF' } });
+    res.set({ 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400', 'Content-Disposition': `inline; filename="turnos-${p.public_slug}.png"` });
+    res.end(png);
   }
 
   /** GET /public/booking/:slug/days — días de la semana con atención y fechas bloqueadas (el resto va en gris) */
