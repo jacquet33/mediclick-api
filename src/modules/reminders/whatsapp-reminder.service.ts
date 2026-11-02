@@ -79,11 +79,12 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
     const appt = await this.db.queryOne(
       `UPDATE appointments
           SET whatsapp_reminder = true, whatsapp_reminder_phone = $2,
-              whatsapp_reminder_requested_at = now(), whatsapp_reminder_error = NULL
+              whatsapp_reminder_requested_at = now(), whatsapp_reminder_error = NULL,
+              whatsapp_reminder_changes = COALESCE(whatsapp_reminder_changes, 0) + 1
         WHERE id = $1 AND status NOT IN ('cancelled','completed','no_show')
           AND whatsapp_reminder_sent_at IS NULL
-          -- como mucho unos pocos cambios de número por turno (evita usarlo para mandar mensajes a cualquiera)
-          AND (whatsapp_reminder_requested_at IS NULL OR whatsapp_reminder_requested_at < now() - interval '1 minute')
+          -- el paciente puede corregir su número hasta que se envíe, con un tope de cambios por turno
+          AND COALESCE(whatsapp_reminder_changes, 0) < 5
         RETURNING id, date, start_time`,
       [br.appointment_id, '+' + numero],
     );

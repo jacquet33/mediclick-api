@@ -395,11 +395,11 @@ body{padding-bottom:96px}
     <div id="registerForm">
       <div class="field">
         <label>Email</label>
-        <input id="regEmail" type="email" placeholder="tu@email.com">
+        <input id="regEmail" name="email" type="email" inputmode="email" autocomplete="email" placeholder="tu@email.com">
       </div>
       <div class="field">
         <label>Contraseña</label>
-        <input id="regPassword" type="password" placeholder="Mínimo 6 caracteres">
+        <input id="regPassword" name="new-password" type="password" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
       </div>
       <button class="btn btn-primary mt-8" onclick="registerAccount()">Crear cuenta</button>
     </div>
@@ -1039,6 +1039,12 @@ function formatoCel(v,iso){
   // Se muestra con la bandera y el código del país para que el paciente lo reconozca y lo verifique
   return telLegible(v,iso||document.getElementById('phoneCC')?.value||'AR');
 }
+function reabrirWa(){
+  const box=document.getElementById('waRem');if(!window._waRemHtml)return;
+  box.innerHTML=window._waRemHtml;
+  const b=document.getElementById('waRemBtn');if(b){b.disabled=false;const t=b.querySelector('strong');if(t)t.textContent='Guardar el número correcto'}
+  editarCelWa();
+}
 function editarCelWa(){
   document.getElementById('waRemForm').classList.remove('hidden');
   if(!document.getElementById('waRemCC').options.length)montarTel('waRemCC','waRemInput','waRemHint',document.getElementById('phoneCC').value);
@@ -1047,6 +1053,7 @@ function editarCelWa(){
   i.addEventListener('input',act);c.addEventListener('change',act);
 }
 async function pedirRecordatorioWa(){
+  if(!window._waRemHtml)window._waRemHtml=document.getElementById('waRem').innerHTML;
   const btn=document.getElementById('waRemBtn');
   const form=document.getElementById('waRemForm');
   const editando=!form.classList.contains('hidden');
@@ -1062,9 +1069,11 @@ async function pedirRecordatorioWa(){
     const dia=new Date(selectedDate+'T12:00:00');dia.setDate(dia.getDate()-1);
     const cuando=dia.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'numeric'});
     const yaLlega=d.confirmacion==='enviada';
+    window._waRemHtml=window._waRemHtml||null;
     document.getElementById('waRem').innerHTML=`<div class="wa-rem-ok"><strong>✓ Recordatorio agendado</strong>
       <span>${yaLlega?`Te enviamos un WhatsApp de confirmación al <b>${formatoCel(crudo,iso)}</b>. Si no te llegó en unos minutos, revisá el número.`:`Te escribimos por WhatsApp el ${cuando} al <b>${formatoCel(crudo,iso)}</b>.`}</span>
-      ${yaLlega?'':'<span style="font-size:12px;opacity:.8">Verificá que el número sea correcto: es donde te va a llegar el aviso.</span>'}</div>`;
+      ${yaLlega?'':'<span style="font-size:12px;opacity:.8">Verificá que el número sea correcto: es donde te va a llegar el aviso.</span>'}
+      <button type="button" class="wa-link" style="align-self:flex-start;margin-top:4px" onclick="reabrirWa()">✏️ ¿No es tu número? Cambiarlo</button></div>`;
     document.getElementById('phoneCC').value=iso;document.getElementById('phone').value=telNacional(crudo,iso);
   }catch(e){showToast(e.message,4000);btn.disabled=false}
 }
