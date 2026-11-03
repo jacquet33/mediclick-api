@@ -10,6 +10,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseService } from './database/database.service';
 import { AuthController, AuthSessionController } from './modules/auth/auth.controller';
 import { WhatsappWebhookController } from './modules/whatsapp/whatsapp-webhook.controller';
+import { InboxController } from './modules/notifications/inbox.controller';
 import { WhatsappAccountService } from './modules/reminders/whatsapp-account.service';
 import { WhatsappAccountController } from './modules/reminders/whatsapp-account.controller';
 import { AuthService } from './modules/auth/auth.service';
@@ -158,6 +159,7 @@ class HealthController {
     AuthController,
     AuthSessionController,
     WhatsappWebhookController,
+    InboxController,
     WhatsappAccountController,
     OAuthController,
     OrganizationController,

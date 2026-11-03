@@ -99,6 +99,13 @@ export class PushNotificationService {
   private async sendToUser(
     column: string, userId: string, recipientType: string, payload: PushPayload,
   ): Promise<SendResult> {
+    // Siempre queda en la bandeja (campanita), haya o no celular con push activado
+    if (payload.category !== 'test') {
+      await this.db.query(
+        `INSERT INTO inbox_notifications (recipient_type, recipient_id, title, body, category, data) VALUES ($1,$2,$3,$4,$5,$6)`,
+        [recipientType, userId, payload.title, payload.body, payload.category || null, JSON.stringify(payload.data || {})],
+      ).catch((e) => this.logger.warn(`Bandeja: ${e.message}`));
+    }
     const tokens = await this.db.queryMany(
       `SELECT id, token, platform FROM device_tokens WHERE ${column} = $1 AND is_active = true`,
       [userId],
