@@ -461,7 +461,8 @@ export class BookingService {
 
       // Notificar al médico (push real + DB)
       const pushTitle = status === 'confirmed' ? 'Nuevo turno reservado' : 'Nueva solicitud de turno';
-      const pushBody = `${dto.firstName} ${dto.lastName} — ${dto.requestedDate} ${dto.requestedStartTime}`;
+      const dia = new Date(dto.requestedDate + 'T12:00:00Z').toLocaleDateString('es-AR', { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'UTC' });
+      const pushBody = `${dto.firstName} ${dto.lastName} · ${dia} ${String(dto.requestedStartTime).slice(0, 5)} hs`;
       this.pushService.sendToDoctor(profile.doctor_id, {
         title: pushTitle,
         body: pushBody,
