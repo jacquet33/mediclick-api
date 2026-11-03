@@ -69,7 +69,7 @@ export class VerificationService implements OnModuleInit {
       `SELECT id FROM doctors WHERE regexp_replace(COALESCE(dni,''),'\\D','','g') = $1 AND id <> $2 AND license_status IN ('verified','pending')`,
       [dni, doctorId],
     );
-    if (otro) throw new BadRequestException('Ya hay otra cuenta de médico con ese DNI. Si es tuya, ingresá con esa cuenta o escribinos a soporte@tusrecetasmed.com');
+    if (otro) throw new BadRequestException('Ya hay otra cuenta de médico con ese DNI. Si es tuya, ingresá con esa cuenta o escribinos a support@tusrecetasmed.com');
     if (dto.dniDocument && (!/^data:image\/(jpeg|png|webp);base64,/.test(dto.dniDocument) || dto.dniDocument.length > 2_000_000)) {
       throw new BadRequestException('La foto del DNI no es válida o es muy grande');
     }
@@ -81,7 +81,7 @@ export class VerificationService implements OnModuleInit {
          AND COALESCE(license_type, '') = $3 AND COALESCE(medical_license_province, '') = COALESCE($4, '')`,
       [doctorId, matricula, dto.licenseType, dto.licenseType === 'MP' ? dto.province : null],
     );
-    if (otra) throw new BadRequestException('Esa matrícula ya está verificada en otra cuenta. Escribinos a soporte@tusrecetasmed.com');
+    if (otra) throw new BadRequestException('Esa matrícula ya está verificada en otra cuenta. Escribinos a support@tusrecetasmed.com');
 
     await this.db.query(
       `UPDATE doctors SET dni = $2, medical_license = $3, license_type = $4, medical_license_province = $5,

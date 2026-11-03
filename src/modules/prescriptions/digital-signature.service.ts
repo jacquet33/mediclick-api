@@ -171,7 +171,7 @@ export class DigitalSignatureService {
     const conLugar: Buffer = plainAddPlaceholder({
       pdfBuffer: base,
       reason: 'Receta electrónica — Ley 27.553',
-      contactInfo: 'soporte@tusrecetasmed.com',
+      contactInfo: 'support@tusrecetasmed.com',
       name: cert.subject_cn || 'Médico',
       location: 'Argentina',
       signatureLength: SIGNATURE_LENGTH,

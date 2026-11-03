@@ -56,7 +56,7 @@ export class PrivacyController {
       `INSERT INTO data_requests (requester_type, patient_id, kind, status, response, resolved_at) VALUES ('patient',$1,'acceso','done','Descarga automática desde el portal',NOW())`,
       [pid],
     ).catch(() => undefined);
-    return { generado: new Date(), responsable: 'TusRecetasMed — soporte@tusrecetasmed.com', paciente: paciente[0] || null, turnos, consultas, recetas };
+    return { generado: new Date(), responsable: 'TusRecetasMed — support@tusrecetasmed.com', paciente: paciente[0] || null, turnos, consultas, recetas };
   }
 
   /** Recetas del paciente logueado (para mostrarlas en la farmacia desde el celular) */
