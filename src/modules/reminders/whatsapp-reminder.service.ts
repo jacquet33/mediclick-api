@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit, BadRequestException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DatabaseService } from '../../database/database.service';
+import { WhatsappAccountService, CredWa } from './whatsapp-account.service';
 
 /**
  * Recordatorio por WhatsApp un día antes del turno.
@@ -26,7 +27,7 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   private running = false;
 
-  constructor(private db: DatabaseService, private config: ConfigService) {}
+  constructor(private db: DatabaseService, private config: ConfigService, private cuentas: WhatsappAccountService) {}
 
   onModuleInit() {
     // Revisa cada 10 minutos; el envío es idempotente (se marca antes de enviar)
@@ -101,8 +102,11 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
     // Mensaje de confirmación inmediato: el paciente comprueba que su número quedó bien cargado.
     // Usa la plantilla WHATSAPP_TEMPLATE_CONFIRM (aprobada en Meta). Sin WhatsApp Business configurado no se envía nada.
     let confirmacion: 'enviada' | 'error' | 'no_configurado' = 'no_configurado';
-    const plantilla = this.config.get<string>('WHATSAPP_TEMPLATE_CONFIRM');
-    if (this.habilitado && plantilla) {
+    const medico = await this.db.queryOne(
+      `SELECT od.doctor_id FROM appointments a JOIN organization_doctors od ON od.id = a.org_doctor_id WHERE a.id = $1`, [appt.id]);
+    const cred = await this.cuentas.credenciales(medico?.doctor_id);
+    const plantilla = cred ? 'confirmacion_turno' : this.config.get<string>('WHATSAPP_TEMPLATE_CONFIRM');
+    if ((cred || this.habilitado) && plantilla) {
       const t = await this.db.queryOne(
         `SELECT p.first_name, d.first_name || ' ' || d.last_name AS doctor_name,
                 to_char(a.date, 'DD/MM') AS fecha, to_char(a.start_time, 'HH24:MI') AS hora
@@ -110,14 +114,14 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
            JOIN organization_doctors od ON od.id = a.org_doctor_id JOIN doctors d ON d.id = od.doctor_id
           WHERE a.id = $1`, [appt.id]);
       try {
-        await this.enviarPlantilla(numero, [t?.first_name || 'paciente', t?.doctor_name || '', t?.fecha || '', t?.hora || ''], plantilla);
+        await this.enviarPlantilla(numero, [t?.first_name || 'paciente', t?.doctor_name || '', t?.fecha || '', t?.hora || ''], plantilla, cred);
         confirmacion = 'enviada';
       } catch (e: any) {
         confirmacion = 'error';
         this.logger.warn(`Confirmación WhatsApp ${appt.id}: ${e.message}`);
       }
     }
-    return { ok: true, phone: nuevo, appointmentId: appt.id, confirmacion, automatico: this.habilitado };
+    return { ok: true, phone: nuevo, appointmentId: appt.id, confirmacion, automatico: !!cred || this.habilitado };
   }
 
   /** Envía los recordatorios cuyo turno empieza dentro de las próximas 24 h (hora de Argentina) */
@@ -125,13 +129,15 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
     if (this.running) return { enviados: 0, errores: 0 };
     this.running = true;
     try {
-      if (!this.habilitado) return { enviados: 0, errores: 0 };
       const pendientes = await this.db.queryMany(
         `UPDATE appointments a SET whatsapp_reminder_sent_at = now(), whatsapp_reminder_channel = 'auto'
           WHERE a.id IN (
             SELECT id FROM appointments
              WHERE whatsapp_reminder AND whatsapp_reminder_sent_at IS NULL
                AND status IN ('confirmed','pending','pending_approval')
+               -- Solo si hay por dónde enviarlo: el WhatsApp Business del médico o el número central de la plataforma
+               AND ($1::boolean OR EXISTS (SELECT 1 FROM organization_doctors od2 JOIN doctor_whatsapp_accounts w ON w.doctor_id = od2.doctor_id
+                                             WHERE od2.id = appointments.org_doctor_id))
                -- Lo pidió el paciente desde la confirmación (whatsapp_reminder_requested_at) o el médico tiene modo automático
                AND (whatsapp_reminder_requested_at IS NOT NULL
                     OR EXISTS (SELECT 1 FROM organization_doctors od JOIN doctor_reminder_settings rs ON rs.doctor_id = od.doctor_id
@@ -140,11 +146,12 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
                AND (date + start_time) AT TIME ZONE 'America/Argentina/Buenos_Aires' <= now() + interval '24 hours'
              LIMIT 50 FOR UPDATE SKIP LOCKED)
           RETURNING a.id`,
+        [this.habilitado],
       );
       let enviados = 0, errores = 0;
       for (const { id } of pendientes) {
         const t = await this.db.queryOne(
-          `SELECT a.whatsapp_reminder_phone AS phone, a.start_time,
+          `SELECT a.whatsapp_reminder_phone AS phone, a.start_time, d.id AS doctor_id,
                   p.first_name, d.first_name || ' ' || d.last_name AS doctor_name,
                   COALESCE(NULLIF(o.address,''), o.name) AS lugar
              FROM appointments a
@@ -156,9 +163,10 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
           [id],
         );
         try {
+          const cred = await this.cuentas.credenciales(t.doctor_id);
           const wamid = await this.enviarPlantilla(String(t.phone).replace(/\D/g, ''), [
             t.first_name || 'paciente', t.doctor_name, String(t.start_time).substring(0, 5), t.lugar || 'el consultorio',
-          ]);
+          ], cred ? 'recordatorio_turno' : undefined, cred);
           if (wamid) await this.db.query(`UPDATE appointments SET whatsapp_reminder_wamid = $2, whatsapp_reminder_status = 'sent' WHERE id = $1`, [id, wamid]);
           enviados++;
         } catch (e: any) {
@@ -186,12 +194,13 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
        RETURNING whatsapp_reminder_mode, whatsapp_reminder_all`,
       [doctorId],
     );
-    return { modo: r.whatsapp_reminder_mode, todos: r.whatsapp_reminder_all, automaticoDisponible: this.habilitado };
+    const propio = !!(await this.cuentas.credenciales(doctorId));
+    return { modo: r.whatsapp_reminder_mode, todos: r.whatsapp_reminder_all, automaticoDisponible: this.habilitado || propio, whatsappPropio: propio };
   }
 
   async setModo(doctorId: string, modo?: string, todos?: boolean) {
     if (modo && !['manual', 'auto'].includes(modo)) throw new BadRequestException('Modo inválido');
-    if (modo === 'auto' && !this.habilitado) throw new BadRequestException('El envío automático necesita WhatsApp Business conectado. Mientras tanto usá el modo manual.');
+    if (modo === 'auto' && !this.habilitado && !(await this.cuentas.credenciales(doctorId))) throw new BadRequestException('Para el envío automático conectá tu WhatsApp Business. Mientras tanto usá el modo manual.');
     await this.db.query(
       `INSERT INTO doctor_reminder_settings (doctor_id, whatsapp_reminder_mode, whatsapp_reminder_all) VALUES ($1, COALESCE($2,'manual'), COALESCE($3,true))
        ON CONFLICT (doctor_id) DO UPDATE SET whatsapp_reminder_mode = COALESCE($2, doctor_reminder_settings.whatsapp_reminder_mode),
@@ -238,18 +247,21 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
     return r;
   }
 
-  private async enviarPlantilla(to: string, vars: string[], plantilla?: string) {
-    const url = `https://graph.facebook.com/v21.0/${this.config.get('WHATSAPP_PHONE_NUMBER_ID')}/messages`;
+  /** Envía una plantilla. Con `cred` sale desde el WhatsApp Business del médico; si no, desde el número central */
+  private async enviarPlantilla(to: string, vars: string[], plantilla?: string, cred?: CredWa | null) {
+    const phoneId = cred?.phoneNumberId || this.config.get('WHATSAPP_PHONE_NUMBER_ID');
+    const token = cred?.token || this.config.get('WHATSAPP_TOKEN');
+    const url = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
     const r = await fetch(url, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${this.config.get('WHATSAPP_TOKEN')}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         messaging_product: 'whatsapp',
         to,
         type: 'template',
         template: {
           name: plantilla || this.config.get('WHATSAPP_TEMPLATE') || 'recordatorio_turno',
-          language: { code: this.config.get('WHATSAPP_TEMPLATE_LANG') || 'es_AR' },
+          language: { code: cred ? 'es_AR' : (this.config.get('WHATSAPP_TEMPLATE_LANG') || 'es_AR') },
           components: [{ type: 'body', parameters: vars.map(text => ({ type: 'text', text: String(text).slice(0, 200) })) }],
         },
       }),

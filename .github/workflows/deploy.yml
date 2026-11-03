@@ -86,6 +86,9 @@ jobs:
                   # Webhook de WhatsApp: token que inventás vos (igual en Meta) y la clave secreta de la app de Meta
                   WHATSAPP_VERIFY_TOKEN: "${{ secrets.WHATSAPP_VERIFY_TOKEN }}"
                   META_APP_SECRET: "${{ secrets.META_APP_SECRET }}"
+                  # WhatsApp propio de cada médico (registro integrado de Meta): ID de la app y Configuration ID
+                  META_APP_ID: "${{ vars.META_APP_ID }}"
+                  META_ES_CONFIG_ID: "${{ vars.META_ES_CONFIG_ID }}"
                   # Correo saliente (bienvenida, recetas por email, recordatorio de alta incompleta). Vacío = no se envían
                   SMTP_HOST: "${{ secrets.SMTP_HOST }}"
                   SMTP_PORT: "${{ secrets.SMTP_PORT }}"

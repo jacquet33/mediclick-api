@@ -10,6 +10,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseService } from './database/database.service';
 import { AuthController, AuthSessionController } from './modules/auth/auth.controller';
 import { WhatsappWebhookController } from './modules/whatsapp/whatsapp-webhook.controller';
+import { WhatsappAccountService } from './modules/reminders/whatsapp-account.service';
+import { WhatsappAccountController } from './modules/reminders/whatsapp-account.controller';
 import { AuthService } from './modules/auth/auth.service';
 import { OAuthController } from './modules/auth/oauth.controller';
 import { OAuthService } from './modules/auth/oauth.service';
@@ -156,6 +158,7 @@ class HealthController {
     AuthController,
     AuthSessionController,
     WhatsappWebhookController,
+    WhatsappAccountController,
     OAuthController,
     OrganizationController,
     InvitationController,
@@ -217,6 +220,7 @@ class HealthController {
     MedicalRecordPdfService,
     ChatService,
     ScheduleService,
+    WhatsappAccountService,
     BookingService,
     HubService,
     GenericRestAdapter,
@@ -310,15 +314,15 @@ async function bootstrap() {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com/gsi/client', 'https://challenges.cloudflare.com'],
+          scriptSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com/gsi/client', 'https://challenges.cloudflare.com', 'https://connect.facebook.net'],
           // Las páginas públicas usan onclick="..." en los botones: Helmet los bloquea por defecto
           // (script-src-attr 'none') y el login del portal no hacía nada.
           scriptSrcAttr: ["'unsafe-inline'"],
           styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://accounts.google.com/gsi/style'],
           fontSrc: ["'self'", 'https://fonts.gstatic.com'],
           imgSrc: ["'self'", 'data:', 'https:'],
-          connectSrc: ["'self'", 'https://accounts.google.com/gsi/', 'https://challenges.cloudflare.com'],
-          frameSrc: ["'self'", 'https://accounts.google.com/gsi/', 'https://challenges.cloudflare.com'],
+          connectSrc: ["'self'", 'https://accounts.google.com/gsi/', 'https://challenges.cloudflare.com', 'https://*.facebook.com', 'https://connect.facebook.net'],
+          frameSrc: ["'self'", 'https://accounts.google.com/gsi/', 'https://challenges.cloudflare.com', 'https://*.facebook.com'],
         },
       },
       // Login con Google (popup): con COOP "same-origin" la ventana de Google no puede devolver

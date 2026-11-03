@@ -413,6 +413,7 @@ details.rec p{font-size:13px;margin-top:6px;white-space:pre-wrap}
 .link-pac .lp-qr-a:hover .lp-qr{box-shadow:0 8px 20px -10px rgba(35,28,23,.4)}
 .link-pac .lp-qr{width:132px;height:132px;border-radius:14px;border:1px solid #E7DED1;background:#fff;padding:6px;flex-shrink:0}
 @media(max-width:640px){.link-pac{flex-direction:column;align-items:flex-start}.link-pac .lp-qr{width:120px;height:120px}}
+.wa-ok{background:#ECFDF3;border:1px solid #BBE5C8;border-radius:12px;padding:12px 14px;font-size:14px;color:#14532D}
 </style>
 <script src="/js/captcha.js"></script>
 <link rel="icon" type="image/svg+xml" href="/img/logo.svg">
@@ -897,6 +898,66 @@ async function confirmarImport(){
       <button class="btn btn-sm btn-primary" style="margin-top:8px" onclick="navigateTo('pacientes')">Ver pacientes</button></div>`;
     b.textContent='Importado';
   }catch(e){b.disabled=false;b.textContent='Reintentar';alert(e.message)}
+}
+
+// ─── WhatsApp Business propio del médico (registro integrado de Meta) ───
+async function renderWaCuenta(){
+  const el=document.getElementById('cfgWaBody');if(!el)return;
+  let st=null;try{st=await apiFetch('/api/v1/whatsapp/account')}catch(e){el.innerHTML=`<p class="error">${esc(e.message)}</p>`;return}
+  if(st.conectado){
+    const pl=st.plantillas||{};const ok=Object.values(pl).every(v=>/APPROVED|EXISTE|PENDING/.test(String(v)));
+    el.innerHTML=`<div class="wa-ok"><div><b>✓ Conectado</b> · ${esc(st.numero||'')}${st.nombre?' · '+esc(st.nombre):''}</div>
+      <p class="muted" style="font-size:13px;margin:6px 0 10px">Las confirmaciones y los recordatorios a tus pacientes salen desde este número. Seguís usando tu WhatsApp como siempre.</p>
+      ${ok?'':'<p class="muted" style="font-size:12px;color:#B45309">Meta todavía está revisando los mensajes. Puede tardar unas horas.</p>'}
+      <button class="btn btn-sm btn-outline" onclick="desconectarWa()">Desconectar</button></div>`;
+    return;
+  }
+  if(!st.disponible){
+    el.innerHTML=`<p class="muted" style="font-size:13px">Muy pronto vas a poder conectar tu WhatsApp Business para que los recordatorios salgan solos desde tu número. Mientras tanto, los enviás con un toque desde el Dashboard.</p>`;
+    return;
+  }
+  el.innerHTML=`<p class="muted" style="font-size:13px;margin-bottom:12px">Conectá tu WhatsApp Business y los recordatorios y confirmaciones les llegan a tus pacientes <b>desde tu número</b>, sin que tengas que hacer nada. Podés seguir usando la app en tu celular.</p>
+    <div class="flex" style="flex-wrap:wrap;gap:8px"><button class="btn btn-sm wa-btn" onclick="conectarWa(true)">Conectar mi WhatsApp Business</button>
+    <button class="btn btn-sm btn-outline" onclick="conectarWa(false)">Usar un número nuevo</button></div>
+    <p class="muted" style="font-size:11px;margin-top:8px">Se abre una ventana de Meta donde elegís tu número. Meta te cobra cada mensaje en tu propia cuenta de WhatsApp Business.</p>
+    <p id="waConMsg" class="muted" style="font-size:12px;margin-top:6px"></p>`;
+  window._waCfg={appId:st.appId,configId:st.configId};
+}
+function cargarFbSdk(appId){
+  if(window.FB)return Promise.resolve();
+  return new Promise((ok,mal)=>{
+    window.fbAsyncInit=()=>{FB.init({appId,autoLogAppEvents:true,xfbml:false,version:'v21.0'});ok()};
+    const s=document.createElement('script');s.src='https://connect.facebook.net/es_LA/sdk.js';s.async=true;s.defer=true;s.crossOrigin='anonymous';s.onerror=()=>mal(new Error('No se pudo cargar Meta'));document.head.appendChild(s);
+  });
+}
+async function conectarWa(coexistencia){
+  const m=document.getElementById('waConMsg');const cfg=window._waCfg||{};
+  try{
+    m.textContent='Abriendo Meta…';
+    await cargarFbSdk(cfg.appId);
+    let sesion={};
+    const onMsg=(ev)=>{
+      if(!/facebook\.com$/.test(new URL(ev.origin).hostname))return;
+      try{const d=typeof ev.data==='string'?JSON.parse(ev.data):ev.data;if(d?.type==='WA_EMBEDDED_SIGNUP'){if(d.event==='FINISH'||d.event==='FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING'||d.event==='FINISH_ONLY_WABA')sesion=d.data||{};else if(d.event==='CANCEL')m.textContent='Conexión cancelada.'}}catch{}
+    };
+    window.addEventListener('message',onMsg);
+    FB.login(async(resp)=>{
+      window.removeEventListener('message',onMsg);
+      const code=resp?.authResponse?.code;
+      if(!code){m.textContent='No se completó la conexión.';return}
+      m.textContent='Guardando…';
+      try{
+        await new Promise(r=>setTimeout(r,800)); // el aviso con el número llega justo antes o después
+        await apiFetch('/api/v1/whatsapp/account',{method:'POST',body:{code,wabaId:sesion.waba_id,phoneNumberId:sesion.phone_number_id}});
+        renderWaCuenta();
+      }catch(e){m.textContent=e.message;m.style.color='var(--danger)'}
+    },{config_id:cfg.configId,response_type:'code',override_default_response_type:true,
+       extras:Object.assign({setup:{},sessionInfoVersion:'3'},coexistencia?{featureType:'whatsapp_business_app_onboarding'}:{})});
+  }catch(e){m.textContent=e.message;m.style.color='var(--danger)'}
+}
+async function desconectarWa(){
+  if(!confirm('¿Desconectar tu WhatsApp Business? Los recordatorios vuelven a enviarse a mano desde el Dashboard.'))return;
+  try{await apiFetch('/api/v1/whatsapp/account',{method:'DELETE'});renderWaCuenta()}catch(e){alert(e.message)}
 }
 
 // ─── Link de turnos para pacientes (lo más importante para compartir) ───
@@ -1931,6 +1992,8 @@ async function loadConfig(){
           <p class="muted" style="font-size:12px;margin-top:6px">El link de alta sirve para que tus pacientes completen sus datos (DNI, obra social, contacto) antes de la primera consulta.</p>`:''}
       </div>
 
+      ${userType==='doctor'?`<div class="card" id="cfgWa"><div class="card-title">💬 Tu WhatsApp Business</div><div id="cfgWaBody"><div class="spinner" style="margin:10px auto"></div></div></div>`:''}
+
       <div class="card" id="cfgRec">
         <div class="card-title">🔔 Recordatorios por WhatsApp (1 día antes)</div>
         <div class="cfg-opts">
@@ -1950,6 +2013,7 @@ async function loadConfig(){
       try{await apiFetch('/api/v1/reminders/whatsapp/config',{method:'PUT',body:{modo,todos}});m.textContent='✅ Guardado';m.style.color='var(--success)'}catch(e){m.textContent=e.message;m.style.color='var(--danger)'}};
     document.querySelectorAll('#cfgRec input').forEach(i=>i.onchange=guardarRec);
     if(!waCfg) document.getElementById('cfgRec')?.remove();
+    if(userType==='doctor') renderWaCuenta();
   }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
 }
 
