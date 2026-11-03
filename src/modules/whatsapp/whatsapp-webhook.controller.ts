@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { Public } from '../../common/guards/auth.guard';
+import { SkipThrottle } from '@nestjs/throttler';
 import { DatabaseService } from '../../database/database.service';
 
 /**
@@ -14,6 +15,7 @@ import { DatabaseService } from '../../database/database.service';
  *   así Meta reintenta si algo falla.
  */
 @Public()
+@SkipThrottle() // Meta manda muchos eventos seguidos desde pocas IPs; la firma protege el endpoint
 @Controller('api/v1/webhooks/whatsapp')
 export class WhatsappWebhookController {
   private readonly logger = new Logger('WhatsappWebhook');
