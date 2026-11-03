@@ -9,6 +9,7 @@ import { Module, Controller, Get, NestModule, MiddlewareConsumer } from '@nestjs
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseService } from './database/database.service';
 import { AuthController, AuthSessionController } from './modules/auth/auth.controller';
+import { WhatsappWebhookController } from './modules/whatsapp/whatsapp-webhook.controller';
 import { AuthService } from './modules/auth/auth.service';
 import { OAuthController } from './modules/auth/oauth.controller';
 import { OAuthService } from './modules/auth/oauth.service';
@@ -154,6 +155,7 @@ class HealthController {
     HealthController,
     AuthController,
     AuthSessionController,
+    WhatsappWebhookController,
     OAuthController,
     OrganizationController,
     InvitationController,
@@ -372,7 +374,8 @@ async function bootstrap() {
   // req.body todavía no existía y la conversión nunca corría (las apps mandan snake_case
   // y los DTO rechazaban esos campos, o se guardaban vacíos).
   // Los webhooks de terceros (Mercado Pago, Apple, Google) se dejan tal cual llegan.
-  app.use(json({ limit: '10mb' }));
+  // rawBody: necesario para validar la firma de los webhooks de Meta (X-Hub-Signature-256)
+  app.use(json({ limit: '10mb', verify: (req: any, _res: any, buf: Buffer) => { if (String(req.originalUrl || '').includes('/webhooks/')) req.rawBody = buf; } }));
   app.use((req: any, _res: any, next: any) => {
     if (req.body && typeof req.body === 'object' && !String(req.originalUrl || req.url).includes('/webhooks/')) {
       req.body = snakeToCamel(req.body);

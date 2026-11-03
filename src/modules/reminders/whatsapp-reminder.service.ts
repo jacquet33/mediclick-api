@@ -156,9 +156,10 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
           [id],
         );
         try {
-          await this.enviarPlantilla(String(t.phone).replace(/\D/g, ''), [
+          const wamid = await this.enviarPlantilla(String(t.phone).replace(/\D/g, ''), [
             t.first_name || 'paciente', t.doctor_name, String(t.start_time).substring(0, 5), t.lugar || 'el consultorio',
           ]);
+          if (wamid) await this.db.query(`UPDATE appointments SET whatsapp_reminder_wamid = $2, whatsapp_reminder_status = 'sent' WHERE id = $1`, [id, wamid]);
           enviados++;
         } catch (e: any) {
           errores++;
@@ -258,5 +259,7 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
       const body = await r.text().catch(() => '');
       throw new Error(`Meta ${r.status}: ${body.slice(0, 300)}`);
     }
+    const j: any = await r.json().catch(() => ({}));
+    return (j?.messages?.[0]?.id as string) || null;
   }
 }

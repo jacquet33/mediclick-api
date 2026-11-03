@@ -83,6 +83,9 @@ jobs:
                   WHATSAPP_PHONE_NUMBER_ID: "${{ vars.WHATSAPP_PHONE_NUMBER_ID }}"
                   WHATSAPP_TEMPLATE: "${{ vars.WHATSAPP_TEMPLATE }}"
                   WHATSAPP_TEMPLATE_CONFIRM: "${{ vars.WHATSAPP_TEMPLATE_CONFIRM }}"
+                  # Webhook de WhatsApp: token que inventás vos (igual en Meta) y la clave secreta de la app de Meta
+                  WHATSAPP_VERIFY_TOKEN: "${{ secrets.WHATSAPP_VERIFY_TOKEN }}"
+                  META_APP_SECRET: "${{ secrets.META_APP_SECRET }}"
                   # Correo saliente (bienvenida, recetas por email, recordatorio de alta incompleta). Vacío = no se envían
                   SMTP_HOST: "${{ secrets.SMTP_HOST }}"
                   SMTP_PORT: "${{ secrets.SMTP_PORT }}"
