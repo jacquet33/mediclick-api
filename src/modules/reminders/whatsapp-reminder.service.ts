@@ -109,12 +109,12 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
     if ((cred || this.habilitado) && plantilla) {
       const t = await this.db.queryOne(
         `SELECT p.first_name, d.first_name || ' ' || d.last_name AS doctor_name,
-                to_char(a.date, 'DD/MM') AS fecha, to_char(a.start_time, 'HH24:MI') AS hora
+                to_char(a.date, 'DD/MM') AS fecha, extract(dow from a.date)::int AS dow, to_char(a.start_time, 'HH24:MI') AS hora
            FROM appointments a JOIN patients p ON p.id = a.patient_id
            JOIN organization_doctors od ON od.id = a.org_doctor_id JOIN doctors d ON d.id = od.doctor_id
           WHERE a.id = $1`, [appt.id]);
       try {
-        await this.enviarPlantilla(numero, [t?.first_name || 'paciente', t?.doctor_name || '', t?.fecha || '', t?.hora || ''], plantilla, cred);
+        await this.enviarPlantilla(numero, [t?.first_name || 'paciente', t?.doctor_name || '', t?.fecha ? `${['domingo','lunes','martes','miércoles','jueves','viernes','sábado'][t.dow] || ''} ${t.fecha}`.trim() : '', t?.hora || ''], plantilla, cred);
         confirmacion = 'enviada';
       } catch (e: any) {
         confirmacion = 'error';
