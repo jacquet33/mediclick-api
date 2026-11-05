@@ -81,8 +81,8 @@ jobs:
                   # Recordatorio por WhatsApp (API de WhatsApp Cloud de Meta). Vacíos = no se envía
                   WHATSAPP_TOKEN: "${{ secrets.WHATSAPP_TOKEN }}"
                   WHATSAPP_PHONE_NUMBER_ID: "${{ vars.WHATSAPP_PHONE_NUMBER_ID }}"
-                  WHATSAPP_TEMPLATE: "${{ vars.WHATSAPP_TEMPLATE }}"
-                  WHATSAPP_TEMPLATE_CONFIRM: "${{ vars.WHATSAPP_TEMPLATE_CONFIRM }}"
+                  WHATSAPP_TEMPLATE: "${{ vars.WHATSAPP_TEMPLATE || 'recordatorio_turno' }}"
+                  WHATSAPP_TEMPLATE_CONFIRM: "${{ vars.WHATSAPP_TEMPLATE_CONFIRM || 'confirmacion_turno' }}"
                   # Webhook de WhatsApp: token que inventás vos (igual en Meta) y la clave secreta de la app de Meta
                   WHATSAPP_VERIFY_TOKEN: "${{ secrets.WHATSAPP_VERIFY_TOKEN }}"
                   META_APP_SECRET: "${{ secrets.META_APP_SECRET }}"
