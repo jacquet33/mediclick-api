@@ -941,16 +941,20 @@ async function conectarWa(coexistencia){
       try{const d=typeof ev.data==='string'?JSON.parse(ev.data):ev.data;if(d?.type==='WA_EMBEDDED_SIGNUP'){if(d.event==='FINISH'||d.event==='FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING'||d.event==='FINISH_ONLY_WABA')sesion=d.data||{};else if(d.event==='CANCEL')m.textContent='Conexión cancelada.'}}catch{}
     };
     window.addEventListener('message',onMsg);
-    FB.login(async(resp)=>{
-      window.removeEventListener('message',onMsg);
-      const code=resp?.authResponse?.code;
-      if(!code){m.textContent='No se completó la conexión.';return}
+    // El SDK de Facebook exige una función común (no async) como callback
+    const guardar=async(code)=>{
       m.textContent='Guardando…';
       try{
         await new Promise(r=>setTimeout(r,800)); // el aviso con el número llega justo antes o después
         await apiFetch('/api/v1/whatsapp/account',{method:'POST',body:{code,wabaId:sesion.waba_id,phoneNumberId:sesion.phone_number_id}});
         renderWaCuenta();
       }catch(e){m.textContent=e.message;m.style.color='var(--danger)'}
+    };
+    FB.login(function(resp){
+      window.removeEventListener('message',onMsg);
+      const code=resp&&resp.authResponse&&resp.authResponse.code;
+      if(!code){m.textContent='No se completó la conexión.';return}
+      guardar(code);
     },{config_id:cfg.configId,response_type:'code',override_default_response_type:true,
        extras:Object.assign({setup:{},sessionInfoVersion:'3'},coexistencia?{featureType:'whatsapp_business_app_onboarding'}:{})});
   }catch(e){m.textContent=e.message;m.style.color='var(--danger)'}
