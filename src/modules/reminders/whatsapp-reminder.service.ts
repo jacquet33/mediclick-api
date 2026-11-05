@@ -285,7 +285,21 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
       // Celulares argentinos: Meta a veces registra el número sin el 9 (54 + característica + número).
       // Si responde "no está en la lista permitida" (131030) o "número inválido" (131026), se reintenta sin el 9.
       if (/^549\d{10}$/.test(to) && /131030|131026|not in allowed list/i.test(String(e?.message))) {
-        return this.enviarPlantillaA('54' + to.slice(3), vars, plantilla, cred);
+        // Variantes: sin el 9, y con el "15" después de la característica (2, 3 o 4 dígitos)
+        const nac = to.slice(3);
+        const variantes = ['54' + nac, ...[4, 3, 2].map((n) => '54' + nac.slice(0, n) + '15' + nac.slice(n))];
+        let ultimo = e;
+        for (const [i, v] of variantes.entries()) {
+          try {
+            const id = await this.enviarPlantillaA(v, vars, plantilla, cred);
+            this.logger.log(`WhatsApp enviado con la variante ${i + 1} del número argentino`);
+            return id;
+          } catch (e2: any) {
+            ultimo = e2;
+            if (!/131030|131026|not in allowed list/i.test(String(e2?.message))) throw e2;
+          }
+        }
+        throw ultimo;
       }
       throw e;
     }
