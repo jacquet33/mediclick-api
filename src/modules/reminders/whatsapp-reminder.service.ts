@@ -299,8 +299,25 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
     });
     if (!r.ok) {
       const body = await r.text().catch(() => '');
+      // Número central de prueba: si la plantilla todavía no está aprobada (132001), se manda la de ejemplo de Meta
+      if (!cred && plantilla !== 'hello_world' && /"code":\s*13200[01]/.test(body)) {
+        this.logger.warn(`Plantilla ${plantilla} sin aprobar en el número central; se envía hello_world`);
+        return this.enviarHelloWorld(to, phoneId, token);
+      }
       throw new Error(`Meta ${r.status}: ${body.slice(0, 300)}`);
     }
+    const j: any = await r.json().catch(() => ({}));
+    return (j?.messages?.[0]?.id as string) || null;
+  }
+
+  private async enviarHelloWorld(to: string, phoneId: string, token: string) {
+    const r = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messaging_product: 'whatsapp', to, type: 'template', template: { name: 'hello_world', language: { code: 'en_US' } } }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!r.ok) throw new Error(`Meta ${r.status}: ${(await r.text().catch(() => '')).slice(0, 300)}`);
     const j: any = await r.json().catch(() => ({}));
     return (j?.messages?.[0]?.id as string) || null;
   }
