@@ -36,8 +36,11 @@ export class WhatsappAccountService {
   async estado(doctorId: string) {
     const r = await this.db.queryOne(
       `SELECT display_phone, verified_name, connected_at, templates FROM doctor_whatsapp_accounts WHERE doctor_id = $1`, [doctorId]);
+    const d = await this.db.queryOne(`SELECT phone FROM doctors WHERE id = $1`, [doctorId]);
     return {
       disponible: this.disponible,
+      telefonoMedico: d?.phone || null,
+      central: !!this.config.get('WHATSAPP_TOKEN'),
       appId: this.config.get('META_APP_ID') || null,
       configId: this.config.get('META_ES_CONFIG_ID') || null,
       conectado: !!r,

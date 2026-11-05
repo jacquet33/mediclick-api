@@ -94,6 +94,40 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
     return '54' + resto;
   }
 
+  /**
+   * Mensaje de prueba: el médico manda la confirmación de ejemplo a un celular suyo (no al número conectado)
+   * para comprobar que su WhatsApp quedó bien conectado. Devuelve el motivo en criollo si falla.
+   */
+  async prueba(doctorId: string, phone: string) {
+    const numero = WhatsappReminderService.normalizarCelular(phone);
+    if (!numero) throw new BadRequestException('Revisá el número: código de área y número, sin 0 ni 15');
+    const cred = await this.cuentas.credenciales(doctorId);
+    if (!cred && !this.habilitado) throw new BadRequestException('Primero conectá tu WhatsApp Business');
+    const cuenta = await this.db.queryOne(`SELECT display_phone FROM doctor_whatsapp_accounts WHERE doctor_id = $1`, [doctorId]);
+    const propio = String(cuenta?.display_phone || '').replace(/\D/g, '');
+    if (propio && (propio === numero || propio === '54' + numero.slice(3))) {
+      throw new BadRequestException('Ese es el número conectado: WhatsApp no deja que un número se escriba a sí mismo. Probá con otro celular (por ejemplo, tu personal o el de alguien de tu equipo).');
+    }
+    const d = await this.db.queryOne(`SELECT first_name, last_name FROM doctors WHERE id = $1`, [doctorId]);
+    const plantilla = cred ? 'confirmacion_turno' : this.config.get<string>('WHATSAPP_TEMPLATE_CONFIRM');
+    try {
+      await this.enviarPlantilla(numero, ['(prueba)', [d?.first_name, d?.last_name].filter(Boolean).join(' ') || 'tu médico', 'lunes 10/11', '10:00'], plantilla, cred);
+    } catch (e: any) {
+      const m = String(e?.message || '');
+      this.logger.warn(`Prueba de WhatsApp del médico ${doctorId}: ${m.replace(/\d{6,}/g, '#').slice(0, 200)}`);
+      const motivo =
+        /131030|allowed list/i.test(m) ? 'Ese celular no está autorizado. Con el número de prueba de Meta solo se puede escribir a los números de la lista de destinatarios permitidos.' :
+        /131026/.test(m) ? 'Meta no pudo entregar el mensaje: revisá que ese celular tenga WhatsApp y esté bien escrito.' :
+        /13200[01]/.test(m) ? 'Meta todavía está revisando el mensaje de confirmación. Probá de nuevo en un rato.' :
+        /"code":\s*190|OAuth|token/i.test(m) ? 'La conexión con Meta venció. Desconectá tu WhatsApp y volvé a conectarlo.' :
+        /131042|payment/i.test(m) ? 'Tu cuenta de WhatsApp Business no tiene un medio de pago cargado en Meta.' :
+        /133010|not registered/i.test(m) ? 'El número conectado todavía no terminó de registrarse en Meta. Esperá unos minutos y probá de nuevo.' :
+        'Meta rechazó el mensaje. Escribinos a support@tusrecetasmed.com y lo revisamos.';
+      throw new BadRequestException(motivo);
+    }
+    return { ok: true, a: '+' + numero, desde: cuenta?.display_phone || 'número de prueba' };
+  }
+
   /** El paciente pide el recordatorio desde la pantalla de confirmación (con el token de su reserva) */
   async solicitar(token: string, phone: string) {
     const numero = WhatsappReminderService.normalizarCelular(phone);
