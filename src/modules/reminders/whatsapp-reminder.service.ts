@@ -60,6 +60,8 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
     const dbg = await g(`debug_token?input_token=${encodeURIComponent(token)}`).catch(() => null);
     const wabas: string[] = (dbg?.j?.data?.granular_scopes || [])
       .filter((x: any) => /whatsapp_business/.test(x.scope)).flatMap((x: any) => x.target_ids || []);
+    const wabaConf = this.config.get<string>('WHATSAPP_WABA_ID');
+    if (wabaConf) wabas.unshift(wabaConf);
     for (const w of [...new Set(wabas)]) {
       const nums = await g(`${w}/phone_numbers?fields=id,display_phone_number`).catch(() => null);
       const id = nums?.j?.data?.[0]?.id;

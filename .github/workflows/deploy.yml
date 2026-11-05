@@ -82,6 +82,7 @@ jobs:
                   WHATSAPP_TOKEN: "${{ secrets.WHATSAPP_TOKEN }}"
                   WHATSAPP_PHONE_NUMBER_ID: "${{ vars.WHATSAPP_PHONE_NUMBER_ID }}"
                   WHATSAPP_TEMPLATE: "${{ vars.WHATSAPP_TEMPLATE || 'recordatorio_turno' }}"
+                  WHATSAPP_WABA_ID: "${{ vars.WHATSAPP_WABA_ID || '2295563197967052' }}"
                   WHATSAPP_TEMPLATE_CONFIRM: "${{ vars.WHATSAPP_TEMPLATE_CONFIRM || 'confirmacion_turno' }}"
                   # Webhook de WhatsApp: token que inventás vos (igual en Meta) y la clave secreta de la app de Meta
                   WHATSAPP_VERIFY_TOKEN: "${{ secrets.WHATSAPP_VERIFY_TOKEN }}"
