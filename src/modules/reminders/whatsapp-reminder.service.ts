@@ -278,7 +278,20 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Envía una plantilla. Con `cred` sale desde el WhatsApp Business del médico; si no, desde el número central */
-  private async enviarPlantilla(to: string, vars: string[], plantilla?: string, cred?: CredWa | null) {
+  private async enviarPlantilla(to: string, vars: string[], plantilla?: string, cred?: CredWa | null): Promise<string | null> {
+    try {
+      return await this.enviarPlantillaA(to, vars, plantilla, cred);
+    } catch (e: any) {
+      // Celulares argentinos: Meta a veces registra el número sin el 9 (54 + característica + número).
+      // Si responde "no está en la lista permitida" (131030) o "número inválido" (131026), se reintenta sin el 9.
+      if (/^549\d{10}$/.test(to) && /131030|131026|not in allowed list/i.test(String(e?.message))) {
+        return this.enviarPlantillaA('54' + to.slice(3), vars, plantilla, cred);
+      }
+      throw e;
+    }
+  }
+
+  private async enviarPlantillaA(to: string, vars: string[], plantilla?: string, cred?: CredWa | null) {
     const phoneId = cred?.phoneNumberId || await this.phoneIdCentral();
     const token = cred?.token || this.config.get('WHATSAPP_TOKEN');
     const url = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
