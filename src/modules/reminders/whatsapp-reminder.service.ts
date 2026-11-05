@@ -40,7 +40,35 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
   }
 
   get habilitado(): boolean {
-    return !!(this.config.get('WHATSAPP_TOKEN') && this.config.get('WHATSAPP_PHONE_NUMBER_ID'));
+    return !!this.config.get('WHATSAPP_TOKEN');
+  }
+
+  /**
+   * ID del número central. Si el configurado no corresponde al token (por ejemplo, quedó el de una cuenta vieja),
+   * se busca a partir del token: debug_token → cuentas de WhatsApp autorizadas → primer número.
+   */
+  private phoneIdCentralCache: string | null = null;
+  private async phoneIdCentral(): Promise<string> {
+    if (this.phoneIdCentralCache) return this.phoneIdCentralCache;
+    const token = this.config.get<string>('WHATSAPP_TOKEN') || '';
+    const g = async (path: string) => {
+      const r = await fetch(`https://graph.facebook.com/v21.0/${path}${path.includes('?') ? '&' : '?'}access_token=${encodeURIComponent(token)}`, { signal: AbortSignal.timeout(10_000) });
+      return { ok: r.ok, j: await r.json().catch(() => ({})) as any };
+    };
+    const conf = this.config.get<string>('WHATSAPP_PHONE_NUMBER_ID');
+    if (conf && (await g(`${conf}?fields=id`).catch(() => ({ ok: false } as any))).ok) return (this.phoneIdCentralCache = conf);
+    const dbg = await g(`debug_token?input_token=${encodeURIComponent(token)}`).catch(() => null);
+    const wabas: string[] = (dbg?.j?.data?.granular_scopes || [])
+      .filter((x: any) => /whatsapp_business/.test(x.scope)).flatMap((x: any) => x.target_ids || []);
+    for (const w of [...new Set(wabas)]) {
+      const nums = await g(`${w}/phone_numbers?fields=id,display_phone_number`).catch(() => null);
+      const id = nums?.j?.data?.[0]?.id;
+      if (id) {
+        this.logger.log(`Número central de WhatsApp detectado a partir del token (${nums!.j.data.length} número/s en la cuenta)`);
+        return (this.phoneIdCentralCache = String(id));
+      }
+    }
+    throw new Error('El token de WhatsApp no tiene acceso a ningún número');
   }
 
   /** Normaliza un celular argentino al formato que usa WhatsApp: 549 + característica + número */
@@ -249,7 +277,7 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
 
   /** Envía una plantilla. Con `cred` sale desde el WhatsApp Business del médico; si no, desde el número central */
   private async enviarPlantilla(to: string, vars: string[], plantilla?: string, cred?: CredWa | null) {
-    const phoneId = cred?.phoneNumberId || this.config.get('WHATSAPP_PHONE_NUMBER_ID');
+    const phoneId = cred?.phoneNumberId || await this.phoneIdCentral();
     const token = cred?.token || this.config.get('WHATSAPP_TOKEN');
     const url = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
     const r = await fetch(url, {
