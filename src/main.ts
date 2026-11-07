@@ -13,6 +13,9 @@ import { WhatsappWebhookController } from './modules/whatsapp/whatsapp-webhook.c
 import { InboxController } from './modules/notifications/inbox.controller';
 import { WhatsappAccountService } from './modules/reminders/whatsapp-account.service';
 import { WhatsappAccountController } from './modules/reminders/whatsapp-account.controller';
+import { PlanesController } from './modules/subscriptions/planes.controller';
+import { PlanesService } from './modules/subscriptions/planes.service';
+import { WhatsappRespuestasService } from './modules/whatsapp/whatsapp-respuestas.service';
 import { AuthService } from './modules/auth/auth.service';
 import { OAuthController } from './modules/auth/oauth.controller';
 import { OAuthService } from './modules/auth/oauth.service';
@@ -161,6 +164,7 @@ class HealthController {
     WhatsappWebhookController,
     InboxController,
     WhatsappAccountController,
+    PlanesController,
     OAuthController,
     OrganizationController,
     InvitationController,
@@ -249,6 +253,8 @@ class HealthController {
     ReminderCronService, WhatsappReminderService, DocumentsService, AiService, GrowthService, ActivityService,
     DashboardService,
     MercadoPagoService,
+    PlanesService,
+    WhatsappRespuestasService,
     EmailService,
     { provide: APP_GUARD, useClass: ProGuard },
   ],

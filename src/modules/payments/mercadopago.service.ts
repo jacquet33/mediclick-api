@@ -86,7 +86,7 @@ export class MercadoPagoService {
     }
 
     const notificationUrl = this.config.get('MP_NOTIFICATION_URL')
-      || `${this.config.get('API_BASE_URL') || 'https://tusrecetasmed.com'}/api/v1/payments/webhooks/mercadopago`;
+      || `${this.config.get('BASE_URL') || this.config.get('API_BASE_URL') || 'https://tusrecetasmed.com'}/api/v1/payments/webhooks/mercadopago`;
 
     // Crear preapproval (suscripción) en Mercado Pago
     const body = {
@@ -99,7 +99,7 @@ export class MercadoPagoService {
         transaction_amount: plan.amount,
         currency_id: plan.currency,
       },
-      back_url: `${this.config.get('API_BASE_URL') || 'https://tusrecetasmed.com'}/payment-result`,
+      back_url: `${this.config.get('BASE_URL') || this.config.get('API_BASE_URL') || 'https://tusrecetasmed.com'}/payment-result`,
       notification_url: notificationUrl,
     };
 
@@ -127,7 +127,7 @@ export class MercadoPagoService {
         await client.query(
           `UPDATE subscriptions SET status = 'expired'
            WHERE doctor_id = $1 AND store = 'mercadopago'
-             AND status IN ('active', 'grace_period')`,
+             AND status = 'pending'`,
           [doctorId],
         );
 
@@ -137,7 +137,7 @@ export class MercadoPagoService {
              (doctor_id, plan, status, store, store_product_id,
               store_transaction_id, price_usd, currency,
               current_period_start, raw_receipt)
-           VALUES ($1, $2, 'active', 'mercadopago', $3, $4, $5, 'ARS', NOW(),
+           VALUES ($1, $2, 'pending', 'mercadopago', $3, $4, $5, 'ARS', NOW(),
                    $6::jsonb)
            RETURNING id`,
           [
@@ -155,7 +155,7 @@ export class MercadoPagoService {
           `INSERT INTO subscription_events
              (subscription_id, doctor_id, event_type, from_plan, to_plan,
               from_status, to_status, store, amount_usd, reason)
-           VALUES ($1, $2, 'subscribe', 'free', 'pro', NULL, 'active',
+           VALUES ($1, $2, 'subscribe', 'free', 'pro', NULL, 'pending',
                    'mercadopago', $3, 'Mercado Pago checkout')`,
           [sub.rows[0].id, doctorId, plan.amount],
         );
@@ -202,6 +202,10 @@ export class MercadoPagoService {
       case 'preapproval':
         await this.handlePreapprovalNotification(resourceId);
         break;
+      case 'subscription_authorized_payment':
+      case 'authorized_payment':
+        await this.handleAuthorizedPayment(resourceId);
+        break;
       default:
         this.logger.log(`MP webhook topic not handled: ${topic}`);
     }
@@ -241,9 +245,9 @@ export class MercadoPagoService {
       const sub = await this.db.queryOne<{ id: string; status: string }>(
         `SELECT id, status FROM subscriptions
          WHERE doctor_id = $1 AND store = 'mercadopago'
-           AND status IN ('active', 'grace_period', 'billing_retry')
-         ORDER BY created_at DESC LIMIT 1`,
-        [doctorId],
+           AND status IN ('pending', 'active', 'grace_period', 'billing_retry')
+         ORDER BY (store_transaction_id = $2) DESC, created_at DESC LIMIT 1`,
+        [doctorId, preapprovalId || ''],
       );
 
       if (!sub) {
@@ -288,10 +292,16 @@ export class MercadoPagoService {
           [periodEnd, sub.id],
         );
 
+        // Una sola suscripción vigente por médico: las anteriores (cambio de plan) quedan vencidas
+        await this.db.query(
+          `UPDATE subscriptions SET status = 'expired'
+            WHERE doctor_id = $1 AND store = 'mercadopago' AND id <> $2 AND status IN ('active','grace_period','billing_retry','pending')`,
+          [doctorId, sub.id],
+        );
         this.logger.log(`MP payment approved: doctor ${doctorId} is Pro`);
       } else if (status === 'rejected') {
         await this.db.query(
-          `UPDATE subscriptions SET status = 'billing_retry' WHERE id = $1`,
+          `UPDATE subscriptions SET status = 'billing_retry' WHERE id = $1 AND status <> 'pending'`,
           [sub.id],
         );
         this.logger.warn(`MP payment rejected for doctor ${doctorId}`);
@@ -328,7 +338,7 @@ export class MercadoPagoService {
         `SELECT id, status, plan FROM subscriptions
          WHERE store_transaction_id = $1 OR
                (doctor_id = $2 AND store = 'mercadopago'
-                AND status IN ('active', 'grace_period', 'billing_retry'))
+                AND status IN ('pending', 'active', 'grace_period', 'billing_retry'))
          ORDER BY created_at DESC LIMIT 1`,
         [preapprovalId, doctorId],
       );
@@ -338,9 +348,25 @@ export class MercadoPagoService {
       // Mapear estados de MP a nuestro modelo
       switch (preapproval.status) {
         case 'authorized':
-        case 'active':
-          // no-op: los pagos individuales actualizan el estado
+        case 'active': {
+          // El médico autorizó el débito mensual: se activa el plan. Si un cobro después falla, pasa a billing_retry.
+          const next = (preapproval as any).next_payment_date ? new Date((preapproval as any).next_payment_date) : null;
+          const act = await this.db.queryOne(
+            `UPDATE subscriptions SET status = 'active', plan = 'pro', current_period_start = COALESCE(current_period_start, NOW()),
+                    current_period_end = COALESCE($2::timestamptz, NOW() + interval '1 month'), last_verified_at = NOW()
+              WHERE id = $1 AND status = 'pending' RETURNING id`,
+            [sub.id, next],
+          );
+          if (act) {
+            await this.db.query(
+              `UPDATE subscriptions SET status = 'expired'
+                WHERE doctor_id = $1 AND store = 'mercadopago' AND id <> $2 AND status IN ('active','grace_period','billing_retry','pending')`,
+              [doctorId, sub.id],
+            );
+            await this.logEvent(sub.id, doctorId, 'activate', 'free', 'pro', 'pending', 'active', 'MP authorized');
+          }
           break;
+        }
         case 'paused':
           await this.db.query(
             `UPDATE subscriptions SET status = 'billing_retry' WHERE id = $1`,
@@ -349,7 +375,9 @@ export class MercadoPagoService {
           break;
         case 'cancelled':
           await this.db.query(
-            `UPDATE subscriptions SET cancelled_at = NOW() WHERE id = $1`,
+            `UPDATE subscriptions SET cancelled_at = COALESCE(cancelled_at, NOW()),
+                    status = CASE WHEN status = 'pending' THEN 'expired'::subscription_status ELSE status END
+              WHERE id = $1`,
             [sub.id],
           );
           await this.logEvent(sub.id, doctorId, 'cancel', sub.plan, sub.plan, sub.status, sub.status, 'MP cancelled');
@@ -359,6 +387,34 @@ export class MercadoPagoService {
       this.logger.log(`MP preapproval ${preapprovalId} status: ${preapproval.status}`);
     } catch (err) {
       this.logger.error(`MP preapproval notification error for ${preapprovalId}`, err);
+    }
+  }
+
+  /** Cobro mensual de una suscripción (authorized_payment): si se aprobó, extiende el período un mes */
+  private async handleAuthorizedPayment(id: string): Promise<void> {
+    const accessToken = this.getAccessToken();
+    try {
+      const r = await fetch(`${this.apiBase}/authorized_payments/${id}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+      if (!r.ok) { this.logger.error(`MP get authorized_payment failed: ${r.status}`); return; }
+      const ap = (await r.json()) as any;
+      const preapprovalId = ap?.preapproval_id;
+      const estadoPago = ap?.payment?.status || ap?.status;
+      if (!preapprovalId) return;
+      const sub = await this.db.queryOne<{ id: string; doctor_id: string; current_period_end: string }>(
+        `SELECT id, doctor_id, current_period_end FROM subscriptions WHERE store_transaction_id = $1`, [preapprovalId]);
+      if (!sub) return;
+      if (estadoPago === 'approved') {
+        await this.db.query(
+          `UPDATE subscriptions SET status = 'active', plan = 'pro', last_verified_at = NOW(),
+                  current_period_end = GREATEST(COALESCE(current_period_end, NOW()), NOW()) + interval '1 month'
+            WHERE id = $1`, [sub.id]);
+        this.logger.log(`MP cobro mensual aprobado (suscripción ${sub.id})`);
+      } else if (['rejected', 'cancelled'].includes(String(estadoPago))) {
+        await this.db.query(`UPDATE subscriptions SET status = 'billing_retry' WHERE id = $1 AND status = 'active'`, [sub.id]);
+        this.logger.warn(`MP cobro mensual rechazado (suscripción ${sub.id})`);
+      }
+    } catch (err) {
+      this.logger.error(`MP authorized_payment error ${id}`, err);
     }
   }
 
@@ -372,7 +428,7 @@ export class MercadoPagoService {
     }>(
       `SELECT id, store_transaction_id, status, plan FROM subscriptions
        WHERE doctor_id = $1 AND store = 'mercadopago'
-         AND status IN ('active', 'grace_period')
+         AND status IN ('active', 'grace_period', 'billing_retry', 'pending')
        ORDER BY created_at DESC LIMIT 1`,
       [doctorId],
     );

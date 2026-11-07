@@ -1,6 +1,6 @@
 import {
   Controller, Get, Post, Body, Query, Req,
-  HttpCode, HttpStatus, Logger, Param,
+  HttpCode, HttpStatus, Logger, Param, ForbiddenException, BadRequestException,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { Public } from '../../common/guards/auth.guard';
@@ -24,7 +24,9 @@ export class PaymentController {
     @Req() req: Request,
     @Body() dto: SubscribePlanDto,
   ) {
-    return this.mpService.createSubscription(req.user!.doctorId, dto.plan as 'pro' | 'centro');
+    if (!req.user?.doctorId || (req.user as any).userType !== 'doctor') throw new ForbiddenException('El plan lo administra el médico titular');
+    if (!['pro', 'centro', 'centro10'].includes(String(dto.plan))) throw new BadRequestException('Plan inválido');
+    return this.mpService.createSubscription(req.user.doctorId, dto.plan as 'pro' | 'centro');
   }
 
   // ─── Cancelar ─────────────────────────────────────────────

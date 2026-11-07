@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit, BadRequestException,
 import { ConfigService } from '@nestjs/config';
 import { DatabaseService } from '../../database/database.service';
 import { WhatsappAccountService, CredWa } from './whatsapp-account.service';
+import { PlanesService } from '../subscriptions/planes.service';
 
 /**
  * Recordatorio por WhatsApp un día antes del turno.
@@ -27,7 +28,7 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   private running = false;
 
-  constructor(private db: DatabaseService, private config: ConfigService, private cuentas: WhatsappAccountService) {}
+  constructor(private db: DatabaseService, private config: ConfigService, private cuentas: WhatsappAccountService, private planes: PlanesService) {}
 
   onModuleInit() {
     // Revisa cada 10 minutos; el envío es idempotente (se marca antes de enviar)
@@ -125,6 +126,7 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
         'Meta rechazó el mensaje. Escribinos a support@tusrecetasmed.com y lo revisamos.';
       throw new BadRequestException(motivo);
     }
+    await this.planes.registrarEnvio(doctorId, 'prueba', '+' + numero);
     return { ok: true, a: '+' + numero, desde: cuenta?.display_phone || 'número de prueba' };
   }
 
@@ -165,12 +167,14 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
 
     // Mensaje de confirmación inmediato: el paciente comprueba que su número quedó bien cargado.
     // Usa la plantilla WHATSAPP_TEMPLATE_CONFIRM (aprobada en Meta). Sin WhatsApp Business configurado no se envía nada.
-    let confirmacion: 'enviada' | 'error' | 'no_configurado' = 'no_configurado';
+    let confirmacion: 'enviada' | 'error' | 'no_configurado' | 'limite' = 'no_configurado';
     const medico = await this.db.queryOne(
       `SELECT od.doctor_id FROM appointments a JOIN organization_doctors od ON od.id = a.org_doctor_id WHERE a.id = $1`, [appt.id]);
     const cred = await this.cuentas.credenciales(medico?.doctor_id);
     const plantilla = cred ? 'confirmacion_turno' : this.config.get<string>('WHATSAPP_TEMPLATE_CONFIRM');
-    if ((cred || this.habilitado) && plantilla) {
+    const cupo = (cred || this.habilitado) && plantilla ? await this.planes.puedeEnviarWaAuto(medico?.doctor_id) : { ok: true };
+    if (!cupo.ok) confirmacion = 'limite';
+    else if ((cred || this.habilitado) && plantilla) {
       const t = await this.db.queryOne(
         `SELECT p.first_name, d.first_name || ' ' || d.last_name AS doctor_name,
                 to_char(a.date, 'DD/MM') AS fecha, extract(dow from a.date)::int AS dow, to_char(a.start_time, 'HH24:MI') AS hora
@@ -178,8 +182,9 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
            JOIN organization_doctors od ON od.id = a.org_doctor_id JOIN doctors d ON d.id = od.doctor_id
           WHERE a.id = $1`, [appt.id]);
       try {
-        await this.enviarPlantilla(numero, [t?.first_name || 'paciente', t?.doctor_name || '', t?.fecha ? `${['domingo','lunes','martes','miércoles','jueves','viernes','sábado'][t.dow] || ''} ${t.fecha}`.trim() : '', t?.hora || ''], plantilla, cred);
+        const wamid = await this.enviarPlantilla(numero, [t?.first_name || 'paciente', t?.doctor_name || '', t?.fecha ? `${['domingo','lunes','martes','miércoles','jueves','viernes','sábado'][t.dow] || ''} ${t.fecha}`.trim() : '', t?.hora || ''], plantilla, cred);
         confirmacion = 'enviada';
+        await this.planes.registrarEnvio(medico?.doctor_id, 'confirmacion', '+' + numero, appt.id, wamid);
       } catch (e: any) {
         confirmacion = 'error';
         this.logger.warn(`Confirmación WhatsApp ${appt.id}: ${e.message}`);
@@ -198,6 +203,7 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
           WHERE a.id IN (
             SELECT id FROM appointments
              WHERE whatsapp_reminder AND whatsapp_reminder_sent_at IS NULL
+               AND whatsapp_auto_omitido_at IS NULL
                AND status IN ('confirmed','pending','pending_approval')
                -- Solo si hay por dónde enviarlo: el WhatsApp Business del médico o el número central de la plataforma
                AND ($1::boolean OR EXISTS (SELECT 1 FROM organization_doctors od2 JOIN doctor_whatsapp_accounts w ON w.doctor_id = od2.doctor_id
@@ -226,12 +232,23 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
             WHERE a.id = $1`,
           [id],
         );
+        // Cupo mensual del plan: si se alcanzó, el recordatorio queda para enviarlo a mano desde el Dashboard
+        const cupo = await this.planes.puedeEnviarWaAuto(t.doctor_id);
+        if (!cupo.ok) {
+          await this.db.query(
+            `UPDATE appointments SET whatsapp_reminder_sent_at = NULL, whatsapp_reminder_channel = NULL, whatsapp_auto_omitido_at = now(),
+                    whatsapp_reminder_error = $2 WHERE id = $1`,
+            [id, `Se alcanzó el cupo de ${cupo.limite} avisos automáticos del mes: envialo desde el Dashboard`],
+          );
+          continue;
+        }
         try {
           const cred = await this.cuentas.credenciales(t.doctor_id);
           const wamid = await this.enviarPlantilla(String(t.phone).replace(/\D/g, ''), [
             t.first_name || 'paciente', t.doctor_name, String(t.start_time).substring(0, 5), t.lugar || 'el consultorio',
           ], cred ? 'recordatorio_turno' : undefined, cred);
           if (wamid) await this.db.query(`UPDATE appointments SET whatsapp_reminder_wamid = $2, whatsapp_reminder_status = 'sent' WHERE id = $1`, [id, wamid]);
+          await this.planes.registrarEnvio(t.doctor_id, 'recordatorio', t.phone, id, wamid);
           enviados++;
         } catch (e: any) {
           errores++;
@@ -255,14 +272,15 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
     const r = await this.db.queryOne(
       `INSERT INTO doctor_reminder_settings (doctor_id) VALUES ($1)
        ON CONFLICT (doctor_id) DO UPDATE SET doctor_id = EXCLUDED.doctor_id
-       RETURNING whatsapp_reminder_mode, whatsapp_reminder_all`,
+       RETURNING whatsapp_reminder_mode, whatsapp_reminder_all, wa_respuestas_auto, wa_respuesta_texto`,
       [doctorId],
     );
     const propio = !!(await this.cuentas.credenciales(doctorId));
-    return { modo: r.whatsapp_reminder_mode, todos: r.whatsapp_reminder_all, automaticoDisponible: this.habilitado || propio, whatsappPropio: propio };
+    return { modo: r.whatsapp_reminder_mode, todos: r.whatsapp_reminder_all, automaticoDisponible: this.habilitado || propio, whatsappPropio: propio,
+      respuestasAuto: r.wa_respuestas_auto !== false, respuestaTexto: r.wa_respuesta_texto || '' };
   }
 
-  async setModo(doctorId: string, modo?: string, todos?: boolean) {
+  async setModo(doctorId: string, modo?: string, todos?: boolean, respuestasAuto?: boolean, respuestaTexto?: string) {
     if (modo && !['manual', 'auto'].includes(modo)) throw new BadRequestException('Modo inválido');
     if (modo === 'auto' && !this.habilitado && !(await this.cuentas.credenciales(doctorId))) throw new BadRequestException('Para el envío automático conectá tu WhatsApp Business. Mientras tanto usá el modo manual.');
     await this.db.query(
@@ -271,6 +289,14 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
          whatsapp_reminder_all = COALESCE($3, doctor_reminder_settings.whatsapp_reminder_all), updated_at = now()`,
       [doctorId, modo ?? null, typeof todos === 'boolean' ? todos : null],
     );
+    if (typeof respuestasAuto === 'boolean' || typeof respuestaTexto === 'string') {
+      await this.db.query(
+        `UPDATE doctor_reminder_settings SET wa_respuestas_auto = COALESCE($2, wa_respuestas_auto),
+                wa_respuesta_texto = CASE WHEN $3::text IS NULL THEN wa_respuesta_texto ELSE NULLIF(trim($3::text), '') END, updated_at = now()
+          WHERE doctor_id = $1`,
+        [doctorId, typeof respuestasAuto === 'boolean' ? respuestasAuto : null, typeof respuestaTexto === 'string' ? respuestaTexto.slice(0, 600) : null],
+      );
+    }
     return this.getModo(doctorId);
   }
 
@@ -369,6 +395,27 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
     }
     const j: any = await r.json().catch(() => ({}));
     return (j?.messages?.[0]?.id as string) || null;
+  }
+
+  /** Mensaje de texto libre (solo dentro de las 24 h desde que escribió el paciente): respuestas automáticas */
+  async enviarTexto(to: string, texto: string, cred?: CredWa | null): Promise<string | null> {
+    const phoneId = cred?.phoneNumberId || await this.phoneIdCentral();
+    const token = cred?.token || this.config.get('WHATSAPP_TOKEN');
+    const r = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to, type: 'text', text: { body: texto.slice(0, 4000), preview_url: true } }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!r.ok) throw new Error(`Meta ${r.status}: ${(await r.text().catch(() => '')).slice(0, 300)}`);
+    const j: any = await r.json().catch(() => ({}));
+    return (j?.messages?.[0]?.id as string) || null;
+  }
+
+  /** ¿El número central atiende este phone_number_id? (para los mensajes entrantes del webhook) */
+  async esNumeroCentral(phoneNumberId: string): Promise<boolean> {
+    if (!this.habilitado) return false;
+    try { return (await this.phoneIdCentral()) === String(phoneNumberId); } catch { return false; }
   }
 
   private async enviarHelloWorld(to: string, phoneId: string, token: string) {

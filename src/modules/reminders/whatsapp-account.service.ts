@@ -8,7 +8,7 @@ const GRAPH = 'https://graph.facebook.com/v21.0';
 export const PLANTILLAS = [
   {
     name: 'recordatorio_turno',
-    text: 'Hola {{1}}, te recordamos tu turno de mañana con Dr/a. {{2}} a las {{3}} hs en {{4}}. Si no podés asistir o tenés alguna duda, respondé este mensaje.',
+    text: 'Hola {{1}}, te recordamos tu turno de mañana con Dr/a. {{2}} a las {{3}} hs en {{4}}. Respondé SI para confirmar o CANCELAR si no podés asistir.',
     example: ['Juan', 'Ana Pérez', '10:00', 'Consultorio Centro'],
   },
   {

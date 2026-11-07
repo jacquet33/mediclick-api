@@ -17,9 +17,9 @@ export class WhatsappReminderController {
   }
 
   @Put('config')
-  setConfig(@CurrentUser() user: AuthUser, @Body() body: { modo?: string; todos?: boolean }) {
+  setConfig(@CurrentUser() user: AuthUser, @Body() body: { modo?: string; todos?: boolean; respuestasAuto?: boolean; respuestaTexto?: string }) {
     if (user.userType !== 'doctor') throw new ForbiddenException('Solo el médico configura sus recordatorios');
-    return this.wa.setModo(user.doctorId, body?.modo, body?.todos);
+    return this.wa.setModo(user.doctorId, body?.modo, body?.todos, body?.respuestasAuto, body?.respuestaTexto);
   }
 
   /** GET /reminders/whatsapp/pendientes?date=YYYY-MM-DD (por defecto, mañana) */

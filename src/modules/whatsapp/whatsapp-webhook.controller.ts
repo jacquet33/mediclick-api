@@ -5,6 +5,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { Public } from '../../common/guards/auth.guard';
 import { SkipThrottle } from '@nestjs/throttler';
 import { DatabaseService } from '../../database/database.service';
+import { WhatsappRespuestasService } from './whatsapp-respuestas.service';
 
 /**
  * Webhook de WhatsApp (Meta Cloud API). URL para cargar en Meta:
@@ -19,7 +20,7 @@ import { DatabaseService } from '../../database/database.service';
 @Controller('api/v1/webhooks/whatsapp')
 export class WhatsappWebhookController {
   private readonly logger = new Logger('WhatsappWebhook');
-  constructor(private config: ConfigService, private db: DatabaseService) {}
+  constructor(private config: ConfigService, private db: DatabaseService, private respuestas: WhatsappRespuestasService) {}
 
   @Get()
   verificar(@Query('hub.mode') mode: string, @Query('hub.verify_token') token: string, @Query('hub.challenge') challenge: string, @Res() res: Response) {
@@ -62,6 +63,8 @@ export class WhatsappWebhookController {
             [m.id, pnid, m.from || null, m],
           );
         }
+        // Respuestas automáticas (confirmar / cancelar / "te respondemos"): después de guardar, sin frenar el 200 a Meta
+        if ((v.messages || []).length) setImmediate(() => this.respuestas.procesar(v).catch((e) => this.logger.warn(`Respuestas: ${e.message}`)));
         if (!(v.statuses || []).length && !(v.messages || []).length) {
           await this.db.query(`INSERT INTO whatsapp_events (kind, payload) VALUES ('other',$1)`, [ch]);
         }
