@@ -1,0 +1,29 @@
+name: Smoke test
+on:
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probar endpoints públicos
+        run: |
+          B=https://tusrecetasmed.com
+          chk(){ code=$(curl -s -o /tmp/r -w "%{http_code}" "$@"); echo "SMOKE $code $(echo "$@" | sed -E 's#https://tusrecetasmed.com##' | cut -c1-80) :: $(head -c 140 /tmp/r | tr '\n' ' ' | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/***@***/g')"; }
+          chk $B/
+          chk $B/para-medicos
+          chk $B/portal
+          chk $B/login.html
+          chk $B/registro.html
+          chk $B/api/v1/health
+          chk $B/api/v1/public/config
+          chk -X POST $B/api/v1/auth/login -H 'Content-Type: application/json' -d '{"email":"nadie-smoke@example.com","password":"incorrecta123"}'
+          chk -X POST $B/api/v1/auth/login -H 'Content-Type: application/json' -d '{}'
+          chk -X POST $B/api/v1/auth/refresh -H 'Content-Type: application/json' -d '{"refreshToken":"x"}'
+          chk $B/api/v1/subscriptions/me
+          chk -X POST $B/api/v1/payments/subscribe -H 'Content-Type: application/json' -d '{"plan":"pro"}'
+          chk -X POST "$B/api/v1/payments/webhooks/mercadopago?type=payment&data.id=1" -H 'Content-Type: application/json' -d '{"type":"payment","data":{"id":"1"}}'
+          chk "$B/payment-result?status=approved"
+          chk $B/api/v1/public/booking/doctor/alejandro-jacquet-1
+          chk https://www.tusrecetasmed.com/ -I
+          chk https://consultorio.rispy.io/ -I
+          for p in $(curl -s $B/ | grep -oE 'href="/[a-z0-9_-]+(\.html)?"' | sort -u | sed -E 's/href="|"//g' | head -20); do chk $B$p; done
