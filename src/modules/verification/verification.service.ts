@@ -42,7 +42,8 @@ export class VerificationService implements OnModuleInit {
       `SELECT first_name, last_name, dni, medical_license, medical_license_province, license_type, specialty,
               COALESCE(license_status, 'unverified') AS license_status, license_requested_at, license_verified_at,
               license_verified_by, license_verification_note, license_document IS NOT NULL AS has_document,
-              signature_image IS NOT NULL AS has_signature, is_platform_admin
+              signature_image IS NOT NULL AS has_signature, is_platform_admin,
+              title_prefix, dni_document IS NOT NULL AS has_dni_document
        FROM doctors WHERE id = $1`,
       [doctorId],
     );

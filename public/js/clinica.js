@@ -699,46 +699,51 @@
   const PROVINCIAS = ['Buenos Aires', 'Ciudad de Buenos Aires', 'Catamarca', 'Chaco', 'Chubut', 'Córdoba', 'Corrientes', 'Entre Ríos', 'Formosa', 'Jujuy', 'La Pampa', 'La Rioja', 'Mendoza', 'Misiones', 'Neuquén', 'Río Negro', 'Salta', 'San Juan', 'San Luis', 'Santa Cruz', 'Santa Fe', 'Santiago del Estero', 'Tierra del Fuego', 'Tucumán'];
   const ESTADOS_M = { verified: ['✅ Verificada', 'confirmed'], pending: ['⏳ En revisión', 'pending'], rejected: ['❌ Rechazada', 'cancelled'], unverified: ['Sin verificar', 'no_show'] };
 
-  window.abrirMatricula = async function () {
+  // Ilustración del asistente (credencial + receta), en los colores de la marca
+  const ILUS_ALTA = `<svg viewBox="0 0 240 220" width="100%" height="100%" aria-hidden="true"><defs><linearGradient id="gA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C08A57"/><stop offset="1" stop-color="#8B5E34"/></linearGradient><linearGradient id="gB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#A3B07F"/><stop offset="1" stop-color="#6E7E4F"/></linearGradient></defs>
+    <circle cx="120" cy="110" r="96" fill="#F3EBDF"/><rect x="92" y="28" width="104" height="148" rx="14" fill="#fff" stroke="#E5D8C5" stroke-width="2"/>
+    <text x="108" y="64" font-family="Georgia,serif" font-size="30" font-weight="700" fill="url(#gB)">Rx</text>
+    <rect x="108" y="78" width="72" height="7" rx="3.5" fill="#EADFCF"/><rect x="108" y="93" width="56" height="7" rx="3.5" fill="#EADFCF"/><rect x="108" y="108" width="66" height="7" rx="3.5" fill="#EADFCF"/>
+    <path d="M110 150c10-14 18 10 28-4s16 6 24-2" fill="none" stroke="#8B5E34" stroke-width="3" stroke-linecap="round"/>
+    <rect x="34" y="98" width="104" height="70" rx="12" fill="url(#gA)"/><circle cx="62" cy="128" r="13" fill="#F6EEE3"/><path d="M44 158c4-12 32-12 36 0" fill="#F6EEE3"/>
+    <rect x="86" y="118" width="40" height="6" rx="3" fill="#F6EEE3" opacity=".9"/><rect x="86" y="131" width="30" height="6" rx="3" fill="#F6EEE3" opacity=".7"/>
+    <circle cx="190" cy="168" r="20" fill="url(#gB)"/><path d="M181 168l6 6 12-13" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+  const PASOS_ALTA = ['Información básica', 'Matrícula', 'Firma'];
+  let _alta = null; // datos del asistente mientras se completa
+
+  function stepper(paso) {
+    return `<div class="alta-steps" role="list">${PASOS_ALTA.map((t, i) => `
+      <div class="alta-step ${i < paso ? 'hecho' : i === paso ? 'actual' : ''}" role="listitem" aria-current="${i === paso ? 'step' : 'false'}">
+        <span class="alta-dot">${i < paso ? '✓' : i + 1}</span><span class="alta-lbl"><small>${i === PASOS_ALTA.length - 1 ? 'Último paso' : 'Paso ' + (i + 1)}</small>${t}</span></div>`).join('<span class="alta-line"></span>')}</div>`;
+  }
+
+  window.abrirMatricula = async function (editar) {
     const m = main(); m.innerHTML = '<div class="spinner"></div>';
     const v = await verificacion(true);
     if (!v) { m.innerHTML = '<div class="card"><p class="error">No se pudo cargar tu perfil</p></div>'; return; }
     const [lbl, cls] = ESTADOS_M[v.license_status] || ESTADOS_M.unverified;
+    // Sin verificar o rechazada → asistente paso a paso. En revisión → resumen (con opción de corregir).
+    if (editar === true || ['unverified', 'rejected'].includes(v.license_status || 'unverified')) return asistenteAlta(v, 0);
     const bloqueado = v.license_status === 'verified';
     m.innerHTML = `<div class="topbar"><h1>Matrícula y firma</h1><span class="badge-sm ${cls}" style="font-size:13px;padding:6px 14px">${lbl}</span></div>
       <div class="card"><div class="card-title">📇 Verificación profesional</div>
-        <p class="muted" style="margin-bottom:12px">Para emitir recetas electrónicas verificamos que tu matrícula esté vigente en la Red Federal de Registros de Profesionales de la Salud (REFEPS) del Ministerio de Salud. ${v.refepsAutomatico ? 'La consulta es automática.' : 'La revisión la hace nuestro equipo con tu DNI, matrícula y la foto de la credencial (suele tardar menos de 24 h hábiles).'}</p>
+        ${v.license_status === 'pending' ? `<p style="margin-bottom:12px">Recibimos tus datos y los estamos validando contra la Red Federal de Registros de Profesionales de la Salud (REFEPS – SISA) del Ministerio de Salud. Suele tardar menos de 24 h hábiles y te avisamos por email.</p>` : ''}
         ${v.license_verification_note ? `<p style="font-size:13px;margin-bottom:10px"><b>Detalle:</b> ${e(v.license_verification_note)}</p>` : ''}
-        ${bloqueado ? `<div class="kv"><div><span>Profesional</span><b>${e(v.first_name)} ${e(v.last_name)}</b></div><div><span>DNI</span><b>${e(v.dni)}</b></div><div><span>Matrícula</span><b>${v.license_type === 'MN' ? 'M.N.' : 'M.P.'} ${e(v.medical_license)}${v.license_type === 'MP' && v.medical_license_province ? ' (' + e(v.medical_license_province) + ')' : ''}</b></div><div><span>Especialidad</span><b>${e(v.specialty || '—')}</b></div><div><span>Verificada</span><b>${v.license_verified_at ? fmtDate(v.license_verified_at) : ''}</b></div></div>
-          <p class="muted" style="margin-top:10px;font-size:12px">Si cambiás de matrícula escribinos a support@tusrecetasmed.com.</p>` : `
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px">
-          <div class="field"><label>DNI *</label><input id="mDni" value="${e(v.dni || '')}" inputmode="numeric"></div>
-          <div class="field"><label>Tipo de matrícula *</label><select id="mTipo"><option value="MP" ${v.license_type !== 'MN' ? 'selected' : ''}>Provincial (M.P.)</option><option value="MN" ${v.license_type === 'MN' ? 'selected' : ''}>Nacional (M.N.)</option></select></div>
-          <div class="field" id="mProvBox"><label>Provincia *</label><select id="mProv"><option value="">Elegí…</option>${PROVINCIAS.map((p) => `<option ${v.medical_license_province === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
-          <div class="field"><label>Número de matrícula *</label><input id="mMat" value="${e(v.medical_license || '')}"></div>
-          <div class="field"><label>Especialidad</label><input id="mEsp" value="${e(v.specialty || '')}"></div>
-          <div class="field"><label>Foto de la credencial o título ${v.has_document ? '(ya cargada)' : ''}</label><input id="mDoc" type="file" accept="image/*"></div>
-        </div>
-        <p id="mErr" class="error hidden"></p>
-        <button class="btn btn-sm btn-primary" id="mEnviar">${v.license_status === 'pending' ? 'Actualizar datos' : 'Enviar para verificar'}</button>`}
+        <div class="kv"><div><span>Profesional</span><b>${e(v.title_prefix || '')} ${e(v.first_name)} ${e(v.last_name)}</b></div><div><span>DNI</span><b>${e(v.dni || '—')}${v.has_dni_document ? ' · foto ✓' : ''}</b></div><div><span>Matrícula</span><b>${v.license_type === 'MN' ? 'M.N.' : 'M.P.'} ${e(v.medical_license || '—')}${v.license_type === 'MP' && v.medical_license_province ? ' (' + e(v.medical_license_province) + ')' : ''}${v.has_document ? ' · foto ✓' : ''}</b></div><div><span>Especialidad</span><b>${e(v.specialty || '—')}</b></div>${bloqueado ? `<div><span>Verificada</span><b>${v.license_verified_at ? fmtDate(v.license_verified_at) : ''}</b></div>` : ''}</div>
+        ${bloqueado ? `<p class="muted" style="margin-top:10px;font-size:12px">Si cambiás de matrícula escribinos a support@tusrecetasmed.com.</p>` : `<button class="btn btn-sm btn-outline" style="margin-top:12px" onclick="abrirMatricula(true)">Corregir mis datos</button>`}
       </div>
       <div class="card"><div class="card-title">✍️ Firma para las recetas</div>
         <p class="muted" style="margin-bottom:10px">Se imprime arriba de tu sello en cada receta. Dibujala con el mouse o el dedo, o subí una foto de tu firma sobre papel blanco.</p>
         ${v.has_signature ? '<p style="font-size:13px;margin-bottom:8px">✅ Ya tenés una firma cargada. Podés reemplazarla.</p>' : ''}
-        <canvas id="firmaCv" width="600" height="200" style="width:100%;max-width:600px;height:auto;aspect-ratio:3/1;border:1.5px dashed #D9CBB8;border-radius:12px;background:#fff;touch-action:none;cursor:crosshair"></canvas>
-        <div class="flex" style="flex-wrap:wrap;margin-top:10px">
-          <button class="btn btn-sm btn-outline" id="firmaBorrar">Borrar</button>
-          <label class="btn btn-sm btn-soft" style="cursor:pointer">Subir imagen<input type="file" id="firmaArchivo" accept="image/*" hidden></label>
-          <button class="btn btn-sm btn-primary" id="firmaGuardar">Guardar firma</button>
-          <span id="firmaMsg" class="muted"></span>
-        </div>
+        ${firmaHtml()}
       </div>
       <div class="card"><div class="card-title">🔐 Firma digital con certificado (Ley 25.506)</div>
         <p class="muted" style="margin-bottom:10px">Con tu certificado de firma digital (archivo .p12 / .pfx emitido por un certificador licenciado: AC ONTI, AC Modernización, etc.) cada receta queda firmada digitalmente dentro del PDF y cualquier lector (Adobe, la farmacia) puede validarla. La clave privada y la contraseña <b>nunca salen de tu equipo</b>.</p>
         <div id="certBox"><div class="spinner" style="margin:10px 0"></div></div>
       </div>
       ${v.is_platform_admin ? `<div class="card"><div class="card-title">🛡️ Administración</div><div class="flex" style="flex-wrap:wrap"><button class="btn btn-sm btn-primary" onclick="abrirActividad()">📈 Altas y accesos</button><button class="btn btn-sm btn-outline" onclick="abrirVerificaciones()">Revisar matrículas pendientes</button><button class="btn btn-sm btn-outline" onclick="abrirFarmaciasAdmin()">Farmacias habilitadas</button><button class="btn btn-sm btn-outline" onclick="abrirPedidosDatos()">Pedidos de datos personales</button></div></div>` : ''}`;
-    enlazarMatricula();
+    enlazarFirma();
     const c = await certificadoActual();
     const box = $('certBox');
     if (box) box.innerHTML = c ? `<div class="kv"><div><span>Titular</span><b>${e(c.subject_cn)}</b></div><div><span>CUIL/CUIT</span><b>${e(c.subject_serial)}</b></div>
@@ -749,6 +754,97 @@
       : `<button class="btn btn-sm btn-primary" onclick="cargarCertificadoDigital()">Cargar mi certificado (.p12 / .pfx)</button>
          <p class="muted" style="margin-top:8px;font-size:12px">¿No tenés? Se tramita gratis en la <a href="https://www.argentina.gob.ar/servicio/obtener-un-certificado-de-firma-digital" target="_blank" rel="noopener" style="color:var(--primary)">AC ONTI / AC Modernización</a> o con tu colegio médico. Los tokens USB todavía no se pueden usar desde el navegador.</p>`;
   };
+
+  const firmaHtml = () => `<canvas id="firmaCv" width="600" height="200" style="width:100%;max-width:600px;height:auto;aspect-ratio:3/1;border:1.5px dashed #D9CBB8;border-radius:12px;background:#fff;touch-action:none;cursor:crosshair" aria-label="Espacio para dibujar tu firma"></canvas>
+        <div class="flex" style="flex-wrap:wrap;margin-top:10px">
+          <button class="btn btn-sm btn-outline" id="firmaBorrar" type="button">Borrar</button>
+          <label class="btn btn-sm btn-soft" style="cursor:pointer">Subir imagen<input type="file" id="firmaArchivo" accept="image/*" hidden></label>
+          <button class="btn btn-sm btn-primary" id="firmaGuardar" type="button">Guardar firma</button>
+          <span id="firmaMsg" class="muted"></span>
+        </div>`;
+
+  /** Asistente de alta profesional en 3 pasos: datos personales → matrícula → firma */
+  function asistenteAlta(v, paso) {
+    _alta = _alta || {
+      prefijo: v.title_prefix || 'Dr.', nombre: v.first_name || '', apellido: v.last_name || '', dni: v.dni || '',
+      tipo: v.license_type === 'MN' ? 'MN' : 'MP', prov: v.medical_license_province || '', mat: v.medical_license || '', esp: v.specialty || '',
+      dniFoto: null, credFoto: null,
+    };
+    const A = _alta, m = main();
+    const foto = (id, txt, ya, sel) => `<label class="alta-file" for="${id}"><input id="${id}" type="file" accept="image/*" capture="environment" hidden>
+      <span class="alta-file-ic">${sel ? '✅' : '📷'}</span><span><b>${txt}</b><small>${sel ? 'Foto lista para enviar' : ya ? 'Ya cargada · tocá para reemplazarla' : 'JPG o PNG, clara y legible. Sin selfies ni fotos borrosas.'}</small></span></label>`;
+    const cuerpo = [
+      `<h2 class="alta-h">Información básica</h2><p class="alta-sub">Completá estos datos para empezar a recetar. Son los mínimos necesarios.</p>
+       <div class="alta-nota">🛡️ <span>Tus datos se validan contra la <b>Red Federal de Registros de Profesionales de la Salud (REFEPS – SISA)</b> del Ministerio de Salud de la Nación para comprobar que son correctos.</span></div>
+       <div class="alta-grid">
+         <div class="field"><label for="aPre">Prefijo *</label><select id="aPre"><option ${A.prefijo === 'Dr.' ? 'selected' : ''}>Dr.</option><option ${A.prefijo === 'Dra.' ? 'selected' : ''}>Dra.</option></select></div>
+         <div class="field"></div>
+         <div class="field"><label for="aNom">Nombre(s) *</label><input id="aNom" value="${e(A.nombre)}" autocomplete="given-name"></div>
+         <div class="field"><label for="aApe">Apellido(s) *</label><input id="aApe" value="${e(A.apellido)}" autocomplete="family-name"></div>
+         <div class="field"><label for="aTdoc">Tipo de identificación *</label><select id="aTdoc"><option>DNI</option></select></div>
+         <div class="field"><label for="aDni">Nº de documento *</label><input id="aDni" value="${e(A.dni)}" inputmode="numeric" placeholder="Sin puntos"></div>
+       </div>
+       ${foto('aDniFoto', 'Foto del frente de tu DNI', v.has_dni_document, A.dniFoto)}`,
+      `<h2 class="alta-h">Matrícula</h2><p class="alta-sub">Tal como figura en tu credencial. Si tenés nacional y provincial, cargá la que usás para recetar.</p>
+       <div class="alta-grid">
+         <div class="field"><label for="aTipo">Tipo de matrícula *</label><select id="aTipo"><option value="MP" ${A.tipo === 'MP' ? 'selected' : ''}>Provincial (M.P.)</option><option value="MN" ${A.tipo === 'MN' ? 'selected' : ''}>Nacional (M.N.)</option></select></div>
+         <div class="field" id="aProvBox"><label for="aProv">Provincia *</label><select id="aProv"><option value="">Elegí…</option>${PROVINCIAS.map((p) => `<option ${A.prov === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div>
+         <div class="field"><label for="aMat">Número de matrícula *</label><input id="aMat" value="${e(A.mat)}"></div>
+         <div class="field"><label for="aEsp">Especialidad</label><input id="aEsp" value="${e(A.esp)}" placeholder="Ej: Clínica médica"></div>
+       </div>
+       ${foto('aCredFoto', 'Foto de tu credencial de matrícula o título', v.has_document, A.credFoto)}`,
+      `<h2 class="alta-h">Tu firma</h2><p class="alta-sub">Se imprime arriba de tu sello en cada receta. Dibujala con el mouse o el dedo, o subí una foto sobre papel blanco.</p>
+       ${v.has_signature ? '<p style="font-size:13px;margin-bottom:8px">✅ Ya tenés una firma cargada. Podés reemplazarla o terminar.</p>' : ''}
+       ${firmaHtml()}`,
+    ][paso];
+    m.innerHTML = `<div class="topbar"><h1>Alta profesional</h1><span class="badge-sm ${v.license_status === 'rejected' ? 'cancelled' : 'no_show'}" style="font-size:13px;padding:6px 14px">${v.license_status === 'rejected' ? '❌ Revisá tus datos' : 'Sin verificar'}</span></div>
+      <div class="card alta-card">${stepper(paso)}
+        ${v.license_status === 'rejected' && v.license_verification_note && paso === 0 ? `<p class="alta-nota alta-mal">❌ <span><b>No pudimos validar tus datos:</b> ${e(v.license_verification_note)}</span></p>` : ''}
+        <div class="alta-cols"><div class="alta-form">${cuerpo}
+          <p id="aErr" class="error hidden" role="alert"></p>
+          <div class="alta-nav">${paso > 0 ? '<button class="btn btn-outline" id="aAtras" type="button">← Anterior</button>' : '<span></span>'}
+            <button class="btn btn-primary" id="aSig" type="button">${paso === 0 ? 'Siguiente' : paso === 1 ? 'Enviar para verificar' : (v.has_signature ? 'Terminar' : 'Guardar firma y terminar')}</button></div>
+        </div><div class="alta-ilus">${ILUS_ALTA}</div></div>
+      </div>`;
+    const err = (t) => { const x = $('aErr'); x.textContent = t; x.classList.remove('hidden'); x.scrollIntoView({ block: 'nearest' }); };
+    const guardarCampos = () => {
+      if (paso === 0) Object.assign(A, { prefijo: $('aPre').value, nombre: $('aNom').value.trim(), apellido: $('aApe').value.trim(), dni: $('aDni').value.replace(/\D/g, '') });
+      if (paso === 1) Object.assign(A, { tipo: $('aTipo').value, prov: $('aProv').value, mat: $('aMat').value.trim(), esp: $('aEsp').value.trim() });
+    };
+    const fotoInput = (id, clave) => { const i = $(id); if (i) i.onchange = async () => { const f = i.files[0]; if (!f) return; try { A[clave] = await leerImagen(f, 1400); guardarCampos(); asistenteAlta(v, paso); } catch (ex) { err(ex.message); } }; };
+    fotoInput('aDniFoto', 'dniFoto'); fotoInput('aCredFoto', 'credFoto');
+    if (paso === 1) { const t = $('aTipo'), box = $('aProvBox'); const f = () => (box.style.display = t.value === 'MP' ? '' : 'none'); t.onchange = f; f(); }
+    if (paso === 2) enlazarFirma(true);
+    if ($('aAtras')) $('aAtras').onclick = () => { guardarCampos(); asistenteAlta(v, paso - 1); };
+    $('aSig').onclick = async () => {
+      guardarCampos();
+      const btn = $('aSig');
+      if (paso === 0) {
+        if (!A.nombre || !A.apellido) return err('Completá tu nombre y apellido');
+        if (A.dni.length < 7 || A.dni.length > 9) return err('Ingresá un número de DNI válido, sin puntos');
+        if (!A.dniFoto && !v.has_dni_document) return err('Subí una foto clara del frente de tu DNI');
+        return asistenteAlta(v, 1);
+      }
+      if (paso === 1) {
+        if (!A.mat) return err('Ingresá el número de matrícula');
+        if (A.tipo === 'MP' && !A.prov) return err('Elegí la provincia de la matrícula');
+        if (!A.credFoto && !v.has_document) return err('Subí una foto de tu credencial de matrícula o título');
+        btn.disabled = true; btn.textContent = 'Enviando…';
+        try {
+          await apiFetch('/api/v1/profile', { method: 'PUT', body: { titlePrefix: A.prefijo, firstName: A.nombre, lastName: A.apellido } });
+          await apiFetch('/api/v1/verification', { method: 'POST', body: { dni: A.dni, licenseType: A.tipo, province: A.tipo === 'MP' ? A.prov : undefined, medicalLicense: A.mat, specialty: A.esp, document: A.credFoto || undefined, dniDocument: A.dniFoto || undefined } });
+          _verif = null; A.dniFoto = A.credFoto = null;
+          const nv = await verificacion(true);
+          return asistenteAlta(nv || v, 2);
+        } catch (ex) { btn.disabled = false; btn.textContent = 'Enviar para verificar'; return err(ex.message); }
+      }
+      // Paso 3: firma
+      const guardada = await window._guardarFirma?.();
+      if (guardada === false && !v.has_signature) return err('Dibujá o subí tu firma');
+      _alta = null; _verif = null;
+      abrirMatricula();
+    };
+  }
 
   const leerImagen = (file, lado, tipo = 'image/jpeg') => new Promise((ok, mal) => {
     const fr = new FileReader();
@@ -767,20 +863,7 @@
     fr.readAsDataURL(file);
   });
 
-  function enlazarMatricula() {
-    const tipo = $('mTipo'), box = $('mProvBox');
-    if (tipo) { const f = () => (box.style.display = tipo.value === 'MP' ? '' : 'none'); tipo.onchange = f; f(); }
-    const env = $('mEnviar');
-    if (env) env.onclick = async () => {
-      const err = $('mErr'); err.classList.add('hidden');
-      env.disabled = true; env.textContent = 'Enviando…';
-      try {
-        const f = $('mDoc').files[0];
-        const document = f ? await leerImagen(f, 1400) : undefined;
-        await apiFetch('/api/v1/verification', { method: 'POST', body: { dni: $('mDni').value, licenseType: tipo.value, province: tipo.value === 'MP' ? $('mProv').value : undefined, medicalLicense: $('mMat').value, specialty: $('mEsp').value, document } });
-        abrirMatricula();
-      } catch (ex) { err.textContent = ex.message; err.classList.remove('hidden'); env.disabled = false; env.textContent = 'Enviar para verificar'; }
-    };
+  function enlazarFirma(enAsistente) {
     // Firma: dibujo
     const cv = $('firmaCv'); if (!cv) return;
     const ctx = cv.getContext('2d'); let dib = false, usado = false;
@@ -798,12 +881,15 @@
         const i = new Image(); i.onload = () => { limpiar(); const r = Math.min(cv.width / i.width, cv.height / i.height); ctx.drawImage(i, (cv.width - i.width * r) / 2, (cv.height - i.height * r) / 2, i.width * r, i.height * r); usado = true; }; i.src = url;
       } catch (ex) { alert(ex.message); }
     };
-    $('firmaGuardar').onclick = async () => {
+    const guardar = async () => {
       const msg = $('firmaMsg');
-      if (!usado) { msg.textContent = 'Dibujá o subí tu firma primero'; return; }
-      try { await apiFetch('/api/v1/profile/signature', { method: 'PUT', body: { image: cv.toDataURL('image/png') } }); msg.textContent = '✅ Firma guardada'; _verif = null; }
-      catch (ex) { msg.textContent = ex.message; }
+      if (!usado) { msg.textContent = 'Dibujá o subí tu firma primero'; return false; }
+      try { await apiFetch('/api/v1/profile/signature', { method: 'PUT', body: { image: cv.toDataURL('image/png') } }); msg.textContent = '✅ Firma guardada'; _verif = null; usado = false; return true; }
+      catch (ex) { msg.textContent = ex.message; return false; }
     };
+    $('firmaGuardar').onclick = guardar;
+    if (enAsistente) $('firmaGuardar').style.display = 'none';
+    window._guardarFirma = guardar;
   }
 
   // ─── Panel de verificaciones (administrador de la plataforma) ───
