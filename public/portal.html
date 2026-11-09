@@ -2070,9 +2070,10 @@ async function loadConfig(){
 // MI PLAN
 // ═══════════════════════════════════════════════════════════
 const PLAN_INCLUYE={
-  gratis:['Recetas electrónicas ilimitadas','Turnos online y agenda','Historia clínica','Recordatorios por WhatsApp con un toque desde tu número','Hasta 200 avisos automáticos por mes (confirmación y recordatorio)','Respuestas automáticas: el paciente confirma o cancela respondiendo'],
-  profesional:['Todo lo de Gratis','Avisos automáticos por WhatsApp ilimitados','Asistente con IA: resumen, dictado e indicaciones','Estudios y documentos compartidos con el paciente','Sala de espera y lista de espera','Firma digital con certificado','Soporte prioritario'],
-  consultorio:['Todo lo de Profesional, para cada médico (hasta 5)','Secretarías sin costo adicional','Agenda de todo el equipo y permisos','Facturación y obras sociales','De 6 a 10 profesionales: $34.000/mes'],
+  gratis:['1 profesional','<b>200 avisos automáticos por WhatsApp al mes</b> (≈100 turnos)','Recetas electrónicas ilimitadas','Turnos online, agenda e historia clínica','Recordatorios con un toque desde tu WhatsApp, sin límite','El paciente confirma o cancela respondiendo'],
+  profesional:['1 profesional + secretaria','<b>1.000 avisos automáticos por WhatsApp al mes</b> (≈500 turnos)','Todo lo de Gratis','Asistente con IA: resumen, dictado e indicaciones','Estudios y documentos compartidos con el paciente','Sala de espera y lista de espera','Firma digital con certificado'],
+  consultorio:['Hasta 3 profesionales + secretarías','<b>3.000 avisos automáticos por WhatsApp al mes</b> para todo el equipo','Todo lo de Profesional, para cada médico','Agenda de todo el equipo y permisos','Facturación y obras sociales','Soporte prioritario'],
+  clinica:['Hasta 10 profesionales + secretarías','<b>Avisos automáticos por WhatsApp ilimitados</b>','Todo lo de Consultorio','Reportes del equipo y de ausentismo','Alta y migración asistida de pacientes','Soporte prioritario por WhatsApp. Más de 10 profesionales: a medida'],
 };
 const pesos=n=>'$'+Number(n).toLocaleString('es-AR');
 const fechaAr=d=>{try{return new Date(d.length===10?d+'T12:00:00':d).toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'})}catch{return d}};
@@ -2091,19 +2092,19 @@ async function loadPlan(){
   const tarjeta=(id)=>{const pl=p.planes.find(x=>x.id===id),actual=p.plan===id&&p.origen!=='lanzamiento',pagando=sub&&sub.estado!=='pending'&&!sub.cancelada&&sub.plan===id;
     const boton=id==='gratis'?'':(p.origen==='lanzamiento'&&id==='profesional')?`<p class="muted" style="font-size:12px;margin:0">✓ Incluido sin costo hasta el ${fechaAr(p.promoHasta)}. Te avisamos antes de que termine.</p>`:pagando?`<button class="btn btn-sm btn-outline" onclick="cancelarPlan()">Cancelar renovación</button>`
       :`<button class="btn btn-sm" onclick="mejorarPlan('${id}',this)">${p.origen==='lanzamiento'?'Suscribirme':'Pasarme a '+pl.nombre}</button>`;
-    return `<div class="card" style="flex:1;min-width:230px;margin:0;${actual?'border:2px solid var(--primary)':''}">
+    return `<div class="card" style="margin:0;${actual?'border:2px solid var(--primary)':''}">
       <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px">${pl.nombre}</b>${actual?'<span class="badge">Tu plan</span>':''}</div>
       <div style="font-size:24px;font-weight:800;margin:6px 0">${pl.precio?pesos(pl.precio)+'<small style="font-size:12px;font-weight:500"> /mes</small>':'$0'}</div>
       <ul style="font-size:13px;padding-left:18px;margin:0 0 12px">${PLAN_INCLUYE[id].map(x=>`<li style="margin:4px 0">${x}</li>`).join('')}</ul>${boton}</div>`};
   main.innerHTML=`<div class="topbar"><h1>Mi plan</h1><div class="badge">${esc(p.nombre)}</div></div>
     <div class="card">
       <div class="card-title">Tu plan actual: ${esc(p.nombre)}</div>${origen}
-      <div style="margin-top:14px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>💬 Avisos automáticos por WhatsApp este mes</span><b>${w.limite<0?w.usados+' · ilimitados':w.usados+' de '+w.limite}</b></div>
+      <div style="margin-top:14px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>💬 Avisos automáticos por WhatsApp este mes${w.compartido?' (todo el equipo)':''}</span><b>${w.limite<0?w.usados+' · ilimitados':w.usados+' de '+w.limite}</b></div>
       ${w.limite>0?`<div style="height:8px;background:var(--border,#ECE5D9);border-radius:6px;margin-top:6px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${pct>=90?'var(--danger)':'var(--primary)'}"></div></div>`:''}
-      <p class="muted" style="font-size:12px;margin-top:6px">Cuentan las confirmaciones y los recordatorios que salen solos. Las respuestas a tus pacientes y los recordatorios que mandás con un toque no cuentan. Si llegás al tope, los recordatorios que faltan quedan en el Dashboard para enviarlos con un toque.</p>
+      <p class="muted" style="font-size:12px;margin-top:6px">Cada turno usa hasta 2 avisos: la confirmación al reservar y el recordatorio del día anterior. Las respuestas a tus pacientes y los recordatorios que mandás con un toque no cuentan. Si llegás al tope, los recordatorios que faltan quedan en el Dashboard para enviarlos con un toque.</p>
       <p class="muted" style="font-size:12px">Meta cobra cada aviso en tu propia cuenta de WhatsApp Business (unos centavos de dólar por mensaje), aparte del plan.</p></div>
     </div>
-    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:14px">${['gratis','profesional','consultorio'].map(tarjeta).join('')}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:14px">${['gratis','profesional','consultorio','clinica'].map(tarjeta).join('')}</div>
     <p id="planMsg" style="font-size:13px;margin-top:10px"></p>
     <p class="muted" style="font-size:12px;margin-top:6px">Los pagos se hacen con Mercado Pago (tarjeta de crédito, débito o dinero en cuenta) y se renuevan cada mes. Podés cancelar cuando quieras. ¿Dudas? support@tusrecetasmed.com</p>`;
 }

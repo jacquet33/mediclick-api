@@ -17,7 +17,7 @@ export class PlanesController {
   @Public()
   @Get('public/planes')
   publicos() {
-    return { planes: Object.entries(PLANES).map(([id, p]) => ({ id, nombre: p.nombre, precio: p.precio, waAutoMes: p.waAutoMes })), promoHasta: this.planes.promoHasta };
+    return { planes: Object.entries(PLANES).map(([id, p]) => ({ id, nombre: p.nombre, precio: p.precio, waAutoMes: p.waAutoMes, profesionales: p.profesionales })), promoHasta: this.planes.promoHasta };
   }
 
   @Get('planes/mio')
@@ -27,12 +27,12 @@ export class PlanesController {
   @Post('planes/mejorar')
   async mejorar(@CurrentUser() u: AuthUser, @Body() b: { plan?: string }) {
     const doctorId = this.medico(u);
-    const plan = b?.plan === 'consultorio' ? 'consultorio' : b?.plan === 'profesional' ? 'profesional' : null;
+    const plan = (['profesional', 'consultorio', 'clinica'] as const).find((x) => x === b?.plan) || null;
     if (!plan) throw new BadRequestException('Elegí un plan');
     if (!this.config.get('MP_ACCESS_TOKEN')) {
       throw new ServiceUnavailableException('El pago online se habilita en breve. Mientras tanto escribinos a support@tusrecetasmed.com y te activamos el plan.');
     }
-    const r = await this.mp.createSubscription(doctorId, PLANES[plan].mpPlan as 'pro' | 'centro');
+    const r = await this.mp.createSubscription(doctorId, PLANES[plan].mpPlan as 'pro' | 'centro' | 'clinica');
     return { checkoutUrl: r.checkoutUrl };
   }
 

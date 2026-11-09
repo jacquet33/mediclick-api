@@ -55,7 +55,7 @@ export class MercadoPagoService {
    */
   async createSubscription(
     doctorId: string,
-    planType: 'pro' | 'centro',
+    planType: 'pro' | 'centro' | 'clinica',
   ): Promise<{ checkoutUrl: string; subscriptionId: string }> {
     const accessToken = this.getAccessToken();
 

@@ -169,7 +169,9 @@ h2.title{font-family:var(--serif);font-weight:600;font-size:clamp(30px,4vw,46px)
 .plan li{display:flex;gap:9px;font-size:14px;color:var(--soft)}
 .plan li::before{content:'✓';color:var(--sage2);font-weight:800}
 .plan .btn{width:100%}
-@media(max-width:900px){.plans{grid-template-columns:1fr}}
+.plans.plans4{grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:1100px){.plans.plans4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:900px){.plans,.plans.plans4{grid-template-columns:1fr}}
 
 /* FAQ */
 .faq{max-width:780px;margin:0 auto;display:grid;gap:10px}

@@ -25,8 +25,8 @@ export class PaymentController {
     @Body() dto: SubscribePlanDto,
   ) {
     if (!req.user?.doctorId || (req.user as any).userType !== 'doctor') throw new ForbiddenException('El plan lo administra el médico titular');
-    if (!['pro', 'centro', 'centro10'].includes(String(dto.plan))) throw new BadRequestException('Plan inválido');
-    return this.mpService.createSubscription(req.user.doctorId, dto.plan as 'pro' | 'centro');
+    if (!['pro', 'centro', 'clinica'].includes(String(dto.plan))) throw new BadRequestException('Plan inválido');
+    return this.mpService.createSubscription(req.user.doctorId, dto.plan as 'pro' | 'centro' | 'clinica');
   }
 
   // ─── Cancelar ─────────────────────────────────────────────

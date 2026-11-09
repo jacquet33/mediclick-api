@@ -2,14 +2,20 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DatabaseService } from '../../database/database.service';
 
-export type PlanId = 'gratis' | 'profesional' | 'consultorio';
+export type PlanId = 'gratis' | 'profesional' | 'consultorio' | 'clinica';
 
-/** Planes publicados en tusrecetasmed.com/para-medicos. -1 = sin límite. */
-export const PLANES: Record<PlanId, { nombre: string; precio: number; waAutoMes: number; mpPlan?: string }> = {
-  gratis: { nombre: 'Gratis', precio: 0, waAutoMes: 200 },
-  profesional: { nombre: 'Profesional', precio: 9000, waAutoMes: -1, mpPlan: 'pro' },
-  consultorio: { nombre: 'Consultorio', precio: 19000, waAutoMes: -1, mpPlan: 'centro' },
+/**
+ * Planes publicados en tusrecetasmed.com/para-medicos. waAutoMes = avisos automáticos de WhatsApp
+ * (confirmación + recordatorio) por mes; -1 = sin límite. En Consultorio y Clínica el cupo es de todo el equipo.
+ */
+export const PLANES: Record<PlanId, { nombre: string; precio: number; waAutoMes: number; profesionales: number; mpPlan?: string }> = {
+  gratis: { nombre: 'Gratis', precio: 0, waAutoMes: 200, profesionales: 1 },
+  profesional: { nombre: 'Profesional', precio: 9000, waAutoMes: 1000, profesionales: 1, mpPlan: 'pro' },
+  consultorio: { nombre: 'Consultorio', precio: 19000, waAutoMes: 3000, profesionales: 3, mpPlan: 'centro' },
+  clinica: { nombre: 'Clínica', precio: 39000, waAutoMes: -1, profesionales: 10, mpPlan: 'clinica' },
 };
+const PLAN_POR_PRODUCTO: Record<string, PlanId> = { pro: 'profesional', centro: 'consultorio', centro10: 'clinica', clinica: 'clinica' };
+const COMPARTIDOS = ['centro', 'centro10', 'clinica'];
 
 /** Tipos de envío que cuentan para el cupo mensual (las respuestas a mensajes del paciente no cuentan) */
 const TIPOS_CUPO = ['confirmacion', 'recordatorio'];
@@ -37,33 +43,47 @@ export class PlanesService {
     return `${ar.getUTCFullYear()}-${String(ar.getUTCMonth() + 1).padStart(2, '0')}-01T00:00:00-03:00`;
   }
 
-  async usoWaMes(doctorId: string): Promise<number> {
+  /** Avisos automáticos del mes: del médico, o de todo el equipo si el plan es compartido */
+  async usoWaMes(doctorIds: string[]): Promise<number> {
     const r = await this.db.queryOne<{ n: number }>(
-      `SELECT count(*)::int AS n FROM whatsapp_envios WHERE doctor_id = $1 AND tipo = ANY($2) AND created_at >= $3`,
-      [doctorId, TIPOS_CUPO, this.inicioMes()],
+      `SELECT count(*)::int AS n FROM whatsapp_envios WHERE doctor_id = ANY($1::uuid[]) AND tipo = ANY($2) AND created_at >= $3`,
+      [doctorIds, TIPOS_CUPO, this.inicioMes()],
     );
     return r?.n ?? 0;
+  }
+
+  /** Médicos de las organizaciones de este médico (para los planes de equipo) */
+  private async equipo(doctorId: string): Promise<string[]> {
+    const rows = await this.db.query<{ doctor_id: string }>(
+      `SELECT DISTINCT od2.doctor_id FROM organization_doctors od1
+         JOIN organization_doctors od2 ON od2.organization_id = od1.organization_id
+        WHERE od1.doctor_id = $1`, [doctorId]);
+    const ids = rows.rows.map((r: any) => r.doctor_id);
+    return ids.length ? ids : [doctorId];
   }
 
   async estado(doctorId: string) {
     // Suscripción paga vigente (Mercado Pago, tiendas o asignada a mano). Mercado Pago se cobra mes a mes:
     // si pasaron más de 5 días del fin del período sin un pago nuevo, deja de contar.
+    // Suscripción propia, o la de Consultorio/Clínica que pagó otro médico del mismo equipo
+    const equipo = await this.equipo(doctorId);
     const sub = await this.db.queryOne<any>(
-      `SELECT id, status, store, store_product_id, current_period_end, cancelled_at, created_at
+      `SELECT id, doctor_id, status, store, store_product_id, current_period_end, cancelled_at, created_at
          FROM subscriptions
-        WHERE doctor_id = $1 AND plan = 'pro'
-          AND status IN ('active','grace_period','pending','billing_retry')
-        ORDER BY created_at DESC LIMIT 1`,
-      [doctorId],
+        WHERE plan = 'pro' AND status IN ('active','grace_period','pending','billing_retry')
+          AND (doctor_id = $1 OR (doctor_id = ANY($2::uuid[]) AND store_product_id = ANY($3)))
+        ORDER BY (status IN ('active','grace_period')) DESC, (doctor_id = $1) DESC, created_at DESC LIMIT 1`,
+      [doctorId, equipo, COMPARTIDOS],
     );
     const vigente = !!sub && ['active', 'grace_period'].includes(sub.status) &&
       (!sub.current_period_end || new Date(sub.current_period_end).getTime() + 5 * 86400_000 > Date.now());
-    const pagado: PlanId | null = vigente ? (/centro/.test(String(sub.store_product_id || '')) ? 'consultorio' : 'profesional') : null;
+    const pagado: PlanId | null = vigente ? (PLAN_POR_PRODUCTO[String(sub.store_product_id || 'pro')] || 'profesional') : null;
+    const compartido = !!pagado && COMPARTIDOS.includes(String(sub.store_product_id));
 
     const plan: PlanId = pagado || (this.promoVigente ? 'profesional' : 'gratis');
     const origen = pagado ? 'pago' : this.promoVigente ? 'lanzamiento' : 'gratis';
     const limite = PLANES[plan].waAutoMes;
-    const usados = await this.usoWaMes(doctorId);
+    const usados = await this.usoWaMes(compartido ? await this.equipo(sub.doctor_id) : [doctorId]);
     return {
       plan,
       nombre: PLANES[plan].nombre,
@@ -72,12 +92,13 @@ export class PlanesService {
       suscripcion: sub ? {
         estado: sub.status,                     // active | pending | billing_retry | grace_period
         medio: sub.store,
-        plan: /centro/.test(String(sub.store_product_id || '')) ? 'consultorio' : 'profesional',
+        plan: PLAN_POR_PRODUCTO[String(sub.store_product_id || 'pro')] || 'profesional',
+        titular: sub.doctor_id === doctorId,
         vence: sub.current_period_end,
         cancelada: !!sub.cancelled_at,
       } : null,
-      whatsapp: { usados, limite, restantes: limite < 0 ? null : Math.max(0, limite - usados) },
-      planes: Object.entries(PLANES).map(([id, p]) => ({ id, nombre: p.nombre, precio: p.precio, waAutoMes: p.waAutoMes })),
+      whatsapp: { usados, limite, restantes: limite < 0 ? null : Math.max(0, limite - usados), compartido },
+      planes: Object.entries(PLANES).map(([id, p]) => ({ id, nombre: p.nombre, precio: p.precio, waAutoMes: p.waAutoMes, profesionales: p.profesionales })),
       pagosDisponibles: !!this.config.get('MP_ACCESS_TOKEN'),
     };
   }
