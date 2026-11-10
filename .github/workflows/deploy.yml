@@ -57,6 +57,11 @@ jobs:
                   timeout: 10s
                   retries: 3
                   start_period: 40s
+                # 1 GB: margen para generar muchos PDF de recetas a la vez
+                deploy:
+                  resources:
+                    limits:
+                      memory: 1G
                 environment:
                   # ID de cliente OAuth web de Google (es público, no es secreto). Variable del repo GOOGLE_CLIENT_ID_WEB
                   GOOGLE_CLIENT_ID_WEB: "${{ vars.GOOGLE_CLIENT_ID_WEB || '85175903902-4dvv62kpagr9fh53t8k60mn9pe28nuso.apps.googleusercontent.com' }}"
@@ -101,9 +106,7 @@ jobs:
                   SMTP_PASS: "${{ secrets.SMTP_PASS }}"
                   SMTP_FROM: "${{ secrets.SMTP_FROM }}"
                   # Asistente IA: Ollama local (el de Rispy, en este mismo servidor: los datos no salen). "none" = solo reglas
-                  AI_PROVIDER: "${{ vars.AI_PROVIDER || 'ollama' }}"
-                  OLLAMA_URL: "${{ vars.OLLAMA_URL || 'http://rispy-ollama:11434' }}"
-                  OLLAMA_MODEL: "${{ vars.OLLAMA_MODEL || 'qwen3.5:2b' }}"
+                  AI_PROVIDER: "${{ vars.AI_PROVIDER || 'none' }}"
                   ANTHROPIC_API_KEY: "${{ secrets.ANTHROPIC_API_KEY }}"
                   IOS_APP_STORE_URL: "${{ vars.IOS_APP_STORE_URL }}"
                   # Captcha de Cloudflare Turnstile en formularios públicos. Vacíos = sin captcha

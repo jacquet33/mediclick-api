@@ -1411,7 +1411,7 @@ function htmlResumenClinico(p,ult,vit){
   vit=vit||{};
   const vitales=[vit.bloodPressure||vit.blood_pressure?'TA '+(vit.bloodPressure||vit.blood_pressure):'',vit.heartRate||vit.heart_rate?'FC '+(vit.heartRate||vit.heart_rate)+' lpm':'',vit.temperature?vit.temperature+' °C':'',vit.spO2||vit.spo2?'SpO₂ '+(vit.spO2||vit.spo2)+'%':'',vit.weight?vit.weight+' kg':'',vit.height?vit.height+' cm':'',vit.weight&&vit.height?'IMC '+(vit.weight/((vit.height/100)**2)).toFixed(1):''].filter(Boolean);
   const bloque=(t,items,cls)=>`<div class="rc-b"><div class="rc-t">${t}</div>${items.length?`<div class="tags">${items.map(x=>`<span class="tag ${cls||''}">${esc(x)}</span>`).join('')}</div>`:'<span class="muted" style="font-size:13px">Sin registrar</span>'}</div>`;
-  return `<div class="card-title" style="justify-content:space-between"><span>🩺 Resumen clínico</span><span class="flex" style="gap:6px">${userType==='doctor'?`<button class="btn btn-sm btn-soft" onclick="resumenIA('${p.id}')">✨ Resumir con IA</button><button class="btn btn-sm btn-outline" onclick="editarResumenClinico('${p.id}')">✏️ Editar</button>`:''}</span></div>
+  return `<div class="card-title" style="justify-content:space-between"><span>🩺 Resumen clínico</span><span class="flex" style="gap:6px">${userType==='doctor'?`<button class="btn btn-sm btn-soft" onclick="resumenIA('${p.id}')">📋 Resumen del paciente</button><button class="btn btn-sm btn-outline" onclick="editarResumenClinico('${p.id}')">✏️ Editar</button>`:''}</span></div>
     <div id="iaResumen"></div>
     <div class="rc-grid">
       ${bloque('⚠️ Alergias',al,'alert')}
@@ -2141,7 +2141,7 @@ async function loadConfig(){
 // ═══════════════════════════════════════════════════════════
 const PLAN_INCLUYE={
   gratis:['1 profesional','<b>200 avisos automáticos por WhatsApp al mes</b> (≈100 turnos)','Recetas electrónicas ilimitadas','Turnos online, agenda e historia clínica','Recordatorios con un toque desde tu WhatsApp, sin límite','El paciente confirma o cancela respondiendo'],
-  profesional:['1 profesional + secretaria','<b>1.000 avisos automáticos por WhatsApp al mes</b> (≈500 turnos)','Todo lo de Gratis','Asistente con IA: resumen, dictado e indicaciones','Estudios y documentos compartidos con el paciente','Sala de espera y lista de espera','Firma digital con certificado'],
+  profesional:['1 profesional + secretaria','<b>1.000 avisos automáticos por WhatsApp al mes</b> (≈500 turnos)','Todo lo de Gratis','Resumen del paciente, dictado e indicaciones listas para enviar','Estudios y documentos compartidos con el paciente','Sala de espera y lista de espera','Firma digital con certificado'],
   consultorio:['Hasta 3 profesionales + secretarías','<b>3.000 avisos automáticos por WhatsApp al mes</b> para todo el equipo','Todo lo de Profesional, para cada médico','Agenda de todo el equipo y permisos','Facturación y obras sociales','Soporte prioritario'],
   clinica:['Hasta 10 profesionales + secretarías','<b>Avisos automáticos por WhatsApp ilimitados</b>','Todo lo de Consultorio','Reportes del equipo y de ausentismo','Alta y migración asistida de pacientes','Soporte prioritario por WhatsApp. Más de 10 profesionales: a medida'],
 };

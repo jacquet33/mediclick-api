@@ -11,6 +11,25 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
   constructor(private config: ConfigService) {}
 
+  /**
+   * Ejecuta una tarea programada solo si ninguna otra copia del servidor la está corriendo
+   * (bloqueo de PostgreSQL). Así, con varias instancias, cada recordatorio sale una sola vez.
+   */
+  async conBloqueo<T>(clave: string, fn: () => Promise<T>): Promise<T | undefined> {
+    const client = await this.pool.connect();
+    try {
+      const r = await client.query('SELECT pg_try_advisory_lock(hashtext($1)) AS ok', [clave]);
+      if (!r.rows[0]?.ok) return undefined;
+      try {
+        return await fn();
+      } finally {
+        await client.query('SELECT pg_advisory_unlock(hashtext($1))', [clave]).catch(() => undefined);
+      }
+    } finally {
+      client.release();
+    }
+  }
+
   async onModuleInit() {
     this.pool = new Pool({
       connectionString: this.config.get<string>('DATABASE_URL'),

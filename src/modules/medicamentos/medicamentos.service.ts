@@ -63,8 +63,8 @@ export class MedicamentosService implements OnModuleInit {
   onModuleInit() {
     if (this.config.get('MEDICAMENTOS_AUTO') === 'false') return;
     // Al arrancar (si está vacío o tiene más de 7 días) y después cada 12 h se fija si hay que actualizar
-    setTimeout(() => this.actualizarSiHaceFalta().catch(() => {}), 20_000);
-    setInterval(() => this.actualizarSiHaceFalta().catch(() => {}), 12 * 3600_000).unref();
+    setTimeout(() => this.db.conBloqueo('tarea:catalogo-medicamentos', () => this.actualizarSiHaceFalta()).catch(() => {}), 20_000);
+    setInterval(() => this.db.conBloqueo('tarea:catalogo-medicamentos', () => this.actualizarSiHaceFalta()).catch(() => {}), 12 * 3600_000).unref();
   }
 
   async estado() {

@@ -1,0 +1,24 @@
+name: Monitor tusrecetasmed.com
+# Cada 15 minutos revisa que el sitio y la API respondan. Si falla, GitHub te manda un email.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+jobs:
+  chequeo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Sitio, API y base de datos
+        run: |
+          set -e
+          fallo=0
+          for intento in 1 2 3; do
+            web=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 https://tusrecetasmed.com/ || echo 000)
+            api=$(curl -s --max-time 20 https://tusrecetasmed.com/api/v1/health || true)
+            if [ "$web" = "200" ] && echo "$api" | grep -q '"database":"connected"\|"status":"ok"'; then
+              echo "OK web=$web api=$(echo "$api" | head -c 120)"; exit 0
+            fi
+            echo "Intento $intento: web=$web api=$(echo "$api" | head -c 160)"; sleep 30
+          done
+          echo "::error::tusrecetasmed.com no responde (3 intentos en 1 minuto)"; exit 1

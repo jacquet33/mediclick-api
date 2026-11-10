@@ -12,3 +12,7 @@ coverage/
 *.swo
 docker-compose.override.yml
 certs/
+
+# Archivos locales de prueba
+dump.rdb
+/*.png

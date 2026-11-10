@@ -32,8 +32,8 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     // Revisa cada 10 minutos; el envío es idempotente (se marca antes de enviar)
-    this.timer = setInterval(() => this.procesar().catch(e => this.logger.error(e.message)), 10 * 60_000);
-    setTimeout(() => this.procesar().catch(e => this.logger.error(e.message)), 60_000);
+    this.timer = setInterval(() => this.db.conBloqueo('tarea:recordatorios-whatsapp', () => this.procesar()).catch(e => this.logger.error(e.message)), 10 * 60_000);
+    setTimeout(() => this.db.conBloqueo('tarea:recordatorios-whatsapp', () => this.procesar()).catch(e => this.logger.error(e.message)), 60_000);
   }
 
   onModuleDestroy() {

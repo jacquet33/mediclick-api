@@ -21,8 +21,8 @@ export class ActivityService implements OnModuleInit, OnModuleDestroy {
   constructor(private db: DatabaseService, private email: EmailService, private config: ConfigService) {}
 
   onModuleInit() {
-    this.timer = setInterval(() => this.recordarAltas().catch((e) => this.logger.warn(e.message)), 30 * 60_000);
-    setTimeout(() => this.recordarAltas().catch((e) => this.logger.warn(e.message)), 2 * 60_000);
+    this.timer = setInterval(() => this.db.conBloqueo('tarea:recordar-altas', () => this.recordarAltas()).catch((e) => this.logger.warn(e.message)), 30 * 60_000);
+    setTimeout(() => this.db.conBloqueo('tarea:recordar-altas', () => this.recordarAltas()).catch((e) => this.logger.warn(e.message)), 2 * 60_000);
   }
   onModuleDestroy() { if (this.timer) clearInterval(this.timer); }
 

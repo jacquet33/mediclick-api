@@ -16,8 +16,8 @@ export class CentralRepoService implements OnModuleInit, OnModuleDestroy {
   constructor(private db: DatabaseService, private config: ConfigService, private fhir: FhirService) {}
 
   onModuleInit() {
-    this.timer = setInterval(() => this.procesar().catch(() => undefined), 10 * 60_000);
-    setTimeout(() => this.procesar().catch(() => undefined), 30_000);
+    this.timer = setInterval(() => this.db.conBloqueo('tarea:repositorio-central', () => this.procesar()).catch(() => undefined), 10 * 60_000);
+    setTimeout(() => this.db.conBloqueo('tarea:repositorio-central', () => this.procesar()).catch(() => undefined), 30_000);
   }
   onModuleDestroy() { if (this.timer) clearInterval(this.timer); }
 
@@ -26,7 +26,7 @@ export class CentralRepoService implements OnModuleInit, OnModuleDestroy {
       `INSERT INTO central_repo_submissions (prescription_id) VALUES ($1) ON CONFLICT (prescription_id) DO NOTHING`,
       [prescriptionId],
     ).catch(() => undefined);
-    this.procesar().catch(() => undefined);
+    this.db.conBloqueo('tarea:repositorio-central', () => this.procesar()).catch(() => undefined);
   }
 
   async payload(prescriptionId: string) {
