@@ -27,6 +27,7 @@ jobs:
           chk $B/api/v1/public/booking/doctor/alejandro-jacquet-1
           chk $B/api/v1/public/planes
           chk $B/api/v1/medicamentos/estado
+          chk $B/api/v1/cobertura/estado
           chk $B/api/v1/planes/mio
           curl -s $B/portal | grep -c 'id="loginForm"' | sed 's/^/SMOKE login-form=/'
           chk https://www.tusrecetasmed.com/ -I
