@@ -14,6 +14,8 @@ import { InboxController } from './modules/notifications/inbox.controller';
 import { WhatsappAccountService } from './modules/reminders/whatsapp-account.service';
 import { WhatsappAccountController } from './modules/reminders/whatsapp-account.controller';
 import { PlanesController } from './modules/subscriptions/planes.controller';
+import { MedicamentosController } from './modules/medicamentos/medicamentos.controller';
+import { MedicamentosService } from './modules/medicamentos/medicamentos.service';
 import { PlanesService } from './modules/subscriptions/planes.service';
 import { WhatsappRespuestasService } from './modules/whatsapp/whatsapp-respuestas.service';
 import { AuthService } from './modules/auth/auth.service';
@@ -165,6 +167,7 @@ class HealthController {
     InboxController,
     WhatsappAccountController,
     PlanesController,
+    MedicamentosController,
     OAuthController,
     OrganizationController,
     InvitationController,
@@ -254,6 +257,7 @@ class HealthController {
     DashboardService,
     MercadoPagoService,
     PlanesService,
+    MedicamentosService,
     WhatsappRespuestasService,
     EmailService,
     { provide: APP_GUARD, useClass: ProGuard },

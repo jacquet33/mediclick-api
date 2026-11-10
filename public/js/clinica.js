@@ -472,7 +472,7 @@
 
   window.abrirNuevaReceta = async function (opts) {
     const v = await verificacion(true);
-    R = { patientId: opts.patientId || '', patient: null, medicalRecordId: opts.medicalRecordId || null, diagnosis: opts.diagnosis || '', diagnosisCode: opts.diagnosisCode || '', expiresInDays: 30, notes: '', items: [itemVacio()], templates: [], frecuentes: [], recientes: [], inicio: Date.now(), confirmaAlertas: false };
+    R = { patientId: opts.patientId || '', patient: null, medicalRecordId: opts.medicalRecordId || null, diagnosis: opts.diagnosis || '', diagnosisCode: opts.diagnosisCode || '', expiresInDays: 30, notes: '', items: [], templates: [], frecuentes: [], recientes: [], inicio: Date.now(), confirmaAlertas: false };
     const [pac, tpls, frec] = await Promise.all([
       R.patientId ? apiFetch(`/api/v1/patients/${R.patientId}`).catch(() => null) : null,
       apiFetch('/api/v1/prescription-templates').catch(() => []),
@@ -495,8 +495,7 @@
   }
   const itemDe = (x) => ({ ...itemVacio(), genericName: x.generic_name || x.generico || x.medication_name || '', medicationName: (x.generic_name || x.generico) && x.medication_name !== (x.generic_name || x.generico) ? (x.medication_name || '') : '', pharmaceuticalForm: x.pharmaceutical_form || '', presentation: x.presentation || '', dosage: x.dosage || '', frequency: x.frequency || '', duration: x.duration || '', quantity: x.quantity ? String(x.quantity) : '', instructions: x.instructions || '' });
   function agregarItems(nuevos) {
-    R.items = R.items.filter((x) => (x.genericName || '').trim()).concat(nuevos);
-    if (!R.items.length) R.items = [itemVacio()];
+    R.items = R.items.filter((x) => (x.genericName || '').trim() || x.manual).concat(nuevos);
     R.confirmaAlertas = false;
   }
   function pintarAlertas() {
@@ -510,6 +509,124 @@
     const c = $('rxConfAl'); if (c) c.onchange = () => { R.confirmaAlertas = c.checked; };
   }
 
+  // ── Cobertura del paciente ──────────────────────────────────
+  const esParticular = (p) => !p || !String(p.insurance_provider || '').trim() || /^(particular|sin cobertura|ninguna)$/i.test(String(p.insurance_provider).trim());
+  const esPami = (p) => !!p && /pami|inssjp/i.test(String(p.insurance_provider || ''));
+  const edadDe = (f) => { const d = new Date(String(f).slice(0, 10) + 'T12:00:00'); if (isNaN(d)) return ''; const h = new Date(); let a = h.getFullYear() - d.getFullYear(); if (h < new Date(h.getFullYear(), d.getMonth(), d.getDate())) a--; return a >= 0 ? a + ' años' : ''; };
+  function coberturaHtml(p) {
+    if (R.editCob) return `<div class="rx-cob editando">
+      <div class="rx-cob-h"><b>🏥 Cobertura médica</b></div>
+      <label class="rx-cob-part"><input type="checkbox" id="cobPart" ${esParticular(p) ? 'checked' : ''}> Sin cobertura (particular)</label>
+      <div class="rx-cob-grid" id="cobCampos" ${esParticular(p) ? 'style="display:none"' : ''}>
+        <div class="field"><label for="cobOs">Obra social / prepaga</label><input id="cobOs" list="cobOsList" value="${e(esParticular(p) ? '' : p.insurance_provider)}" placeholder="Ej: OSDE, PAMI, IOSFA…" autocomplete="off"><datalist id="cobOsList"></datalist></div>
+        <div class="field"><label for="cobPlan">Plan</label><input id="cobPlan" value="${e(p.insurance_plan || '')}" placeholder="Ej: 310, SMG20"></div>
+        <div class="field"><label for="cobNum">Nº de afiliado</label><input id="cobNum" value="${e(p.insurance_number || '')}" inputmode="numeric"></div>
+      </div>
+      <div class="flex" style="gap:8px"><button class="btn btn-sm btn-primary" id="cobGuardar" type="button">Guardar cobertura</button><button class="btn btn-sm btn-outline" id="cobCancelar" type="button">Cancelar</button><span id="cobMsg" class="error"></span></div>
+    </div>`;
+    return `<div class="rx-cob">
+      <div class="rx-cob-h"><b>🏥 Cobertura médica</b><button class="btn btn-sm btn-soft" id="cobEditar" type="button">Editar</button></div>
+      ${esParticular(p) ? '<p class="rx-cob-val">Sin cobertura · <b>Particular</b></p>' : `<div class="rx-cob-grid ver">
+        <div><span>Cobertura</span><b>${e(p.insurance_provider)}</b></div>
+        <div><span>Plan</span><b>${e(p.insurance_plan || '—')}</b></div>
+        <div><span>Nº de afiliado</span><b>${p.insurance_number ? e(p.insurance_number) : '<em class="falta">Falta cargarlo</em>'}</b></div></div>`}
+    </div>`;
+  }
+  function enlazarCobertura(v) {
+    const ed = $('cobEditar'); if (ed) ed.onclick = () => { leerReceta(); R.editCob = true; pintarReceta(v); setTimeout(() => $('cobOs')?.focus(), 0); };
+    const ca = $('cobCancelar'); if (ca) ca.onclick = () => { R.editCob = false; pintarReceta(v); };
+    const part = $('cobPart'); if (part) part.onchange = () => { $('cobCampos').style.display = part.checked ? 'none' : ''; };
+    const os = $('cobOs');
+    if (os) { let t; os.oninput = () => { clearTimeout(t); t = setTimeout(async () => {
+      const q = os.value.trim(); if (q.length < 2) return;
+      const r = await apiFetch(`/api/v1/insurers?search=${encodeURIComponent(q)}&limit=12`).catch(() => null);
+      const lista = asList(r?.data || r?.items || r);
+      $('cobOsList').innerHTML = lista.map((x) => `<option value="${e(x.short_name || x.name)}">${e(x.name)}</option>`).join('');
+    }, 200); }; }
+    const g = $('cobGuardar'); if (g) g.onclick = async () => {
+      const particular = $('cobPart').checked;
+      const body = particular ? { insuranceProvider: '', insurancePlan: '', insuranceNumber: '' }
+        : { insuranceProvider: $('cobOs').value.trim(), insurancePlan: $('cobPlan').value.trim(), insuranceNumber: $('cobNum').value.trim() };
+      if (!particular && !body.insuranceProvider) { $('cobMsg').textContent = 'Elegí la obra social o marcá "Sin cobertura"'; return; }
+      g.disabled = true;
+      try {
+        await apiFetch(`/api/v1/patients/${R.patientId}`, { method: 'PUT', body });
+        R.patient = { ...R.patient, insurance_provider: body.insuranceProvider, insurance_plan: body.insurancePlan, insurance_number: body.insuranceNumber };
+        R.editCob = false; pintarReceta(v);
+      } catch (ex) { $('cobMsg').textContent = ex.message; g.disabled = false; }
+    };
+  }
+
+  // ── Buscador de medicamentos (catálogo oficial) ─────────────
+  const capitalizar = (t) => String(t || '').replace(/^\s*\p{L}/u, (c) => c.toUpperCase());
+  function pintarCatInfo() {
+    const c = window._catMed, el = $('rxCatInfo');
+    if (el && c && c.presentaciones) el.textContent = `Catálogo: ${Number(c.presentaciones).toLocaleString('es-AR')} presentaciones de ${Number(c.marcas).toLocaleString('es-AR')} marcas`;
+  }
+  function buscadorMedicamentos(v) {
+    const p = R.patient || {};
+    const pami = esPami(p);
+    const ov = document.createElement('div');
+    ov.className = 'rx-med-ov'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Agregar medicamento');
+    ov.innerHTML = `<div class="rx-med">
+      <div class="rx-med-top"><button class="rx-med-x" type="button" aria-label="Cerrar">✕</button>
+        <div class="rx-med-q"><span aria-hidden="true">🔍</span><input id="medQ" placeholder="Marca o droga: amoxidal, ibuprofeno…" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="rx-med-clr" type="button" aria-label="Borrar" hidden>✕</button></div></div>
+      <div class="rx-med-body" id="medRes"><p class="muted center" style="padding:28px 10px">Escribí al menos 2 letras del nombre comercial o de la droga.</p></div>
+      <div class="rx-med-foot"><button class="btn btn-sm btn-outline" id="medManual" type="button">No lo encuentro: cargar a mano</button></div>
+    </div>`;
+    document.body.appendChild(ov);
+    document.body.style.overflow = 'hidden';
+    const cerrar = () => { ov.remove(); document.body.style.overflow = ''; document.removeEventListener('keydown', esc); };
+    const esc = (ev) => { if (ev.key === 'Escape') cerrar(); };
+    document.addEventListener('keydown', esc);
+    ov.onclick = (ev) => { if (ev.target === ov) cerrar(); };
+    ov.querySelector('.rx-med-x').onclick = cerrar;
+    const q = ov.querySelector('#medQ'), res = ov.querySelector('#medRes'), clr = ov.querySelector('.rx-med-clr');
+    setTimeout(() => q.focus(), 30);
+    const elegir = (x) => {
+      const it = { ...itemVacio(), genericName: capitalizar(x.droga), medicationName: x.marca || '', pharmaceuticalForm: x.forma || '', presentation: x.presentacion || '', alfabeta: x.alfabeta || null, coberturaPami: x.cobertura_pami || '' };
+      const f = R.frecuentes.find((y) => VD().norm(y.generico) === VD().norm(x.droga));
+      if (f) { const d2 = itemDe(f); for (const k of ['dosage', 'frequency', 'duration', 'quantity', 'instructions']) if (!it[k]) it[k] = d2[k]; }
+      agregarItems([it]); cerrar(); pintarReceta(v);
+      setTimeout(() => { const n = main().querySelector(`[data-i="${R.items.length - 1}"][data-f="dosage"]`); if (n) { n.scrollIntoView({ block: 'center', behavior: 'smooth' }); n.focus({ preventScroll: true }); } }, 50);
+    };
+    const verPresentaciones = async (droga, marca) => {
+      res.innerHTML = '<div class="spinner" style="margin:24px auto"></div>';
+      const lista = asList(await apiFetch(`/api/v1/medicamentos/presentaciones?droga=${encodeURIComponent(droga)}${marca ? '&marca=' + encodeURIComponent(marca) : ''}`).catch(() => []));
+      res.innerHTML = `<button class="rx-med-back" type="button">← Volver a los resultados</button>
+        <div class="rx-med-sel"><b>${e(marca || capitalizar(droga))}</b><small>${marca ? e(droga) : 'Por nombre genérico: la farmacia puede dispensar cualquier marca'}</small></div>
+        <p class="rx-med-lbl">Elegí la presentación</p>
+        ${lista.map((x, i) => `<button class="rx-med-pres" type="button" data-k="${i}"><span>${e(x.presentacion)}</span><small>${e(marca ? (x.laboratorio || '') : (x.laboratorios > 1 ? x.laboratorios + ' laboratorios' : (x.laboratorio || '')))}${pami && x.cobertura_pami ? ` · <span class="cob-chip">PAMI ${e(x.cobertura_pami)}</span>` : ''}</small></button>`).join('') || '<p class="muted">Sin presentaciones cargadas.</p>'}
+        <button class="rx-med-pres otra" type="button" data-otra="1"><span>Otra presentación</span><small>La escribís vos en la receta</small></button>`;
+      res.querySelector('.rx-med-back').onclick = () => buscar();
+      res.querySelectorAll('[data-k]').forEach((b) => b.onclick = () => elegir(lista[+b.dataset.k]));
+      res.querySelector('[data-otra]').onclick = () => elegir({ droga, marca: marca || '', presentacion: '', forma: '' });
+      res.scrollTop = 0;
+    };
+    let t, ultima = '';
+    const buscar = async () => {
+      const txt = q.value.trim(); clr.hidden = !txt;
+      if (txt.length < 2) { res.innerHTML = '<p class="muted center" style="padding:28px 10px">Escribí al menos 2 letras del nombre comercial o de la droga.</p>'; return; }
+      ultima = txt;
+      const r = await apiFetch(`/api/v1/medicamentos?q=${encodeURIComponent(txt)}&limit=40`).catch(() => ({ genericos: [], marcas: [] }));
+      if (ultima !== txt) return;
+      let genericos = r.genericos || [], marcas = r.marcas || [];
+      // Si el catálogo no lo tiene, se usa el vademécum de genéricos del sistema
+      const locales = !genericos.length && !marcas.length ? VD().buscar(txt, 8) : [];
+      res.innerHTML = (genericos.length ? `<p class="rx-med-lbl">Recetar por nombre genérico</p>` + genericos.map((g, i) => `<button class="rx-med-card gen" type="button" data-g="${i}"><span><b>${e(capitalizar(g.droga))}</b><small>Genérico · ${g.marcas} marca${g.marcas === 1 ? '' : 's'} · ${g.presentaciones} presentaciones</small></span><i aria-hidden="true">›</i></button>`).join('') : '')
+        + (marcas.length ? `<p class="rx-med-lbl">Marcas comerciales</p>` + marcas.map((m, i) => `<button class="rx-med-card" type="button" data-m="${i}"><span><b>${e(m.marca)}</b><em>${e(m.droga)}</em><small>${e(m.laboratorio || '')} · ${m.presentaciones} presentación${m.presentaciones === 1 ? '' : 'es'}${pami && m.cobertura_pami ? ` · <span class="cob-chip">PAMI ${e(m.cobertura_pami)}</span>` : ''}</small></span><i aria-hidden="true">›</i></button>`).join('') : '')
+        + (locales.length ? `<p class="rx-med-lbl">Genéricos</p>` + locales.map((x, i) => `<button class="rx-med-card gen" type="button" data-l="${i}"><span><b>${e(x[0])}</b><small>${e(x[1])}</small></span><i aria-hidden="true">›</i></button>`).join('') : '')
+        || `<p class="muted center" style="padding:24px 10px">No encontramos "${e(txt)}". Revisá cómo se escribe o cargalo a mano.</p>`;
+      res.querySelectorAll('[data-g]').forEach((b) => b.onclick = () => verPresentaciones(genericos[+b.dataset.g].droga));
+      res.querySelectorAll('[data-m]').forEach((b) => b.onclick = () => verPresentaciones(marcas[+b.dataset.m].droga, marcas[+b.dataset.m].marca));
+      res.querySelectorAll('[data-l]').forEach((b) => b.onclick = () => { const x = locales[+b.dataset.l]; elegir({ droga: x[0], marca: '', presentacion: '', forma: x[2].length === 1 ? x[2][0] : '' }); });
+    };
+    q.oninput = () => { clearTimeout(t); t = setTimeout(buscar, 180); };
+    q.onkeydown = (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); res.querySelector('button.rx-med-card')?.click(); } };
+    clr.onclick = () => { q.value = ''; buscar(); q.focus(); };
+    ov.querySelector('#medManual').onclick = () => { R.items.push({ ...itemVacio(), genericName: q.value.trim() && !/\d/.test(q.value) ? capitalizar(q.value.trim()) : '', manual: true }); cerrar(); pintarReceta(v); };
+  }
+
   function pintarReceta(v) {
     const p = R.patient;
     const sinDni = p && !String(p.dni || '').replace(/\D/g, '');
@@ -517,7 +634,8 @@
       <div class="topbar"><button class="btn btn-sm btn-outline" onclick="${R.patientId ? `abrirPaciente('${R.patientId}')` : "navigateTo('recetas')"}">Cancelar</button><h1>Nueva receta</h1><span></span></div>
       ${bannerVerificacion(v)}
       <div class="card"><div class="card-title">👤 Paciente</div>
-        ${p ? `<div class="appt-row"><div class="who"><strong>${e(p.first_name)} ${e(p.last_name)}</strong><small>${e([p.dni ? 'DNI ' + p.dni : 'Sin DNI', p.insurance_provider || 'Particular', p.insurance_number ? 'Afiliado ' + p.insurance_number : ''].filter(Boolean).join(' · '))}</small></div><button class="btn btn-sm btn-soft" id="rxCambiarPac">Cambiar</button></div>
+        ${p ? `<div class="appt-row"><div class="who"><strong>${e(p.first_name)} ${e(p.last_name)}</strong><small>${e([p.dni ? 'DNI ' + p.dni : 'Sin DNI', p.date_of_birth ? edadDe(p.date_of_birth) : ''].filter(Boolean).join(' · '))}</small></div><button class="btn btn-sm btn-soft" id="rxCambiarPac">Cambiar</button></div>
+          ${coberturaHtml(p)}
           ${(listaP(p.allergies).length || listaP(p.current_medications).length) ? `<div class="rx-pac-info">${listaP(p.allergies).length ? `<div><span class="chip-al">Alergias</span> ${listaP(p.allergies).map(e).join(', ')}</div>` : ''}${listaP(p.current_medications).length ? `<div><span class="chip-med">Medicación actual</span> ${listaP(p.current_medications).map(e).join(', ')}</div>` : ''}</div>` : ''}
           ${!sinDni ? `<div class="field" style="max-width:320px;margin-top:8px"><label>CUIL del paciente *</label><input id="rxCuil" value="${e(R.cuil || p.cuil || cuilDesdeDni(p.dni, p.gender) || '')}" inputmode="numeric" placeholder="Ej: 20301112223"></div>` : ''}
           ${sinDni ? `<p class="error">La receta electrónica necesita el DNI del paciente. <a href="#" onclick="abrirPaciente('${p.id}');setTimeout(()=>editarPaciente('${p.id}'),900);return false" style="color:var(--primary)">Cargarlo</a></p>` : ''}`
@@ -535,8 +653,9 @@
       </div>` : ''}
       <div class="card"><div class="card-title" style="justify-content:space-between"><span>💊 Medicamentos</span>
         ${R.templates.length ? `<select id="rxTpl" style="padding:8px;border:1.5px solid #ECE5D9;border-radius:10px;font:inherit;font-size:13px"><option value="">Usar plantilla…</option>${R.templates.map((t) => `<option value="${t.id}">${e(t.name)}</option>`).join('')}</select>` : ''}</div>
+        ${!R.items.length ? `<p class="muted center" style="padding:14px 0 6px">Todavía no agregaste medicamentos a esta receta.</p>` : ''}
         ${R.items.map((it, i) => `<div class="card" style="background:#FFFDF9;border:1px solid #F4EEE6;box-shadow:none">
-          <div class="flex-between"><b style="font-size:13px">Medicamento ${i + 1}</b>${R.items.length > 1 ? `<button class="btn btn-sm btn-no" data-quitar="${i}">Quitar</button>` : ''}</div>
+          <div class="flex-between"><div>${it.medicationName || it.presentation ? `<b class="rx-it-t">${e(it.medicationName || it.genericName)}</b><small class="rx-it-s">${e([it.medicationName ? it.genericName : '', it.presentation].filter(Boolean).join(' · '))}${it.coberturaPami && esPami(p) ? ` · <span class="cob-chip">PAMI ${e(it.coberturaPami)}</span>` : ''}</small>` : `<b style="font-size:13px">Medicamento ${i + 1}</b>`}</div><button class="btn btn-sm btn-no" data-quitar="${i}">Quitar</button></div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0 12px;margin-top:8px">
             <div class="field" style="position:relative"><label>Nombre genérico (DCI) *</label><input data-i="${i}" data-f="genericName" data-ac="${i}" value="${e(it.genericName)}" placeholder="Escribí para buscar: ibup…" autocomplete="off"><div class="rx-ac" id="rxAc${i}"></div></div>
             <div class="field"><label>Marca (opcional)</label><input data-i="${i}" data-f="medicationName" value="${e(it.medicationName)}" placeholder="Ej: Ibupirac"></div>
@@ -551,7 +670,8 @@
         </div>`).join('')}
         <datalist id="rxFrecs">${VD().FRECUENCIAS.map((f) => `<option value="${e(f)}">`).join('')}</datalist>
         <datalist id="rxDurs">${VD().DURACIONES.map((f) => `<option value="${e(f)}">`).join('')}</datalist>
-        <div class="flex" style="flex-wrap:wrap;gap:8px"><button class="btn btn-sm btn-outline" id="rxMas">+ Agregar medicamento</button><button class="btn btn-sm btn-soft" id="rxGuardarTpl">💾 Guardar como plantilla</button></div>
+        <button class="btn btn-primary rx-agregar" id="rxMas" type="button">＋ Agregar medicamento</button>
+        <div class="flex" style="flex-wrap:wrap;gap:8px;margin-top:8px">${R.items.length ? '<button class="btn btn-sm btn-soft" id="rxGuardarTpl">💾 Guardar como plantilla</button>' : ''}<span class="muted" style="font-size:11px" id="rxCatInfo"></span></div>
         <div id="rxAlertas"></div>
       </div>
       <div class="card"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px">
@@ -626,7 +746,9 @@
         R.templates.push(t); gt.textContent = '✓ Plantilla guardada'; gt.disabled = true;
       } catch (ex) { alert(ex.message); }
     };
-    const mas = $('rxMas'); if (mas) mas.onclick = () => { leerReceta(); R.items.push(itemVacio()); pintarReceta(v); };
+    const mas = $('rxMas'); if (mas) mas.onclick = () => { leerReceta(); buscadorMedicamentos(v); };
+    enlazarCobertura(v);
+    if (!window._catMed) apiFetch('/api/v1/medicamentos/estado').then((c) => { window._catMed = c; pintarCatInfo(); }).catch(() => {}); else pintarCatInfo();
     m.querySelectorAll('[data-quitar]').forEach((b) => b.onclick = () => { leerReceta(); R.items.splice(+b.dataset.quitar, 1); pintarReceta(v); });
     const tpl = $('rxTpl'); if (tpl) tpl.onchange = () => {
       const t = R.templates.find((x) => x.id === tpl.value); if (!t) return;
@@ -645,7 +767,8 @@
         t = setTimeout(async () => {
           const q = pq.value.trim(); if (q.length < 2) { $('rxPacRes').innerHTML = ''; return; }
           const r = asList(await apiFetch(`/api/v1/patients?search=${encodeURIComponent(q)}&limit=8`).catch(() => []));
-          $('rxPacRes').innerHTML = r.map((p) => `<div class="appt-row" style="cursor:pointer;padding:8px 12px" data-pac="${p.id}"><div class="who"><strong>${e(p.first_name)} ${e(p.last_name)}</strong><small>${e([p.dni ? 'DNI ' + p.dni : '', p.insurance_provider, p.phone].filter(Boolean).join(' · '))}</small></div></div>`).join('') || '<p class="muted">Sin resultados</p>';
+          $('rxPacRes').innerHTML = r.map((p) => `<div class="appt-row rx-pac-r" style="cursor:pointer;padding:10px 12px" data-pac="${p.id}"><div class="who"><strong>${e(p.first_name)} ${e(p.last_name)}</strong><small>${e([p.dni ? 'DNI ' + p.dni : '', p.phone].filter(Boolean).join(' · '))}</small></div>
+            <div class="rx-pac-cob">${esParticular(p) ? '<span class="cob-chip part">Particular</span>' : `<span class="cob-chip">${e(p.insurance_provider)}${p.insurance_plan ? ' ' + e(p.insurance_plan) : ''}</span>${p.insurance_number ? `<small>Afiliado ${e(p.insurance_number)}</small>` : '<small class="falta">Sin nº de afiliado</small>'}`}</div></div>`).join('') || '<p class="muted">Sin resultados. Probá con el DNI o el apellido.</p>';
           $('rxPacRes').querySelectorAll('[data-pac]').forEach((x) => x.onclick = async () => { leerReceta(); R.patientId = x.dataset.pac; R.patient = await apiFetch(`/api/v1/patients/${R.patientId}`).catch(() => r.find((p) => p.id === x.dataset.pac)); await cargarRecientes(); pintarReceta(v); });
         }, 250);
       };
