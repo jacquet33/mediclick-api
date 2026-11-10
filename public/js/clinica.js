@@ -94,7 +94,7 @@
           <input type="checkbox" data-sel="${selK}" data-id="${it.id}" ${on ? 'checked' : ''} style="width:18px;height:18px;margin-top:2px;accent-color:var(--primary)">
           <span><b style="font-size:14px">${e(it.label)}</b>${conSintomas && it.symptoms ? `<br><small class="muted">${e(it.symptoms)}</small>` : ''}</span>
         </label>
-        ${on ? `<input class="hc-note" data-notes="${notesK}" data-id="${it.id}" value="${e(F[notesK][it.id] || '')}" placeholder="${conSintomas ? 'Detalle de síntomas…' : 'Hallazgos…'}" style="margin:0 0 8px 28px;width:calc(100% - 28px);padding:9px 12px;border:1.5px solid #ECE5D9;border-radius:10px;font:inherit;font-size:13px;background:#FFFDF9">` : ''}
+        ${on ? `<input class="hc-note" data-notes="${notesK}" data-id="${it.id}" value="${e(F[notesK][it.id] || '')}" placeholder="${conSintomas ? 'Detalle de síntomas…' : 'Hallazgos…'}" style="margin:0 0 8px 28px;width:calc(100% - 28px);padding:9px 12px;border:1.5px solid #E3EAE6;border-radius:10px;font:inherit;font-size:13px;background:#FBFDFC">` : ''}
       </div>`;
     }).join('');
   }
@@ -652,9 +652,9 @@
         ${R.frecuentes.length ? `<div class="rx-at-l">Tus medicamentos frecuentes</div><div class="rx-frec">${R.frecuentes.map((f, i) => `<button class="rx-chip" data-frec="${i}" title="${e([f.presentation, f.dosage, f.frequency, f.duration].filter(Boolean).join(' · '))}">+ ${e(f.generico)}${f.presentation ? ` <small>${e(f.presentation)}</small>` : ''}</button>`).join('')}</div>` : ''}
       </div>` : ''}
       <div class="card"><div class="card-title" style="justify-content:space-between"><span>💊 Medicamentos</span>
-        ${R.templates.length ? `<select id="rxTpl" style="padding:8px;border:1.5px solid #ECE5D9;border-radius:10px;font:inherit;font-size:13px"><option value="">Usar plantilla…</option>${R.templates.map((t) => `<option value="${t.id}">${e(t.name)}</option>`).join('')}</select>` : ''}</div>
+        ${R.templates.length ? `<select id="rxTpl" style="padding:8px;border:1.5px solid #E3EAE6;border-radius:10px;font:inherit;font-size:13px"><option value="">Usar plantilla…</option>${R.templates.map((t) => `<option value="${t.id}">${e(t.name)}</option>`).join('')}</select>` : ''}</div>
         ${!R.items.length ? `<p class="muted center" style="padding:14px 0 6px">Todavía no agregaste medicamentos a esta receta.</p>` : ''}
-        ${R.items.map((it, i) => `<div class="card" style="background:#FFFDF9;border:1px solid #F4EEE6;box-shadow:none">
+        ${R.items.map((it, i) => `<div class="card" style="background:#FBFDFC;border:1px solid #E6EDE9;box-shadow:none">
           <div class="flex-between"><div>${it.medicationName || it.presentation ? `<b class="rx-it-t">${e(it.medicationName || it.genericName)}</b><small class="rx-it-s">${e([it.medicationName ? it.genericName : '', it.presentation].filter(Boolean).join(' · '))}${it.coberturaPami && esPami(p) ? ` · <span class="cob-chip">PAMI ${e(it.coberturaPami)}</span>` : ''}</small>` : `<b style="font-size:13px">Medicamento ${i + 1}</b>`}</div><button class="btn btn-sm btn-no" data-quitar="${i}">Quitar</button></div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0 12px;margin-top:8px">
             <div class="field" style="position:relative"><label>Nombre genérico (DCI) *</label><input data-i="${i}" data-f="genericName" data-ac="${i}" value="${e(it.genericName)}" placeholder="Escribí para buscar: ibup…" autocomplete="off"><div class="rx-ac" id="rxAc${i}"></div></div>
@@ -823,13 +823,13 @@
   const ESTADOS_M = { verified: ['✅ Verificada', 'confirmed'], pending: ['⏳ En revisión', 'pending'], rejected: ['❌ Rechazada', 'cancelled'], unverified: ['Sin verificar', 'no_show'] };
 
   // Ilustración del asistente (credencial + receta), en los colores de la marca
-  const ILUS_ALTA = `<svg viewBox="0 0 240 220" width="100%" height="100%" aria-hidden="true"><defs><linearGradient id="gA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C08A57"/><stop offset="1" stop-color="#8B5E34"/></linearGradient><linearGradient id="gB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#A3B07F"/><stop offset="1" stop-color="#6E7E4F"/></linearGradient></defs>
-    <circle cx="120" cy="110" r="96" fill="#F3EBDF"/><rect x="92" y="28" width="104" height="148" rx="14" fill="#fff" stroke="#E5D8C5" stroke-width="2"/>
+  const ILUS_ALTA = `<svg viewBox="0 0 240 220" width="100%" height="100%" aria-hidden="true"><defs><linearGradient id="gA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2F6F62"/><stop offset="1" stop-color="#1F4E45"/></linearGradient><linearGradient id="gB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#A3B07F"/><stop offset="1" stop-color="#6E7E4F"/></linearGradient></defs>
+    <circle cx="120" cy="110" r="96" fill="#ECF2EF"/><rect x="92" y="28" width="104" height="148" rx="14" fill="#fff" stroke="#E5D8C5" stroke-width="2"/>
     <text x="108" y="64" font-family="Georgia,serif" font-size="30" font-weight="700" fill="url(#gB)">Rx</text>
-    <rect x="108" y="78" width="72" height="7" rx="3.5" fill="#EADFCF"/><rect x="108" y="93" width="56" height="7" rx="3.5" fill="#EADFCF"/><rect x="108" y="108" width="66" height="7" rx="3.5" fill="#EADFCF"/>
-    <path d="M110 150c10-14 18 10 28-4s16 6 24-2" fill="none" stroke="#8B5E34" stroke-width="3" stroke-linecap="round"/>
-    <rect x="34" y="98" width="104" height="70" rx="12" fill="url(#gA)"/><circle cx="62" cy="128" r="13" fill="#F6EEE3"/><path d="M44 158c4-12 32-12 36 0" fill="#F6EEE3"/>
-    <rect x="86" y="118" width="40" height="6" rx="3" fill="#F6EEE3" opacity=".9"/><rect x="86" y="131" width="30" height="6" rx="3" fill="#F6EEE3" opacity=".7"/>
+    <rect x="108" y="78" width="72" height="7" rx="3.5" fill="#E2E9E5"/><rect x="108" y="93" width="56" height="7" rx="3.5" fill="#E2E9E5"/><rect x="108" y="108" width="66" height="7" rx="3.5" fill="#E2E9E5"/>
+    <path d="M110 150c10-14 18 10 28-4s16 6 24-2" fill="none" stroke="#1F4E45" stroke-width="3" stroke-linecap="round"/>
+    <rect x="34" y="98" width="104" height="70" rx="12" fill="url(#gA)"/><circle cx="62" cy="128" r="13" fill="#EEF4F1"/><path d="M44 158c4-12 32-12 36 0" fill="#EEF4F1"/>
+    <rect x="86" y="118" width="40" height="6" rx="3" fill="#EEF4F1" opacity=".9"/><rect x="86" y="131" width="30" height="6" rx="3" fill="#EEF4F1" opacity=".7"/>
     <circle cx="190" cy="168" r="20" fill="url(#gB)"/><path d="M181 168l6 6 12-13" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
   const PASOS_ALTA = ['Información básica', 'Matrícula', 'Firma'];
@@ -870,7 +870,7 @@
     const c = await certificadoActual();
     const box = $('certBox');
     if (box) box.innerHTML = c ? `<div class="kv"><div><span>Titular</span><b>${e(c.subject_cn)}</b></div><div><span>CUIL/CUIT</span><b>${e(c.subject_serial)}</b></div>
-        <div><span>Emisor</span><b>${e(c.issuer_cn || c.issuer_o)}${c.issuer_recognized ? ' ✅' : ' <span style="color:#85500b">(no reconocido como certificador licenciado)</span>'}</b></div>
+        <div><span>Emisor</span><b>${e(c.issuer_cn || c.issuer_o)}${c.issuer_recognized ? ' ✅' : ' <span style="color:#9A5B0B">(no reconocido como certificador licenciado)</span>'}</b></div>
         <div><span>Vigencia</span><b>${fmtDate(c.not_before)} – ${fmtDate(c.not_after)}${c.vencido ? ' <span style="color:var(--danger)">VENCIDO</span>' : ''}</b></div></div>
         <p class="muted" style="margin-top:8px;font-size:12px">${(await certificadoGuardadoLocal()) ? 'El certificado está guardado en este navegador; al firmar solo te pide la contraseña.' : 'En este navegador no está guardado: al firmar vas a elegir el archivo.'}</p>
         <div class="flex" style="margin-top:10px;flex-wrap:wrap"><button class="btn btn-sm btn-soft" onclick="cargarCertificadoDigital()">Reemplazar certificado</button><button class="btn btn-sm btn-no" onclick="quitarCertificadoDigital()">Quitar</button></div>`
@@ -878,7 +878,7 @@
          <p class="muted" style="margin-top:8px;font-size:12px">¿No tenés? Se tramita gratis en la <a href="https://www.argentina.gob.ar/servicio/obtener-un-certificado-de-firma-digital" target="_blank" rel="noopener" style="color:var(--primary)">AC ONTI / AC Modernización</a> o con tu colegio médico. Los tokens USB todavía no se pueden usar desde el navegador.</p>`;
   };
 
-  const firmaHtml = () => `<canvas id="firmaCv" width="600" height="200" style="width:100%;max-width:600px;height:auto;aspect-ratio:3/1;border:1.5px dashed #D9CBB8;border-radius:12px;background:#fff;touch-action:none;cursor:crosshair" aria-label="Espacio para dibujar tu firma"></canvas>
+  const firmaHtml = () => `<canvas id="firmaCv" width="600" height="200" style="width:100%;max-width:600px;height:auto;aspect-ratio:3/1;border:1.5px dashed #C9D6CF;border-radius:12px;background:#fff;touch-action:none;cursor:crosshair" aria-label="Espacio para dibujar tu firma"></canvas>
         <div class="flex" style="flex-wrap:wrap;margin-top:10px">
           <button class="btn btn-sm btn-outline" id="firmaBorrar" type="button">Borrar</button>
           <label class="btn btn-sm btn-soft" style="cursor:pointer">Subir imagen<input type="file" id="firmaArchivo" accept="image/*" hidden></label>
@@ -1028,7 +1028,7 @@
             <span class="muted">${d.license_requested_at ? 'Enviada ' + fmtDate(d.license_requested_at) : 'Registrado ' + fmtDate(d.created_at)}</span></div>
           <div class="kv" style="margin-top:10px"><div><span>DNI</span><b>${e(d.dni || '—')}</b></div><div><span>Matrícula</span><b>${d.license_type === 'MN' ? 'M.N.' : 'M.P.'} ${e(String(d.medical_license || '').startsWith('PENDING_') ? '—' : d.medical_license)}${d.medical_license_province ? ' (' + e(d.medical_license_province) + ')' : ''}</b></div><div><span>Especialidad</span><b>${e(d.specialty || '—')}</b></div><div><span>REFEPS</span><b>${d.refeps_data ? e(JSON.stringify(d.refeps_data).slice(0, 160)) : 'sin consulta automática'}</b></div></div>
           ${d.license_verification_note ? `<p class="muted" style="margin-top:6px">${e(d.license_verification_note)}</p>` : ''}
-          ${d.license_document ? `<img src="${d.license_document}" alt="Credencial" style="max-width:100%;max-height:320px;border-radius:10px;margin-top:10px;border:1px solid #F4EEE6">` : ''}
+          ${d.license_document ? `<img src="${d.license_document}" alt="Credencial" style="max-width:100%;max-height:320px;border-radius:10px;margin-top:10px;border:1px solid #E6EDE9">` : ''}
           <div class="flex" style="margin-top:10px">${d.license_status !== 'verified' ? `<button class="btn btn-sm btn-ok" onclick="resolverMatricula('${d.id}',true,'${estado}')">✓ Aprobar</button>` : ''}${d.license_status !== 'rejected' ? `<button class="btn btn-sm btn-no" onclick="resolverMatricula('${d.id}',false,'${estado}')">✕ Rechazar</button>` : ''}</div>
         </div>`).join('') : '<div class="card"><p class="muted center">No hay solicitudes en este estado.</p></div>'}`;
     } catch (ex) { m.innerHTML = `<div class="card"><p class="error">${e(ex.message)}</p></div>`; }
