@@ -5,15 +5,15 @@ jobs:
   explorar:
     runs-on: ubuntu-latest
     steps:
-      - name: VNM online
+      - name: LOMAC
         run: |
           set +e
-          for u in https://anmatvademecum.servicios.pami.org.ar/ https://anmatvademecum.servicios.pami.org.ar/index.html http://anmatvademecum.servicios.pami.org.ar/; do
-            echo "=== $u"; curl -skL --max-time 40 -D h.txt "$u" -o p.html; head -3 h.txt; wc -c p.html
-            grep -oiE '(src|href|action)="[^"]+"' p.html | head -30
-            grep -oiE "(url|ajax|fetch|\\.php|\\.aspx|\\.zul|/api/)[^\"' ]{0,80}" p.html | sort -u | head -30
-          done
-          for js in $(grep -oiE 'src="[^"]+\.js[^"]*"' p.html | sed -E 's/src="|"//g' | head -8); do
-            case "$js" in http*) U=$js;; /*) U=https://anmatvademecum.servicios.pami.org.ar$js;; *) U=https://anmatvademecum.servicios.pami.org.ar/$js;; esac
-            echo "=== JS $U"; curl -skL --max-time 40 "$U" | grep -oiE "(url\s*:\s*['\"][^'\"]+|['\"][^'\"]*\.(php|aspx|ashx|json|zul)[^'\"]*|/api/[^'\"]+)" | sort -u | head -20
+          U=https://servicios.pami.org.ar/vademecum/views/consultaPublica/listado.zul
+          curl -skL --max-time 60 -c c.txt -D h.txt "$U" -o p.html; head -5 h.txt; wc -c p.html
+          grep -oiE "(excel|xls|csv|export|descarg|download|pdf)[^<\"']{0,80}" p.html | sort -u | head -20
+          grep -oE "zk\.Desktop[^;]{0,200}|dtid[^,]{0,60}" p.html | head -5
+          grep -oE "'(label|value|placeholder)','[^']{0,60}'" p.html | sort -u | head -60
+          echo "=== otros"
+          for u in https://servicios.pami.org.ar/vademecum/ https://servicios.pami.org.ar/vademecum/views/consultaPublica/ https://www.anmat.gob.ar/Medicamentos/Autorizaciones_VNM.asp https://www.anmat.gov.ar/Medicamentos/Autorizaciones_VNM.asp; do
+            echo "--- $u"; curl -skL --max-time 40 -D - "$u" -o q.html | head -1; wc -c q.html; grep -oiE 'href="[^"]*\.(xls|xlsx|csv|zip|txt)"' q.html | head -10
           done
