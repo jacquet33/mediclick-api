@@ -5,15 +5,19 @@ jobs:
   explorar:
     runs-on: ubuntu-latest
     steps:
-      - name: LOMAC
+      - name: CKAN salud
         run: |
           set +e
-          U=https://servicios.pami.org.ar/vademecum/views/consultaPublica/listado.zul
-          curl -skL --max-time 60 -c c.txt -D h.txt "$U" -o p.html; head -5 h.txt; wc -c p.html
-          grep -oiE "(excel|xls|csv|export|descarg|download|pdf)[^<\"']{0,80}" p.html | sort -u | head -20
-          grep -oE "zk\.Desktop[^;]{0,200}|dtid[^,]{0,60}" p.html | head -5
-          grep -oE "'(label|value|placeholder)','[^']{0,60}'" p.html | sort -u | head -60
-          echo "=== otros"
-          for u in https://servicios.pami.org.ar/vademecum/ https://servicios.pami.org.ar/vademecum/views/consultaPublica/ https://www.anmat.gob.ar/Medicamentos/Autorizaciones_VNM.asp https://www.anmat.gov.ar/Medicamentos/Autorizaciones_VNM.asp; do
-            echo "--- $u"; curl -skL --max-time 40 -D - "$u" -o q.html | head -1; wc -c q.html; grep -oiE 'href="[^"]*\.(xls|xlsx|csv|zip|txt)"' q.html | head -10
+          for q in "group_show?id=vademecum-y-medicamentos&include_datasets=true" "package_search?q=medicamentos&rows=50" "package_search?q=vademecum&rows=50"; do
+            echo "=== $q"
+            curl -skL --max-time 60 "https://datos.salud.gob.ar/api/3/action/$q" -o r.json; wc -c r.json
+            python3 - <<'PY'
+          import json
+          try: d=json.load(open('r.json'))['result']
+          except Exception as e: print('ERR',e); raise SystemExit
+          pk=d.get('packages') or d.get('results') or []
+          for p in pk:
+            print('DS',p.get('name'),'|',p.get('title'),'|',p.get('metadata_modified','')[:10])
+            for r in p.get('resources',[]): print('   R',r.get('format'),'|',(r.get('last_modified') or r.get('created') or '')[:10],'|',r.get('url'))
+          PY
           done
