@@ -466,7 +466,7 @@ export class BookingService {
       this.pushService.sendToDoctor(profile.doctor_id, {
         title: pushTitle,
         body: pushBody,
-        data: { bookingRequestId: bookingRow.id, status, type: 'new_booking' },
+        data: { bookingRequestId: bookingRow.id, appointmentId: appt.id, patientId: appt.patient_id, status, type: 'new_booking' },
         sound: 'default',
         category: status === 'confirmed' ? 'NEW_APPOINTMENT' : 'BOOKING_REQUEST',
       }).catch(err => this.logger.warn(`Push notification failed: ${err.message}`));
