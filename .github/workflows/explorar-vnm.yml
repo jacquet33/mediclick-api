@@ -5,11 +5,35 @@ jobs:
   explorar:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - run: npm i playwright@1.48.2 --no-save && npx playwright install --with-deps chromium >/dev/null
-      - name: Explorar LOMAC
-        run: node scripts/lomac-explorar.js
-      - uses: actions/upload-artifact@v4
-        with: { name: capturas, path: "*.png" }
+      - name: Datasets PAMI
+        run: |
+          set +e
+          pip install -q openpyxl xlrd >/dev/null 2>&1
+          for id in pami-listado-precios-medicamentos-para-afiliados pami-listado-precios-medicamentos-para-entidades pami-listado-medicamentos-mas-consumidos; do
+            echo "== $id"
+            curl -sL --max-time 60 "https://datos.gob.ar/api/3/action/package_show?id=$id" -o pkg.json
+            python3 -c "
+          import json
+          d=json.load(open('pkg.json'))['result']
+          print('MODIF', d.get('metadata_modified'))
+          for r in d.get('resources',[])[-4:]:
+            print('REC', r.get('name'), '|', r.get('format'), '|', r.get('last_modified') or r.get('created'), '|', r.get('url'))
+          " 2>&1 | head -8
+          done
+      - name: Muestra del más reciente (afiliados)
+        run: |
+          set +e
+          U=$(curl -sL --max-time 60 "https://datos.gob.ar/api/3/action/package_show?id=pami-listado-precios-medicamentos-para-afiliados" | python3 -c "import json,sys;r=json.load(sys.stdin)['result']['resources'];print(r[-1]['url'])")
+          echo "URL $U"; curl -sL --max-time 180 "$U" -o f.bin; ls -la f.bin; file f.bin
+          python3 - <<'PY'
+          import csv,io,sys
+          raw=open('f.bin','rb').read()
+          for enc in ('utf-8-sig','latin1'):
+            try: t=raw.decode(enc); break
+            except: pass
+          if raw[:2]==b'PK' or raw[:4]==b'\xd0\xcf\x11\xe0':
+            import pandas as pd
+            df=pd.read_excel('f.bin'); print('FILAS',len(df)); print(df.columns.tolist()); print(df.head(8).to_string()[:3000]); sys.exit()
+          lines=t.splitlines(); print('FILAS',len(lines))
+          for l in lines[:10]: print('L', l[:300])
+          PY
