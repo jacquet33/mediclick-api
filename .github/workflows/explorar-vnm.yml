@@ -5,19 +5,18 @@ jobs:
   explorar:
     runs-on: ubuntu-latest
     steps:
-      - name: CKAN salud
+      - name: Muestra VNM
         run: |
           set +e
-          for q in "group_show?id=vademecum-y-medicamentos&include_datasets=true" "package_search?q=medicamentos&rows=50" "package_search?q=vademecum&rows=50"; do
-            echo "=== $q"
-            curl -skL --max-time 60 "https://datos.salud.gob.ar/api/3/action/$q" -o r.json; wc -c r.json
-            python3 - <<'PY'
-          import json
-          try: d=json.load(open('r.json'))['result']
-          except Exception as e: print('ERR',e); raise SystemExit
-          pk=d.get('packages') or d.get('results') or []
-          for p in pk:
-            print('DS',p.get('name'),'|',p.get('title'),'|',p.get('metadata_modified','')[:10])
-            for r in p.get('resources',[]): print('   R',r.get('format'),'|',(r.get('last_modified') or r.get('created') or '')[:10],'|',r.get('url'))
-          PY
+          for u in https://datos.salud.gob.ar/dataset/3e28c31c-2bcf-4a74-81cf-f992152f9e6a/resource/9d5a5ee0-5942-428e-84ad-67f0a10091a3/download/vnm-2018.csv https://datos.salud.gob.ar/dataset/3e28c31c-2bcf-4a74-81cf-f992152f9e6a/resource/7c95c566-e1fa-4ebc-a5b6-7a9f236a2f38/download/vnm-jun-2018-.csv; do
+            echo "=== $u"; curl -skL --max-time 120 "$u" -o f.csv; ls -la f.csv | awk '{print "BYTES",$5}'; file f.csv
+            iconv -f latin1 -t utf8 f.csv > g.csv 2>/dev/null || cp f.csv g.csv
+            wc -l g.csv; head -6 g.csv | cut -c1-400; echo ...; sed -n '5000,5003p' g.csv | cut -c1-300
+            python3 -c "
+          import csv,sys
+          rows=list(csv.reader(open('g.csv',encoding='utf8',errors='ignore'),delimiter=',' if open('g.csv',errors='ignore').readline().count(',')>open('g.csv',errors='ignore').readline().count(';') else ';'))
+          h=rows[0]; print('COLS',h)
+          for i,c in enumerate(h):
+            vals=set(r[i] for r in rows[1:] if len(r)>i); print('COL',c,'distintos',len(vals))
+          "
           done
