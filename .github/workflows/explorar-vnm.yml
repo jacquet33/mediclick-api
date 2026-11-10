@@ -1,0 +1,43 @@
+name: Explorar VNM (ANMAT)
+on:
+  workflow_dispatch:
+jobs:
+  explorar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Recursos del dataset
+        run: |
+          set +e
+          for id in salud-actualizaciones-vademecun-nacional-medicamentos-vnm actualizaciones-del-vademecun-nacional-de-medicamentos-vnm; do
+            echo "== $id"
+            curl -sL --max-time 60 "https://datos.gob.ar/api/3/action/package_show?id=$id" -o pkg.json
+            python3 - <<'PY'
+          import json
+          try:
+            d=json.load(open('pkg.json'))['result']
+          except Exception as e:
+            print('sin datos', e); raise SystemExit
+          print('TITULO', d.get('title'), '| modificado', d.get('metadata_modified'))
+          for r in d.get('resources',[]):
+            print('REC', r.get('name'), '|', r.get('format'), '|', r.get('last_modified') or r.get('created'), '|', r.get('url'))
+          PY
+          done
+      - name: Muestras de los archivos
+        run: |
+          set +e
+          python3 - <<'PY' > urls.txt
+          import json,urllib.request
+          for id in ['salud-actualizaciones-vademecun-nacional-medicamentos-vnm','actualizaciones-del-vademecun-nacional-de-medicamentos-vnm']:
+            try:
+              d=json.load(urllib.request.urlopen(f"https://datos.gob.ar/api/3/action/package_show?id={id}",timeout=60))['result']
+              for r in d['resources']: print(r['url'])
+            except Exception as e: pass
+          PY
+          sort -u urls.txt | while read u; do
+            echo "=== $u"
+            curl -sL --max-time 120 "$u" -o f.bin; ls -la f.bin | awk '{print "TAMAÑO",$5}'; file f.bin
+            (iconv -f latin1 -t utf8 f.bin 2>/dev/null || cat f.bin) | head -4 | cut -c1-400
+            wc -l f.bin
+          done
+          echo "=== ANMAT listado oficial"
+          curl -sIL --max-time 60 https://listadomedicamentos.anmat.gob.ar/ | head -5
