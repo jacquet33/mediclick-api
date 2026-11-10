@@ -525,14 +525,33 @@
       <div class="flex" style="gap:8px"><button class="btn btn-sm btn-primary" id="cobGuardar" type="button">Guardar cobertura</button><button class="btn btn-sm btn-outline" id="cobCancelar" type="button">Cancelar</button><span id="cobMsg" class="error"></span></div>
     </div>`;
     return `<div class="rx-cob">
-      <div class="rx-cob-h"><b>🏥 Cobertura médica</b><button class="btn btn-sm btn-soft" id="cobEditar" type="button">Editar</button></div>
+      <div class="rx-cob-h"><b>🏥 Cobertura médica</b><span class="flex" style="gap:6px">${String(p.dni || '').replace(/\D/g, '').length >= 6 ? '<button class="btn btn-sm btn-outline" id="cobPadron" type="button">Verificar en padrón</button>' : ''}<button class="btn btn-sm btn-soft" id="cobEditar" type="button">Editar</button></span></div>
       ${esParticular(p) ? '<p class="rx-cob-val">Sin cobertura · <b>Particular</b></p>' : `<div class="rx-cob-grid ver">
         <div><span>Cobertura</span><b>${e(p.insurance_provider)}</b></div>
         <div><span>Plan</span><b>${e(p.insurance_plan || '—')}</b></div>
         <div><span>Nº de afiliado</span><b>${p.insurance_number ? e(p.insurance_number) : '<em class="falta">Falta cargarlo</em>'}</b></div></div>`}
+      <div id="cobPadronRes" style="margin-top:8px"></div>
     </div>`;
   }
   function enlazarCobertura(v) {
+    const pad = $('cobPadron'); if (pad && window.consultarPadron) pad.onclick = async () => {
+      const box = $('cobPadronRes'), p = R.patient || {};
+      const sexo = /^f/i.test(p.gender || '') ? 'F' : /^m/i.test(p.gender || '') ? 'M' : '';
+      pad.disabled = true; box.innerHTML = '<div class="spinner"></div>';
+      try {
+        const r = await window.consultarPadron(String(p.dni).replace(/\D/g, ''), sexo, R.patientId);
+        box.innerHTML = window.htmlPadron(r, true);
+        box.querySelectorAll('[data-usar-cob]').forEach((b) => b.onclick = async () => {
+          const c = r.coberturas[+b.dataset.usarCob]; b.disabled = true;
+          const misma = String(p.insurance_provider || '').trim().toLowerCase() === c.nombre.trim().toLowerCase();
+          const body = { insuranceProvider: c.nombre, insurancePlan: misma ? p.insurance_plan || '' : '', insuranceNumber: misma ? p.insurance_number || '' : '' };
+          try { await apiFetch(`/api/v1/patients/${R.patientId}`, { method: 'PUT', body });
+            R.patient = { ...R.patient, insurance_provider: body.insuranceProvider, insurance_plan: body.insurancePlan, insurance_number: body.insuranceNumber }; leerReceta(); pintarReceta(v);
+          } catch (ex) { b.disabled = false; box.insertAdjacentHTML('beforeend', `<p class="error">${e(ex.message)}</p>`); }
+        });
+      } catch (ex) { box.innerHTML = `<p class="error">${e(ex.message)}</p>`; }
+      pad.disabled = false;
+    };
     const ed = $('cobEditar'); if (ed) ed.onclick = () => { leerReceta(); R.editCob = true; pintarReceta(v); setTimeout(() => $('cobOs')?.focus(), 0); };
     const ca = $('cobCancelar'); if (ca) ca.onclick = () => { R.editCob = false; pintarReceta(v); };
     const part = $('cobPart'); if (part) part.onchange = () => { $('cobCampos').style.display = part.checked ? 'none' : ''; };

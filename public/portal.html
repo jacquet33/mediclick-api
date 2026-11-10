@@ -2493,13 +2493,13 @@ async function loadObrasSociales(){
       <div class="topbar"><h1>Obras sociales</h1></div>
 
       <div class="card">
-        <div class="card-title">🔍 Validar afiliado</div>
-        <p class="muted" style="margin-bottom:12px">Verificá la cobertura de un paciente con su obra social</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end">
-          <div class="field" style="margin:0"><label>Obra social</label><input id="valInsurer" placeholder="Ej: OSDE, Swiss Medical..."></div>
-          <div class="field" style="margin:0"><label>N° afiliado</label><input id="valNumber" placeholder="Número de credencial"></div>
-          <button class="btn btn-primary" style="width:auto;padding:12px 20px;height:46px" onclick="validateAffiliate()">Validar</button>
-        </div>
+        <div class="card-title">🔍 Verificar cobertura en el padrón oficial</div>
+        <p class="muted" style="margin-bottom:12px">Consultá qué obra social tiene un paciente según el padrón nacional (PUCO y Superintendencia de Servicios de Salud).</p>
+        <form onsubmit="event.preventDefault();validateAffiliate()" style="display:grid;grid-template-columns:1fr 160px auto;gap:10px;align-items:end">
+          <div class="field" style="margin:0"><label for="valDni">DNI del paciente</label><input id="valDni" inputmode="numeric" placeholder="Sin puntos" autocomplete="off"></div>
+          <div class="field" style="margin:0"><label for="valSexo">Sexo</label><select id="valSexo"><option value="">—</option><option value="F">Femenino</option><option value="M">Masculino</option></select></div>
+          <button class="btn btn-primary" style="width:auto;padding:12px 20px;height:46px" type="submit">Verificar</button>
+        </form>
         <div id="valResult" style="margin-top:12px"></div>
       </div>
 
@@ -2528,31 +2528,41 @@ async function loadObrasSociales(){
   }catch(e){main.innerHTML=`<div class="card"><p class="error">${e.message}</p></div>`}
 }
 
+const SSSALUD_PADRON='https://www.sssalud.gob.ar/index.php?page=bus650&user=GRAL&cat=consultas';
+function escPadron(t){return String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+/** Consulta al padrón oficial. Devuelve el HTML del resultado; onUsar(cobertura) agrega "Usar esta cobertura" */
+async function consultarPadron(dni,sexo,patientId){
+  return apiFetch('/api/v1/cobertura/consultar',{method:'POST',body:{dni,sexo,patientId}});
+}
+function htmlPadron(r,conUsar){
+  const color={ok:'#E7F3EC',sin_cobertura:'#FFF6DF',no_encontrado:'#FFF6DF',multiple:'#FFF6DF'}[r.estado]||'#FCE8E8';
+  const fecha=r.consultadoAt?new Date(r.consultadoAt).toLocaleDateString('es-AR'):'';
+  let h=`<div style="padding:14px;border-radius:10px;background:${color}">`;
+  if(r.estado==='ok'){
+    h+=`<strong>✅ ${escPadron(r.mensaje)}</strong>${r.persona&&r.persona.apellido?`<div class="muted" style="margin-top:2px">${escPadron(r.persona.apellido)}, ${escPadron(r.persona.nombre||'')}</div>`:''}`;
+    h+=r.coberturas.map((c,i)=>`<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid rgba(0,0,0,.06)">
+      <div><b>${escPadron(c.nombre)}</b><div class="muted" style="font-size:12.5px">${[c.rnos?'RNOS '+escPadron(c.rnos):'',c.tipo?escPadron(c.tipo):'',c.origen?'Fuente: '+escPadron(c.origen):'',c.vigenciaDesde?'Desde '+escPadron(c.vigenciaDesde):''].filter(Boolean).join(' · ')}</div></div>
+      ${conUsar?`<button class="btn btn-sm btn-primary" type="button" data-usar-cob="${i}">Usar esta cobertura</button>`:''}</div>`).join('');
+  }else if(r.estado==='no_configurado'){
+    h+=`<strong>La verificación automática todavía no está activa</strong><div class="muted" style="margin-top:4px">${escPadron(r.mensaje)}</div>
+      <a class="btn btn-sm btn-outline" style="margin-top:10px;display:inline-block;width:auto" href="${SSSALUD_PADRON}" target="_blank" rel="noopener">Consultar en SSSalud ↗</a>`;
+  }else{
+    h+=`<strong>${r.estado==='error'?'⚠️ ':''}${escPadron(r.mensaje)}</strong>`;
+    if(r.estado!=='multiple')h+=`<div style="margin-top:8px"><a href="${SSSALUD_PADRON}" target="_blank" rel="noopener">Consultar en SSSalud ↗</a></div>`;
+  }
+  h+=`<div class="muted" style="font-size:12px;margin-top:10px">${escPadron(r.fuente||'')}${fecha?' · '+fecha:''}${r.enCache?' · consulta reciente':''}. Las prepagas sin derivación de aportes no figuran en el padrón.</div></div>`;
+  return h;
+}
+window.consultarPadron=consultarPadron;window.htmlPadron=htmlPadron;
+
 async function validateAffiliate(){
   const box=document.getElementById('valResult');
-  const insurer=document.getElementById('valInsurer').value.trim();
-  const number=document.getElementById('valNumber').value.trim();
-  if(!insurer||!number){box.innerHTML='<p class="error">Completá obra social y número</p>';return}
+  const dni=document.getElementById('valDni').value.replace(/\D/g,'');
+  const sexo=document.getElementById('valSexo').value;
+  if(dni.length<6){box.innerHTML='<p class="error">Ingresá el DNI del paciente, sin puntos</p>';return}
   box.innerHTML='<div class="spinner"></div>';
-  try{
-    // Resolver nombre a ID
-    const resolved=await apiFetch(`/api/v1/hub/resolve?q=${encodeURIComponent(insurer)}`);
-    const insurerId=resolved.id||resolved.insurer_id||(resolved.data&&resolved.data.id);
-    if(!insurerId){box.innerHTML='<p class="error">No se encontró esa obra social</p>';return}
-
-    const result=await apiFetch('/api/v1/hub/validate',{method:'POST',body:{
-      insurer_id:insurerId,
-      affiliate_number:number,
-    }});
-    const r=result.data||result;
-    box.innerHTML=`
-      <div style="padding:14px;border-radius:10px;background:${r.valid||r.is_valid?'#e0f7ed':'#fce8e8'};margin-top:8px">
-        <strong>${r.valid||r.is_valid?'✅ Afiliado válido':'❌ Afiliado no válido'}</strong>
-        ${r.affiliate_name?`<br><span>Nombre: ${r.affiliate_name}</span>`:''}
-        ${r.plan?`<br><span>Plan: ${r.plan}</span>`:''}
-        ${r.message?`<br><span class="muted">${r.message}</span>`:''}
-      </div>`;
-  }catch(e){box.innerHTML=`<p class="error">${e.message}</p>`}
+  try{ box.innerHTML=htmlPadron(await consultarPadron(dni,sexo),false); }
+  catch(e){box.innerHTML=`<p class="error">${escPadron(e.message)}</p>`}
 }
 
 // ═══════════════════════════════════════════════════════════
