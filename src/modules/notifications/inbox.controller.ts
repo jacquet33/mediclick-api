@@ -69,7 +69,7 @@ export class InboxController {
               p.id AS patient_id, p.first_name, p.last_name, p.dni, to_char(p.date_of_birth, 'YYYY-MM-DD') AS date_of_birth, p.gender, p.phone, p.email,
               p.insurance_provider, p.insurance_plan, p.insurance_number, p.address, p.city, p.created_at AS patient_created_at,
               (SELECT count(*)::int FROM appointments x WHERE x.patient_id = p.id AND x.status NOT IN ('cancelled')) AS turnos_paciente,
-              (SELECT COALESCE(bs.public_slug, bs.slug) FROM booking_settings bs WHERE bs.org_doctor_id = a.org_doctor_id) AS slug
+              (SELECT bs.public_slug FROM booking_settings bs WHERE bs.org_doctor_id = a.org_doctor_id) AS slug
          FROM inbox_notifications n ${this.JOIN_TURNO}
         WHERE n.id = $1 AND n.recipient_type = $2 AND n.recipient_id = $3`, [id, q.tipo, q.id]);
     if (!r) throw new NotFoundException('Aviso no encontrado');
