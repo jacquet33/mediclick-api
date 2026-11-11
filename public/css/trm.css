@@ -111,12 +111,20 @@ h2.title{font-family:var(--serif);font-weight:600;font-size:clamp(30px,4vw,46px)
 @media(max-width:560px){.bento{grid-template-columns:1fr}}
 
 /* Pasos */
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;counter-reset:s}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;counter-reset:s;align-items:start}
 .step{position:relative;padding:28px 24px;border-radius:var(--r);background:rgba(255,255,255,.65);border:1px solid var(--line)}
 .step::before{counter-increment:s;content:counter(s);position:absolute;top:18px;right:20px;font-family:var(--serif);font-size:44px;font-weight:600;color:#EADFCF;line-height:1}
 .step h3{font-size:17px;margin:14px 0 6px}
 .step p{font-size:14.5px;color:var(--soft)}
 @media(max-width:800px){.steps{grid-template-columns:1fr}}
+.step-wa{background:linear-gradient(180deg,#F1FAF4,#fff);border-color:#BFE5CC;box-shadow:0 10px 30px -18px rgba(18,140,74,.45)}
+.wa-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 11px 6px 8px;border-radius:999px;background:#25D366;color:#fff;font-size:12.5px;font-weight:700;letter-spacing:.01em}
+.wa-badge svg{width:17px;height:17px}
+.step-wa h3{margin-top:14px}
+.step-wa p b{color:var(--ink,#1d2320);font-weight:600}
+.wa-chat{margin-top:14px;padding:10px;border-radius:12px;background:#ECE5DD;display:flex;flex-direction:column;gap:6px}
+.wa-msg{max-width:90%;padding:7px 10px;border-radius:8px 8px 8px 2px;background:#fff;font-size:12.5px;line-height:1.35;color:#1d2320;box-shadow:0 1px 1px rgba(0,0,0,.08)}
+.wa-msg.yo{align-self:flex-end;background:#D9FDD3;border-radius:8px 8px 2px 8px;font-weight:600}
 
 /* Antes / después */
 .ba{display:grid;grid-template-columns:1fr 1fr;gap:18px}
