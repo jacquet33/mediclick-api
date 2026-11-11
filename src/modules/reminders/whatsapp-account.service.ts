@@ -76,6 +76,10 @@ export class WhatsappAccountService {
     const token = tj.access_token as string;
 
     const info = await this.graph(`${phoneId}?fields=display_phone_number,verified_name`, token).catch(() => ({} as any));
+    // Registrar el número en la Cloud API (sin esto Meta rechaza los envíos con 133010), con un PIN de dos pasos aleatorio.
+    const pin = String(Math.floor(100000 + Math.random() * 900000));
+    await this.graph(`${phoneId}/register`, token, { method: 'POST', body: { messaging_product: 'whatsapp', pin } })
+      .catch((e) => this.logger.warn(`register ${phoneId}: ${e.message}`));
     // Que los avisos (entregado, leído, respuestas) de su número lleguen a nuestro webhook
     await this.graph(`${wabaId}/subscribed_apps`, token, { method: 'POST' }).catch((e) => this.logger.warn(`subscribed_apps ${wabaId}: ${e.message}`));
     const plantillas = await this.crearPlantillas(wabaId, token);

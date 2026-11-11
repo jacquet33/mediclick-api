@@ -355,6 +355,19 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
 
   /** Envía una plantilla. Con `cred` sale desde el WhatsApp Business del médico; si no, desde el número central */
   private async enviarPlantilla(to: string, vars: string[], plantilla?: string, cred?: CredWa | null): Promise<string | null> {
+    if (cred) {
+      // Número propio del médico: si sus plantillas todavía no están aprobadas o el número no terminó
+      // de registrarse, el aviso sale igual desde el número central de TusRecetasMed
+      try { return await this.enviarPlantillaNumero(to, vars, plantilla, cred); }
+      catch (e: any) {
+        if (!/13200[0-9]|133010|133000|131047|template/i.test(String(e?.message))) throw e;
+        this.logger.warn(`Número del médico todavía no habilitado (${String(e.message).slice(0, 80)}): sale por el número central`);
+      }
+    }
+    return this.enviarPlantillaNumero(to, vars, plantilla, null);
+  }
+
+  private async enviarPlantillaNumero(to: string, vars: string[], plantilla?: string, cred?: CredWa | null): Promise<string | null> {
     try {
       return await this.enviarPlantillaA(to, vars, plantilla, cred);
     } catch (e: any) {
