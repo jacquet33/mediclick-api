@@ -34,6 +34,22 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
     // Revisa cada 10 minutos; el envío es idempotente (se marca antes de enviar)
     this.timer = setInterval(() => this.db.conBloqueo('tarea:recordatorios-whatsapp', () => this.procesar()).catch(e => this.logger.error(e.message)), 10 * 60_000);
     setTimeout(() => this.db.conBloqueo('tarea:recordatorios-whatsapp', () => this.procesar()).catch(e => this.logger.error(e.message)), 60_000);
+    setTimeout(() => this.suscribirWebhook().catch(e => this.logger.warn(`Suscripción del webhook: ${e.message}`)), 15_000);
+  }
+
+  /**
+   * Suscribe nuestra app a la cuenta de WhatsApp Business para recibir los mensajes de los pacientes
+   * (respuestas SI / CANCELAR) en el webhook. Es idempotente: se repite en cada arranque.
+   */
+  private async suscribirWebhook() {
+    const token = this.config.get<string>('WHATSAPP_TOKEN'), waba = this.config.get<string>('WHATSAPP_WABA_ID');
+    if (!token || !waba) return;
+    const r = await fetch(`https://graph.facebook.com/v21.0/${waba}/subscribed_apps`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15_000),
+    });
+    const d: any = await r.json().catch(() => ({}));
+    if (d?.success) this.logger.log('Webhook de WhatsApp suscripto a la cuenta de WhatsApp Business');
+    else this.logger.warn(`No se pudo suscribir el webhook: ${d?.error?.message || r.status}`);
   }
 
   onModuleDestroy() {
