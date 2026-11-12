@@ -16,6 +16,8 @@ import { WhatsappAccountController } from './modules/reminders/whatsapp-account.
 import { PlanesController } from './modules/subscriptions/planes.controller';
 import { MedicamentosController } from './modules/medicamentos/medicamentos.controller';
 import { CoberturaController } from './modules/cobertura/cobertura.controller';
+import { PedidosController, PedidosFarmaciaController } from './modules/pedidos/pedidos.controller';
+import { PedidosService } from './modules/pedidos/pedidos.service';
 import { CoberturaService } from './modules/cobertura/cobertura.service';
 import { MedicamentosService } from './modules/medicamentos/medicamentos.service';
 import { PlanesService } from './modules/subscriptions/planes.service';
@@ -171,6 +173,8 @@ class HealthController {
     PlanesController,
     MedicamentosController,
     CoberturaController,
+    PedidosController,
+    PedidosFarmaciaController,
     OAuthController,
     OrganizationController,
     InvitationController,
@@ -262,6 +266,7 @@ class HealthController {
     PlanesService,
     MedicamentosService,
     CoberturaService,
+    PedidosService,
     WhatsappRespuestasService,
     EmailService,
     { provide: APP_GUARD, useClass: ProGuard },
@@ -292,7 +297,7 @@ function snakeToCamel(obj: any): any {
 const RUTAS_RESERVADAS = new Set([
   'api', 'js', 'css', 'img', 'shots', 'assets', 'public', 'app', 'admin', 'www', 'static',
   'portal', 'medicos', 'para-medicos', 'reservar', 'registro', 'turno', 'cobertura', 'farmacia', 'farmacias',
-  'privacidad', 'terminos', 'verificar-receta', 'receta', 'recetas', 'payment-result', 'index', 'health',
+  'privacidad', 'terminos', 'pedido', 'pedidos', 'verificar-receta', 'receta', 'recetas', 'payment-result', 'index', 'health',
   'login', 'ingresar', 'registrarse', 'precios', 'planes', 'ayuda', 'soporte', 'contacto', 'blog', 'favicon',
   'robots', 'sitemap', 'manifest', 'hospital', 'clinica', 'consultorio', 'tuconsultorio', 'tuconsultorioonline', 'tusrecetasmed', 'tusrecetas', 'rispy',
 ]);

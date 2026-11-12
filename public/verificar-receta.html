@@ -60,6 +60,21 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--crema);min-height
 .shield{display:flex;align-items:center;gap:8px;background:var(--crema);border-radius:12px;padding:10px 14px;margin-bottom:16px}
 .shield svg{flex-shrink:0}
 .shield span{font-size:12px;color:var(--text-soft);font-weight:500}
+.ped-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:520px){.ped-grid{grid-template-columns:1fr}}
+#pedidoCard label{display:block;font-size:12.5px;font-weight:600;color:#555;margin-bottom:10px}
+#pedidoCard input:not([type=radio]){display:block;width:100%;margin-top:5px;padding:11px 12px;border:1.5px solid #ddd;border-radius:12px;font-size:15px;font-family:inherit;box-sizing:border-box}
+.ped-lista{display:flex;flex-direction:column;gap:8px;margin:4px 0 12px;max-height:280px;overflow:auto}
+.ped-vacio{font-size:13px;color:#888;padding:10px;text-align:center;background:#f7f7f5;border-radius:10px}
+.ped-farm{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border:1.5px solid #e3e3e0;border-radius:12px;cursor:pointer;text-align:left;background:#fff;font:inherit;width:100%}
+.ped-farm.sel{border-color:#2F6F62;background:#EEF5F2}
+.ped-farm b{font-size:14px}.ped-farm small{display:block;color:#777;font-size:12.5px;margin-top:2px}
+.ped-chip{display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px;background:#E3F1EA;color:#1F6B47;margin-left:6px}
+.ped-modo{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px}
+.ped-radio{display:flex!important;align-items:center;gap:6px;font-weight:500!important;color:#333!important}
+.ped-btn{width:100%;padding:13px;border:0;border-radius:12px;background:#2F6F62;color:#fff;font-weight:700;font-size:15px;cursor:pointer;margin-top:4px}
+.ped-btn:disabled{opacity:.6}
+.ped-msg{font-size:13px;margin-top:8px;color:#8A2B2B;text-align:center}
 </style>
 <link rel="icon" type="image/svg+xml" href="/img/logo.svg">
 <meta name="theme-color" content="#7F8F5E">
@@ -189,6 +204,27 @@ async function verify() {
         <div id="pdfMsg" style="font-size:13px;color:#8A2B2B;margin-top:8px"></div>
       </div>
 
+      ${isValid ? `<div class="card" id="pedidoCard">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">🏪</span><span style="font-size:15px;font-weight:600">Pedila a una farmacia</span></div>
+        <div style="font-size:13px;color:#666;margin-bottom:12px">Elegí una farmacia: te confirma si tiene los medicamentos y el precio, y la retirás sin esperar. El pago y la entrega se hacen en la farmacia.</div>
+        <form id="pedForm">
+          <div class="ped-grid">
+            <label>Tu DNI<input id="pedDni" inputmode="numeric" autocomplete="off" placeholder="Sin puntos" required></label>
+            <label>Tu teléfono (WhatsApp)<input id="pedTel" inputmode="tel" autocomplete="tel" placeholder="Ej: 3447 414137" required></label>
+          </div>
+          <label>Buscá por ciudad o nombre<input id="pedBuscar" placeholder="Ej: Colón" autocomplete="off"></label>
+          <div id="pedLista" class="ped-lista"><div class="ped-vacio">Escribí tu ciudad para ver las farmacias adheridas.</div></div>
+          <div id="pedModalidad" class="ped-modo" hidden>
+            <label class="ped-radio"><input type="radio" name="pedModo" value="retiro" checked> Retiro en la farmacia</label>
+            <label class="ped-radio" id="pedEnvioOpt"><input type="radio" name="pedModo" value="envio"> Envío a domicilio</label>
+          </div>
+          <label id="pedDirWrap" hidden>Dirección de entrega<input id="pedDir" autocomplete="street-address"></label>
+          <label>Notas para la farmacia (opcional)<input id="pedNotas" maxlength="300" placeholder="Ej: prefiero genérico"></label>
+          <button type="submit" class="ped-btn">Enviar receta a la farmacia</button>
+          <div id="pedMsg" class="ped-msg"></div>
+        </form>
+      </div>` : ''}
+
       <div class="card">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
           <span style="font-size:18px">👨‍⚕️</span>
@@ -280,6 +316,39 @@ async function verify() {
     `;
   }
 }
+
+// ─── Pedido a una farmacia ────────────────────────────
+let PED_SEL=null, pedTimer=null;
+const escP=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function pedBuscar(q){
+  const box=document.getElementById('pedLista'); if(!box) return;
+  try{
+    const r=await fetch(`${API}/api/v1/pedidos/farmacias?q=${encodeURIComponent(q)}`); const l=await r.json();
+    if(!Array.isArray(l)||!l.length){box.innerHTML='<div class="ped-vacio">No hay farmacias adheridas con ese nombre o en esa ciudad todavía.</div>';return}
+    box.innerHTML=l.map(f=>`<button type="button" class="ped-farm" data-id="${f.id}" data-envio="${f.hace_envios?1:0}"><div><b>${escP(f.nombre)}</b>${f.hace_envios?'<span class="ped-chip">Envíos</span>':''}<small>${escP([f.direccion,f.ciudad].filter(Boolean).join(', '))}${f.horario?' · '+escP(f.horario):''}</small></div></button>`).join('');
+    box.querySelectorAll('.ped-farm').forEach(b=>b.onclick=()=>{
+      box.querySelectorAll('.ped-farm').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); PED_SEL=b.dataset.id;
+      document.getElementById('pedModalidad').hidden=false;
+      const envio=b.dataset.envio==='1'; document.getElementById('pedEnvioOpt').hidden=!envio;
+      if(!envio){document.querySelector('input[name=pedModo][value=retiro]').checked=true;document.getElementById('pedDirWrap').hidden=true}
+    });
+  }catch{box.innerHTML='<div class="ped-vacio">No se pudo cargar la lista. Probá de nuevo.</div>'}
+}
+document.addEventListener('input',ev=>{ if(ev.target?.id==='pedBuscar'){clearTimeout(pedTimer);pedTimer=setTimeout(()=>pedBuscar(ev.target.value.trim()),300)} });
+document.addEventListener('change',ev=>{ if(ev.target?.name==='pedModo') document.getElementById('pedDirWrap').hidden=ev.target.value!=='envio'; });
+document.addEventListener('submit',async ev=>{
+  if(ev.target?.id!=='pedForm') return; ev.preventDefault();
+  const msg=document.getElementById('pedMsg'), btn=ev.target.querySelector('button[type=submit]');
+  if(!PED_SEL){msg.textContent='Elegí una farmacia de la lista';return}
+  const modo=(document.querySelector('input[name=pedModo]:checked')||{}).value||'retiro';
+  btn.disabled=true; msg.style.color='#777'; msg.textContent='Enviando…';
+  try{
+    const r=await fetch(`${API}/api/v1/pedidos`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({codigo:code,dni:document.getElementById('pedDni').value,pharmacyId:PED_SEL,modalidad:modo,direccion:document.getElementById('pedDir').value,telefono:document.getElementById('pedTel').value,notas:document.getElementById('pedNotas').value})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(r.status===429?'Demasiados intentos, esperá un minuto':(Array.isArray(d.message)?d.message.join(', '):d.message)||'No se pudo enviar');
+    location.href=`/pedido?t=${encodeURIComponent(d.token)}`;
+  }catch(e){msg.style.color='#8A2B2B';msg.textContent=e.message;btn.disabled=false}
+});
 
 verify();
 </script>

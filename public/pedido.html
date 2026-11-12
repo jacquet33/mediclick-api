@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1F4E45">
+<meta name="robots" content="noindex">
+<title>Tu pedido — TusRecetasMed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#2F6F62;--deep:#1F4E45;--sage:#7F8F5E;--bg:#F5F7F5;--ink:#1d2320;--soft:#5d6862;--line:#e2e7e3}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100dvh;-webkit-font-smoothing:antialiased}
+.wrap{max-width:480px;margin:0 auto;padding:0 16px 32px}
+header{background:var(--deep);color:#fff;border-radius:0 0 24px 24px;padding:22px 20px;margin:0 -16px 20px;text-align:center}
+header .brand{font-size:13px;font-weight:600;opacity:.85}header .brand span{color:#C9D3B3}
+header h1{font-size:19px;margin-top:6px}
+.card{background:#fff;border-radius:16px;padding:18px;box-shadow:0 4px 18px rgba(20,40,30,.07);margin-bottom:14px}
+.estado{display:inline-block;padding:7px 14px;border-radius:999px;font-weight:700;font-size:14px}
+.e-enviado{background:#EEF2F7;color:#344B66}.e-confirmado,.e-listo{background:#E3F1EA;color:#1F6B47}
+.e-entregado{background:#E9ECEA;color:#3C4A43}.e-rechazado,.e-cancelado{background:#FCE8E8;color:#8A2B2B}
+.pasos{display:flex;justify-content:space-between;margin:18px 0 6px;position:relative}
+.pasos::before{content:'';position:absolute;top:11px;left:12px;right:12px;height:2px;background:var(--line)}
+.paso{position:relative;text-align:center;flex:1;font-size:11.5px;color:var(--soft)}
+.paso i{display:block;width:24px;height:24px;border-radius:50%;background:#fff;border:2px solid var(--line);margin:0 auto 6px;font-style:normal;line-height:20px;font-size:12px}
+.paso.ok i{background:var(--primary);border-color:var(--primary);color:#fff}.paso.ok{color:var(--ink);font-weight:600}
+.kv{display:grid;gap:10px;margin-top:6px}.kv span{display:block;font-size:12px;color:var(--soft)}.kv b{font-size:15px}
+.total{font-size:26px;font-weight:700;color:var(--deep)}
+.msg{background:#F6F8F3;border-left:3px solid var(--sage);padding:10px 12px;border-radius:8px;font-size:14px;margin-top:10px}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.btn{flex:1;min-width:140px;text-align:center;padding:12px;border-radius:12px;font-weight:600;font-size:14px;text-decoration:none;border:0;cursor:pointer;font-family:inherit}
+.btn.wa{background:#25D366;color:#fff}.btn.sec{background:#EEF1EE;color:var(--ink)}.btn.danger{background:none;color:#8A2B2B;border:1.5px solid #EBC6C6}
+.muted{font-size:12.5px;color:var(--soft);text-align:center;line-height:1.5;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><div class="brand">TusRecetas<span>Med</span></div><h1>Tu pedido a la farmacia</h1></header>
+  <div id="c"><div class="card" style="text-align:center;color:var(--soft)">Cargando…</div></div>
+  <p class="muted">El pago y la entrega se hacen en la farmacia, con control del farmacéutico. TusRecetasMed solo envía tu receta a la farmacia que elegiste.</p>
+</div>
+<script>
+const t=new URLSearchParams(location.search).get('t')||'';
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pesos=n=>Number(n).toLocaleString('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:2});
+async function cargar(){
+  const c=document.getElementById('c');
+  try{
+    const r=await fetch(`/api/v1/pedidos/seguimiento/${encodeURIComponent(t)}`); if(!r.ok) throw 0;
+    const p=await r.json();
+    const orden=['enviado','confirmado','listo','entregado'], idx=orden.indexOf(p.estado);
+    const cerrado=['rechazado','cancelado'].includes(p.estado);
+    const tel=String(p.farmacia_telefono||'').replace(/\D/g,'');
+    const wa=tel?`https://wa.me/${tel.startsWith('54')?tel:'549'+tel.replace(/^0/,'')}?text=${encodeURIComponent('Hola, te escribo por mi pedido de receta '+p.codigo+' enviado desde TusRecetasMed.')}`:'';
+    c.innerHTML=`<div class="card" style="text-align:center">
+      <span class="estado e-${p.estado}">${esc(p.estadoTexto)}</span>
+      ${cerrado?'':`<div class="pasos">${['Enviado','Confirmado',p.modalidad==='envio'?'En camino':'Listo','Entregado'].map((n,i)=>`<div class="paso ${i<=idx?'ok':''}"><i>${i<=idx?'✓':i+1}</i>${n}</div>`).join('')}</div>`}
+      ${p.total!=null?`<div style="margin-top:12px"><div style="font-size:12px;color:var(--soft)">Total informado por la farmacia</div><div class="total">${pesos(p.total)}</div></div>`:''}
+      ${p.mensaje_farmacia?`<div class="msg" style="text-align:left">💬 ${esc(p.mensaje_farmacia)}</div>`:''}
+    </div>
+    <div class="card"><div class="kv">
+      <div><span>Farmacia</span><b>${esc(p.farmacia)}</b></div>
+      <div><span>Dirección</span><b>${esc([p.farmacia_direccion,p.farmacia_ciudad].filter(Boolean).join(', '))}</b></div>
+      ${p.horario?`<div><span>Horario</span><b>${esc(p.horario)}</b></div>`:''}
+      <div><span>Entrega</span><b>${p.modalidad==='envio'?'Envío a '+esc(p.direccion||''):'Retiro en la farmacia'}</b></div>
+      <div><span>Receta</span><b>${esc(p.codigo)}</b></div>
+    </div>
+    <div class="btns">
+      ${wa?`<a class="btn wa" href="${wa}" target="_blank" rel="noopener">Escribir a la farmacia</a>`:''}
+      ${tel?`<a class="btn sec" href="tel:${tel}">Llamar</a>`:''}
+    </div>
+    ${['enviado','confirmado','listo'].includes(p.estado)?`<div class="btns"><button class="btn danger" id="cancelar">Cancelar el pedido</button></div>`:''}
+    </div>`;
+    const b=document.getElementById('cancelar');
+    if(b) b.onclick=async()=>{ if(!confirm('¿Cancelar el pedido? Después podés pedir la receta en otra farmacia.'))return;
+      b.disabled=true; await fetch(`/api/v1/pedidos/seguimiento/${encodeURIComponent(t)}/cancelar`,{method:'POST'}); cargar(); };
+  }catch{ c.innerHTML='<div class="card" style="text-align:center">No encontramos el pedido. Revisá el link.</div>'; }
+}
+cargar(); setInterval(()=>{ if(!document.hidden) cargar() },30000);
+</script>
+</body>
+</html>

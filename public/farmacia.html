@@ -78,6 +78,22 @@ code{background:#F5ECE1;padding:2px 6px;border-radius:6px;font-size:12px}
   </div>
 
   <div id="app" class="hidden">
+    <div class="card" id="pedidos">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <h2 style="margin:0">📦 Pedidos de pacientes <span id="pedCount" class="badge warn hidden"></span></h2>
+        <div style="display:flex;gap:6px"><button class="btn sec sm" id="pedVerAbiertos">En curso</button><button class="btn sec sm" id="pedVerTodos">Últimos 60 días</button></div>
+      </div>
+      <div id="pedLista" style="margin-top:12px"></div>
+      <details style="margin-top:10px"><summary class="muted" style="cursor:pointer">⚙️ Configurar pedidos</summary>
+        <div class="row" style="margin-top:10px;align-items:end">
+          <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:13px;color:var(--text)"><input type="checkbox" id="cfgAcepta" style="width:18px;height:18px"> Recibir pedidos de pacientes</label>
+          <label style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:13px;color:var(--text)"><input type="checkbox" id="cfgEnvios" style="width:18px;height:18px"> Hacemos envíos a domicilio</label>
+          <div><label>Horario</label><input id="cfgHorario" placeholder="Ej: Lun a Sáb 8 a 21 h"></div>
+          <div><button class="btn sm" id="cfgGuardar">Guardar</button> <span id="cfgMsg" class="muted"></span></div>
+        </div>
+        <p class="muted" style="margin-top:8px">Ofrecé envíos solo si tu provincia lo permite. La dispensa y el cobro los hace la farmacia, con control del farmacéutico.</p>
+      </details>
+    </div>
     <div class="card">
       <h2>🔎 Buscar receta</h2>
       <div class="row">
@@ -117,6 +133,7 @@ async function entrar(){
     $('phInfo').textContent=`🏪 ${me.nombre}${me.ciudad?' · '+me.ciudad:''}`;
     $('cardClave').classList.add('hidden');$('app').classList.remove('hidden');
     const q=new URLSearchParams(location.search);if(q.get('code')){$('codigo').value=q.get('code');$('dni').focus()}
+    cargarPedidos();
   }catch(e){$('errClave').textContent=e.message;$('errClave').classList.remove('hidden');$('cardClave').classList.remove('hidden');$('app').classList.add('hidden')}
 }
 const PROV=['Buenos Aires','Ciudad de Buenos Aires','Catamarca','Chaco','Chubut','Córdoba','Corrientes','Entre Ríos','Formosa','Jujuy','La Pampa','La Rioja','Mendoza','Misiones','Neuquén','Río Negro','Salta','San Juan','San Luis','Santa Cruz','Santa Fe','Santiago del Estero','Tierra del Fuego','Tucumán'];
@@ -218,6 +235,54 @@ async function dispensar(){
     buscar();
   }catch(e){err.textContent=e.message;err.classList.remove('hidden')}
 }
+
+// ─── Pedidos de pacientes ─────────────────────────────
+let PED_MODO='abiertos';
+const EST={enviado:['Nuevo','warn'],confirmado:['Confirmado','ok'],listo:['Listo','ok'],entregado:['Entregado','ok'],rechazado:['Rechazado','bad'],cancelado:['Cancelado por el paciente','bad']};
+async function cargarPedidos(){
+  try{
+    const d=await api(`/api/v1/farmacia/pedidos?estado=${PED_MODO}`);
+    $('cfgAcepta').checked=!!d.farmacia.aceptaPedidos;$('cfgEnvios').checked=!!d.farmacia.haceEnvios;if(document.activeElement!==$('cfgHorario'))$('cfgHorario').value=d.farmacia.horario||'';
+    const nuevos=d.pedidos.filter(p=>p.estado==='enviado').length;
+    $('pedCount').textContent=nuevos?`${nuevos} nuevo${nuevos>1?'s':''}`:'';$('pedCount').classList.toggle('hidden',!nuevos);
+    if(!d.pedidos.length){$('pedLista').innerHTML=`<p class="muted">${PED_MODO==='abiertos'?'No hay pedidos en curso. Cuando un paciente te envíe una receta, aparece acá.':'Sin pedidos en los últimos 60 días.'}</p>`;return}
+    $('pedLista').innerHTML=d.pedidos.map(p=>{
+      const e=EST[p.estado]||[p.estado,'warn'];const tel=String(p.telefono||'').replace(/\D/g,'');
+      const wa=tel?`https://wa.me/${tel.startsWith('54')?tel:'549'+tel.replace(/^0/,'')}`:'';
+      const abierto=['enviado','confirmado','listo'].includes(p.estado);
+      return `<div class="item" data-ped="${p.id}">
+        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>${esc(p.paciente)} · DNI ${esc(p.dni)}</b><span class="badge ${e[1]}">${e[0]}</span></div>
+        <div class="muted" style="margin-top:4px">${new Date(p.created_at).toLocaleString('es-AR')} · Receta <b>${esc(p.codigo)}</b> · ${p.modalidad==='envio'?'🛵 Envío a '+esc(p.direccion||''):'🏪 Retira en la farmacia'}${p.cobertura?' · '+esc(p.cobertura)+(p.afiliado?' Nº '+esc(p.afiliado):''):' · Particular'}</div>
+        <ul style="margin:8px 0 0 18px;font-size:13.5px">${(p.items||[]).map(i=>`<li>${esc(i.nombre)}${i.marca&&i.marca!==i.nombre?' ('+esc(i.marca)+')':''}${i.presentacion?' · '+esc(i.presentacion):''} — x${i.cantidad}</li>`).join('')}</ul>
+        ${p.notas?`<p class="muted" style="margin-top:6px">📝 ${esc(p.notas)}</p>`:''}
+        ${abierto?`<div class="row" style="margin-top:10px;align-items:end">
+          <div><label>Total ($)</label><input type="number" min="0" step="0.01" data-total value="${p.total??''}"></div>
+          <div style="grid-column:span 2"><label>Mensaje al paciente</label><input data-msg maxlength="300" value="${esc(p.mensaje_farmacia||'')}" placeholder="Ej: tenemos todo, podés pasar desde las 17 h"></div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+          ${p.estado==='enviado'?'<button class="btn sm" data-est="confirmado">Confirmar</button>':''}
+          ${p.estado!=='listo'?`<button class="btn sm" data-est="listo">${p.modalidad==='envio'?'En camino':'Listo para retirar'}</button>`:''}
+          <button class="btn sm" data-est="entregado">Entregado</button>
+          ${p.estado==='enviado'?'<button class="btn sec sm" data-est="rechazado">No tenemos stock</button>':''}
+          <a class="btn sec sm" href="/farmacia?code=${encodeURIComponent(p.codigo)}" data-dispensar="${esc(p.codigo)}|${esc(p.dni)}">Dispensar receta</a>
+          ${wa?`<a class="btn sec sm" href="${wa}" target="_blank" rel="noopener">WhatsApp</a>`:''}
+        </div>`:''}
+      </div>`}).join('');
+    $('pedLista').querySelectorAll('[data-est]').forEach(b=>b.onclick=async()=>{
+      const it=b.closest('[data-ped]');b.disabled=true;
+      try{await api(`/api/v1/farmacia/pedidos/${it.dataset.ped}/estado`,{method:'POST',body:{estado:b.dataset.est,total:it.querySelector('[data-total]')?.value,mensaje:it.querySelector('[data-msg]')?.value}});cargarPedidos()}
+      catch(e){b.disabled=false;alert(e.message)}
+    });
+    $('pedLista').querySelectorAll('[data-dispensar]').forEach(a=>a.onclick=ev=>{ev.preventDefault();const [c,d]=a.dataset.dispensar.split('|');$('codigo').value=c;$('dni').value=d;buscar();$('codigo').scrollIntoView({behavior:'smooth'})});
+  }catch(e){$('pedLista').innerHTML=`<p class="err">${esc(e.message)}</p>`}
+}
+$('pedVerAbiertos').onclick=()=>{PED_MODO='abiertos';cargarPedidos()};
+$('pedVerTodos').onclick=()=>{PED_MODO='todos';cargarPedidos()};
+$('cfgGuardar').onclick=async()=>{
+  try{await api('/api/v1/farmacia/pedidos/config',{method:'POST',body:{aceptaPedidos:$('cfgAcepta').checked,haceEnvios:$('cfgEnvios').checked,horario:$('cfgHorario').value}});$('cfgMsg').textContent='Guardado ✓'}
+  catch(e){$('cfgMsg').textContent=e.message}
+};
+setInterval(()=>{if(KEY&&!$('app').classList.contains('hidden')&&!document.hidden)cargarPedidos()},60000);
 </script>
 </body>
 </html>
