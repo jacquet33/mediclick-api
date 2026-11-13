@@ -35,6 +35,7 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
     this.timer = setInterval(() => this.db.conBloqueo('tarea:recordatorios-whatsapp', () => this.procesar()).catch(e => this.logger.error(e.message)), 10 * 60_000);
     setTimeout(() => this.db.conBloqueo('tarea:recordatorios-whatsapp', () => this.procesar()).catch(e => this.logger.error(e.message)), 60_000);
     setTimeout(() => this.suscribirWebhook().catch(e => this.logger.warn(`Suscripción del webhook: ${e.message}`)), 15_000);
+    setTimeout(() => this.crearPlantillasTienda().catch(() => undefined), 25_000);
   }
 
   /**
@@ -416,7 +417,7 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
     if (!r.ok) {
       const body = await r.text().catch(() => '');
       // Número central de prueba: si la plantilla todavía no está aprobada (132001), se manda la de ejemplo de Meta
-      if (!cred && plantilla !== 'hello_world' && /"code":\s*13200[01]/.test(body)) {
+      if (!cred && plantilla !== 'hello_world' && !String(plantilla || '').startsWith('tienda_') && /"code":\s*13200[01]/.test(body)) {
         this.logger.warn(`Plantilla ${plantilla} sin aprobar en el número central; se envía hello_world`);
         return this.enviarHelloWorld(to, phoneId, token);
       }
@@ -424,6 +425,32 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
     }
     const j: any = await r.json().catch(() => ({}));
     return (j?.messages?.[0]?.id as string) || null;
+  }
+
+  /** Avisos de la tienda de farmacias (pedido recibido / listo) desde el número central de TusRecetasMed */
+  async avisoTienda(to: string, plantilla: 'tienda_pedido_recibido' | 'tienda_pedido_listo', vars: string[]): Promise<boolean> {
+    if (!this.config.get('WHATSAPP_TOKEN')) return false;
+    try { await this.enviarPlantilla(to, vars, plantilla, null); return true; }
+    catch (e: any) { this.logger.warn(`Aviso de tienda ${plantilla} no enviado: ${String(e.message).slice(0, 120)}`); return false; }
+  }
+
+  /** Plantillas de la tienda en la cuenta central (idempotente: si ya existen Meta responde error y se ignora) */
+  private async crearPlantillasTienda() {
+    const token = this.config.get<string>('WHATSAPP_TOKEN'), waba = this.config.get<string>('WHATSAPP_WABA_ID');
+    if (!token || !waba) return;
+    const plantillas = [
+      { name: 'tienda_pedido_recibido', text: 'Hola {{1}}, {{2}} recibió tu pedido N° {{3}}. Te avisamos por este medio cuando esté listo para retirar.', example: ['Juan', 'Farmacia Central', '1024'] },
+      { name: 'tienda_pedido_listo', text: 'Hola {{1}}, tu pedido N° {{2}} de {{3}} está listo para retirar en {{4}}.', example: ['Juan', '1024', 'Farmacia Central', 'Urquiza 100, Colón'] },
+    ];
+    for (const p of plantillas) {
+      const r = await fetch(`https://graph.facebook.com/v21.0/${waba}/message_templates`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: p.name, language: 'es_AR', category: 'UTILITY', components: [{ type: 'BODY', text: p.text, example: { body_text: [p.example] } }] }),
+        signal: AbortSignal.timeout(15_000),
+      }).catch(() => null);
+      const d: any = r ? await r.json().catch(() => ({})) : {};
+      if (d?.id) this.logger.log(`Plantilla ${p.name} creada (${d.status || 'PENDING'})`);
+    }
   }
 
   /** Mensaje de texto libre (solo dentro de las 24 h desde que escribió el paciente): respuestas automáticas */

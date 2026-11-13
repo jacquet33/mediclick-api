@@ -18,6 +18,8 @@ import { MedicamentosController } from './modules/medicamentos/medicamentos.cont
 import { CoberturaController } from './modules/cobertura/cobertura.controller';
 import { PedidosController, PedidosFarmaciaController } from './modules/pedidos/pedidos.controller';
 import { PedidosService } from './modules/pedidos/pedidos.service';
+import { TiendaController, TiendaFarmaciaController } from './modules/tienda/tienda.controller';
+import { TiendaService } from './modules/tienda/tienda.service';
 import { CoberturaService } from './modules/cobertura/cobertura.service';
 import { MedicamentosService } from './modules/medicamentos/medicamentos.service';
 import { PlanesService } from './modules/subscriptions/planes.service';
@@ -175,6 +177,8 @@ class HealthController {
     CoberturaController,
     PedidosController,
     PedidosFarmaciaController,
+    TiendaController,
+    TiendaFarmaciaController,
     OAuthController,
     OrganizationController,
     InvitationController,
@@ -267,6 +271,7 @@ class HealthController {
     MedicamentosService,
     CoberturaService,
     PedidosService,
+    TiendaService,
     WhatsappRespuestasService,
     EmailService,
     { provide: APP_GUARD, useClass: ProGuard },
@@ -297,7 +302,7 @@ function snakeToCamel(obj: any): any {
 const RUTAS_RESERVADAS = new Set([
   'api', 'js', 'css', 'img', 'shots', 'assets', 'public', 'app', 'admin', 'www', 'static',
   'portal', 'medicos', 'para-medicos', 'reservar', 'registro', 'turno', 'cobertura', 'farmacia', 'farmacias',
-  'privacidad', 'terminos', 'pedido', 'pedidos', 'verificar-receta', 'receta', 'recetas', 'payment-result', 'index', 'health',
+  'privacidad', 'terminos', 'pedido', 'pedidos', 'pedido-tienda', 'farmacia-tienda', 'tienda', 'f', 'verificar-receta', 'receta', 'recetas', 'payment-result', 'index', 'health',
   'login', 'ingresar', 'registrarse', 'precios', 'planes', 'ayuda', 'soporte', 'contacto', 'blog', 'favicon',
   'robots', 'sitemap', 'manifest', 'hospital', 'clinica', 'consultorio', 'tuconsultorio', 'tuconsultorioonline', 'tusrecetasmed', 'tusrecetas', 'rispy',
 ]);
@@ -374,6 +379,9 @@ async function bootstrap() {
     if ((req.method === 'GET' || req.method === 'HEAD')) {
       const m = url.match(/^\/([a-z0-9][a-z0-9-]{2,59})\/?(\?.*)?$/i);
       if (m && !RUTAS_RESERVADAS.has(m[1].toLowerCase())) req.url = '/reservar.html' + (m[2] || '');
+      // Tienda online de una farmacia: tusrecetasmed.com/f/su-farmacia
+      const f = url.match(/^\/f\/([a-z0-9][a-z0-9-]{2,59})\/?(\?.*)?$/i);
+      if (f) req.url = '/tienda.html?s=' + f[1].toLowerCase() + (f[2] ? '&' + f[2].slice(1) : '');
     }
     // Dominios anteriores → tusrecetasmed.com (solo páginas: la API sigue respondiendo en todos para las apps viejas).
     // REDIRECT_OLD_DOMAINS=true se activa recién cuando el dominio nuevo ya tiene certificado.

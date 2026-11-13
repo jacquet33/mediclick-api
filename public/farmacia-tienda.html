@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#1F4E45">
+<title>Tienda online de la farmacia — TusRecetasMed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="/img/logo.svg">
+<style>
+:root{--primary:#2F6F62;--deep:#1F4E45;--sage:#7F8F5E;--bg:#F5F7F5;--ink:#1d2320;--soft:#5d6862;--line:#e2e7e3}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+.wrap{max-width:980px;margin:0 auto;padding:0 16px 40px}
+header{background:var(--deep);color:#fff;padding:18px 0;margin-bottom:16px}
+header .wrap{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:0;flex-wrap:wrap}
+header b{font-size:18px}header span{opacity:.8;font-size:13px}
+header a{color:#C9D3B3;font-size:13px}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;scrollbar-width:none}
+.tab{flex:none;padding:9px 16px;border-radius:999px;border:1.5px solid var(--line);background:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer;color:var(--soft)}
+.tab.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.card{background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 12px rgba(20,40,30,.06);margin-bottom:14px}
+h2{font-size:16px;margin-bottom:12px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+label{display:block;font-size:12px;font-weight:600;color:var(--soft)}
+input,select,textarea{display:block;width:100%;margin-top:5px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font:inherit;font-size:14px;background:#fff}
+textarea{min-height:120px;font-family:ui-monospace,monospace;font-size:13px}
+.btn{padding:10px 16px;border:0;border-radius:10px;background:var(--primary);color:#fff;font:inherit;font-weight:700;font-size:14px;cursor:pointer}
+.btn.sec{background:#EEF1EE;color:var(--ink)}.btn.sm{padding:7px 11px;font-size:12.5px}.btn.mp{background:#009EE3}
+.btn:disabled{opacity:.55;cursor:default}
+.muted{color:var(--soft);font-size:13px;line-height:1.5}
+.badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700}
+.ok{background:#E3F1EA;color:#1F6B47}.warn{background:#FFF4DC;color:#7A5300}.bad{background:#FCE8E8;color:#8A2B2B}
+.item{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+.flex{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.between{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.stat{background:#F6F8F3;border-radius:12px;padding:12px}.stat b{display:block;font-size:20px;color:var(--deep)}
+.hidden{display:none!important}
+.err{color:#8A2B2B;font-size:13px;margin-top:8px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+td,th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-size:12px;color:var(--soft);font-weight:600}
+.link{word-break:break-all;font-weight:600;color:var(--primary)}
+</style>
+</head>
+<body>
+<header><div class="wrap"><div><b>Tienda online</b><br><span id="phNombre"></span></div><a href="/farmacia">← Recetas y dispensa</a></div></header>
+<div class="wrap">
+  <div class="card hidden" id="sinClave"><h2>Ingresá con la clave de tu farmacia</h2><p class="muted">La tienda se administra con la misma clave que usás para dispensar recetas. <a href="/farmacia">Ingresá o registrá tu farmacia acá</a>.</p></div>
+  <div id="app" class="hidden">
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-t="pedidos">Pedidos</button><button class="tab" data-t="productos">Productos</button>
+      <button class="tab" data-t="sucursales">Sucursales</button><button class="tab" data-t="tienda">Tienda y cobros</button>
+    </div>
+
+    <section data-s="pedidos">
+      <div class="card"><div class="row" id="stats"></div><p class="muted" id="comisionTxt" style="margin-top:10px"></p></div>
+      <div class="card"><div class="between"><h2 style="margin:0">Pedidos</h2><div class="flex"><button class="btn sec sm" id="pAb">En curso</button><button class="btn sec sm" id="pTodos">Últimos 60 días</button></div></div>
+        <div id="pedidos" style="margin-top:12px"></div></div>
+    </section>
+
+    <section data-s="productos" class="hidden">
+      <div class="card"><div class="between"><h2 style="margin:0">Productos</h2><div class="flex"><input id="pBuscar" placeholder="Buscar…" style="margin:0;width:200px"><button class="btn sm" id="pNuevo">+ Producto</button></div></div>
+        <div id="prodForm" class="item hidden" style="margin-top:12px"></div>
+        <div style="overflow-x:auto;margin-top:12px"><table><thead><tr><th>Producto</th><th>Categoría</th><th>Precio</th><th>Estado</th><th></th></tr></thead><tbody id="prods"></tbody></table></div>
+      </div>
+      <div class="card"><h2>Cargar muchos productos de una vez</h2>
+        <p class="muted">Pegá una línea por producto, como sale de una planilla: <code>nombre;precio;categoría;código</code>. Ej: <code>Protector solar FPS 50 200 ml;18900;Dermocosmética;7791234</code></p>
+        <textarea id="impTexto" placeholder="Nombre;Precio;Categoría;Código"></textarea>
+        <div class="flex" style="margin-top:10px"><button class="btn" id="impBtn">Importar</button><span class="muted" id="impMsg"></span></div>
+      </div>
+    </section>
+
+    <section data-s="sucursales" class="hidden">
+      <div class="card"><div class="between"><h2 style="margin:0">Sucursales de retiro</h2><button class="btn sm" id="sNueva">+ Sucursal</button></div>
+        <div id="sucForm" class="item hidden" style="margin-top:12px"></div><div id="sucs" style="margin-top:12px"></div></div>
+    </section>
+
+    <section data-s="tienda" class="hidden">
+      <div class="card"><h2>Tu tienda</h2>
+        <div class="row">
+          <label>Nombre visible<input id="tNombre"></label>
+          <label>Dirección web (tusrecetasmed.com/f/…)<input id="tSlug" placeholder="farmacia-central"></label>
+          <label>WhatsApp de la farmacia<input id="tWa" inputmode="tel"></label>
+          <label>Logo (link https a una imagen)<input id="tLogo" placeholder="https://…"></label>
+        </div>
+        <label style="margin-top:12px">Descripción<input id="tDesc" maxlength="600" placeholder="Ej: Perfumería, dermocosmética y venta libre. Retirá en 1 hora."></label>
+        <label style="display:flex;gap:8px;align-items:center;margin-top:14px;font-size:14px;color:var(--ink)"><input type="checkbox" id="tActiva" style="width:18px;height:18px;margin:0"> Tienda publicada</label>
+        <div class="flex" style="margin-top:14px"><button class="btn" id="tGuardar">Guardar</button><span class="muted" id="tMsg"></span></div>
+        <div id="tLink" class="muted" style="margin-top:12px"></div>
+      </div>
+      <div class="card"><h2>Cobros con Mercado Pago</h2><div id="mpBox"></div>
+        <p class="muted" style="margin-top:10px">Los pagos van directo a la cuenta de Mercado Pago de la farmacia. Las primeras <b id="cLim">100</b> ventas de cada mes no tienen comisión; desde la siguiente, TusRecetasMed retiene el <b id="cPct">1</b>% de cada venta automáticamente.</p>
+      </div>
+      <div class="card"><h2>Qué se puede vender</h2><p class="muted">Perfumería, dermocosmética, higiene, bebé, ortopedia y medicamentos de venta libre. Los medicamentos <b>bajo receta</b> no se venden en la tienda: el paciente los pide con su receta electrónica y se dispensan en el mostrador.</p></div>
+    </section>
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pesos=n=>Number(n).toLocaleString('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:2});
+let KEY=''; try{KEY=localStorage.getItem('tco_ph_key')||''}catch{}
+async function api(path,opts={}){
+  const r=await fetch(path,{method:opts.method||'GET',headers:{'Content-Type':'application/json','X-Pharmacy-Key':KEY},body:opts.body?JSON.stringify(opts.body):undefined});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(Array.isArray(d.message)?d.message.join(', '):(d.message||'Error'));
+  return d;
+}
+let M=null, P_MODO='abiertos';
+async function cargar(){
+  try{ M=await api('/api/v1/farmacia/tienda'); }catch(e){ $('sinClave').classList.remove('hidden'); return; }
+  $('app').classList.remove('hidden'); $('phNombre').textContent=M.farmacia.nombre+(M.farmacia.ciudad?' · '+M.farmacia.ciudad:'');
+  pintarTienda(); pintarSucursales(); pintarStats(); cargarPedidos();
+  const q=new URLSearchParams(location.search).get('mp');
+  if(q){ tab('tienda'); $('tMsg').textContent=q==='ok'?'✓ Mercado Pago conectado':'No se pudo conectar Mercado Pago. Probá de nuevo.'; history.replaceState(null,'','/farmacia-tienda'); }
+  else if(!M.tienda) tab('tienda');
+}
+function tab(t){ document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t)); document.querySelectorAll('section[data-s]').forEach(s=>s.classList.toggle('hidden',s.dataset.s!==t)); if(t==='productos') cargarProductos(); }
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>tab(b.dataset.t));
+if(location.hash==='#pedidos') tab('pedidos');
+
+function pintarStats(){
+  const m=M.mes||{ventas:0,total:0,comision:0}, lim=M.comision.ventasSinComision;
+  $('stats').innerHTML=`<div class="stat"><span class="muted">Ventas del mes</span><b>${m.ventas}</b></div><div class="stat"><span class="muted">Vendido</span><b>${pesos(m.total)}</b></div><div class="stat"><span class="muted">Comisión</span><b>${pesos(m.comision)}</b></div>`;
+  $('comisionTxt').textContent=m.ventas<lim?`Te quedan ${lim-m.ventas} ventas sin comisión este mes. Después se aplica el ${M.comision.porcentaje}%.`:`Superaste las ${lim} ventas del mes: se aplica el ${M.comision.porcentaje}% de comisión.`;
+  $('cLim').textContent=lim; $('cPct').textContent=M.comision.porcentaje;
+}
+function pintarTienda(){
+  const t=M.tienda||{};
+  $('tNombre').value=t.nombre||M.farmacia.nombre; $('tSlug').value=t.slug||''; $('tWa').value=t.whatsapp||''; $('tLogo').value=t.logo_url||''; $('tDesc').value=t.descripcion||''; $('tActiva').checked=!!t.activa;
+  $('tLink').innerHTML=t.url?`Tu tienda: <a class="link" href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.url)}</a> <button class="btn sec sm" id="copiar">Copiar link</button>${t.activa?'':' <span class="badge warn">No publicada</span>'}${M.sucursales.length?'':' <span class="badge warn">Cargá al menos una sucursal</span>'}`:'';
+  const c=$('copiar'); if(c) c.onclick=()=>{navigator.clipboard?.writeText(t.url);c.textContent='Copiado ✓'};
+  $('mpBox').innerHTML=!M.mpDisponible?'<p class="muted">El cobro online se está habilitando en TusRecetasMed. Mientras tanto podés armar el catálogo.</p>'
+    :t.mpConectado?`<div class="flex"><span class="badge ok">✓ Mercado Pago conectado</span><span class="muted">Cuenta ${esc(t.mp_user_id||'')}</span><button class="btn sec sm" id="mpOff">Desconectar</button></div>`
+    :`<button class="btn mp" id="mpOn" ${M.tienda?'':'disabled'}>Conectar mi cuenta de Mercado Pago</button>${M.tienda?'':'<p class="muted" style="margin-top:6px">Primero guardá los datos de la tienda.</p>'}`;
+  const on=$('mpOn'); if(on) on.onclick=async()=>{try{const d=await api('/api/v1/farmacia/tienda/mp/conectar');location.href=d.url}catch(e){$('tMsg').textContent=e.message}};
+  const off=$('mpOff'); if(off) off.onclick=async()=>{if(!confirm('¿Desconectar Mercado Pago? La tienda deja de cobrar online.'))return;M=await api('/api/v1/farmacia/tienda/mp/desconectar',{method:'POST'});pintarTienda()};
+}
+$('tGuardar').onclick=async()=>{
+  try{ M=await api('/api/v1/farmacia/tienda',{method:'POST',body:{nombre:$('tNombre').value,slug:$('tSlug').value,whatsapp:$('tWa').value,logoUrl:$('tLogo').value,descripcion:$('tDesc').value,activa:$('tActiva').checked}}); pintarTienda(); $('tMsg').textContent='Guardado ✓'; }
+  catch(e){ $('tMsg').textContent=e.message; }
+};
+
+function pintarSucursales(){
+  $('sucs').innerHTML=M.sucursales.length?M.sucursales.map(s=>`<div class="item between"><div><b>${esc(s.nombre)}</b> ${s.activa?'':'<span class="badge bad">Inactiva</span>'}<div class="muted">${esc([s.direccion,s.ciudad].filter(Boolean).join(', '))}${s.horario?' · '+esc(s.horario):''}${s.telefono?' · '+esc(s.telefono):''}</div></div><button class="btn sec sm" data-edit="${s.id}">Editar</button></div>`).join(''):'<p class="muted">Todavía no cargaste sucursales. Los clientes eligen dónde retirar.</p>';
+  $('sucs').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>formSucursal(M.sucursales.find(s=>s.id===b.dataset.edit)));
+}
+function formSucursal(s={}){
+  const f=$('sucForm'); f.classList.remove('hidden');
+  f.innerHTML=`<div class="row"><label>Nombre<input id="sN" value="${esc(s.nombre||'')}" placeholder="Centro"></label><label>Dirección<input id="sD" value="${esc(s.direccion||'')}"></label><label>Ciudad<input id="sC" value="${esc(s.ciudad||M.farmacia.ciudad||'')}"></label><label>Teléfono<input id="sT" value="${esc(s.telefono||'')}"></label><label>Horario<input id="sH" value="${esc(s.horario||'')}" placeholder="Lun a Sáb 8 a 21 h"></label></div>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:14px;color:var(--ink)"><input type="checkbox" id="sA" style="width:18px;height:18px;margin:0" ${s.activa===false?'':'checked'}> Activa</label>
+    <div class="flex" style="margin-top:10px"><button class="btn sm" id="sG">Guardar</button><button class="btn sec sm" id="sX">Cancelar</button><span class="err" id="sE"></span></div>`;
+  $('sX').onclick=()=>f.classList.add('hidden');
+  $('sG').onclick=async()=>{try{M=await api('/api/v1/farmacia/tienda/sucursales',{method:'POST',body:{id:s.id,nombre:$('sN').value,direccion:$('sD').value,ciudad:$('sC').value,telefono:$('sT').value,horario:$('sH').value,activa:$('sA').checked}});f.classList.add('hidden');pintarSucursales();pintarTienda()}catch(e){$('sE').textContent=e.message}};
+}
+$('sNueva').onclick=()=>formSucursal();
+
+let PRODS=[], pTimer;
+async function cargarProductos(){ PRODS=await api(`/api/v1/farmacia/tienda/productos?q=${encodeURIComponent($('pBuscar').value)}`); pintarProductos(); }
+function pintarProductos(){
+  $('prods').innerHTML=PRODS.length?PRODS.map(p=>`<tr><td><b>${esc(p.nombre)}</b>${p.venta_libre?' <span class="badge ok">Venta libre</span>':''}</td><td>${esc(p.categoria)}</td><td>${pesos(p.precio)}</td><td>${p.activo?'<span class="badge ok">Visible</span>':'<span class="badge bad">Oculto</span>'}</td><td><button class="btn sec sm" data-p="${p.id}">Editar</button></td></tr>`).join(''):'<tr><td colspan="5" class="muted">Sin productos. Cargalos de a uno o pegá tu planilla abajo.</td></tr>';
+  $('prods').querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>formProducto(PRODS.find(p=>p.id===b.dataset.p)));
+}
+function formProducto(p={}){
+  const f=$('prodForm'); f.classList.remove('hidden'); f.scrollIntoView({behavior:'smooth',block:'center'});
+  const st=p.stock||{};
+  f.innerHTML=`<div class="row"><label>Nombre<input id="fN" value="${esc(p.nombre||'')}"></label><label>Precio ($)<input id="fP" type="number" min="0" step="0.01" value="${p.precio??''}"></label><label>Categoría<input id="fC" value="${esc(p.categoria||'')}" placeholder="Dermocosmética" list="cats"></label><label>Código / EAN<input id="fK" value="${esc(p.codigo||'')}"></label></div>
+    <datalist id="cats">${['Dermocosmética','Perfumería','Higiene','Bebé','Ortopedia','Venta libre','Suplementos'].map(c=>`<option>${c}</option>`).join('')}</datalist>
+    <div class="row" style="margin-top:10px"><label>Descripción<input id="fD" value="${esc(p.descripcion||'')}"></label><label>Foto (link https)<input id="fF" value="${esc(p.foto_url||'')}" placeholder="https://…"></label></div>
+    ${M.sucursales.length?`<p class="muted" style="margin-top:10px">Stock por sucursal (vacío = no controlar stock)</p><div class="row">${M.sucursales.map(s=>`<label>${esc(s.nombre)}<input type="number" min="0" data-st="${s.id}" value="${st[s.id]??''}"></label>`).join('')}</div>`:''}
+    <div class="flex" style="margin-top:10px"><label style="display:flex;gap:8px;align-items:center;font-size:14px;color:var(--ink)"><input type="checkbox" id="fV" style="width:18px;height:18px;margin:0" ${p.venta_libre?'checked':''}> Medicamento de venta libre</label>
+    <label style="display:flex;gap:8px;align-items:center;font-size:14px;color:var(--ink)"><input type="checkbox" id="fA" style="width:18px;height:18px;margin:0" ${p.activo===false?'':'checked'}> Visible en la tienda</label></div>
+    <div class="flex" style="margin-top:12px"><button class="btn sm" id="fG">Guardar</button><button class="btn sec sm" id="fX">Cancelar</button><span class="err" id="fE"></span></div>`;
+  $('fX').onclick=()=>f.classList.add('hidden');
+  $('fG').onclick=async()=>{
+    const stock={}; f.querySelectorAll('[data-st]').forEach(i=>stock[i.dataset.st]=i.value===''?null:Number(i.value));
+    try{await api('/api/v1/farmacia/tienda/productos',{method:'POST',body:{id:p.id,nombre:$('fN').value,precio:$('fP').value,categoria:$('fC').value,codigo:$('fK').value,descripcion:$('fD').value,fotoUrl:$('fF').value,ventaLibre:$('fV').checked,activo:$('fA').checked,stock}});f.classList.add('hidden');cargarProductos()}
+    catch(e){$('fE').textContent=e.message}
+  };
+}
+$('pNuevo').onclick=()=>formProducto();
+$('pBuscar').oninput=()=>{clearTimeout(pTimer);pTimer=setTimeout(cargarProductos,300)};
+$('impBtn').onclick=async()=>{
+  $('impBtn').disabled=true; $('impMsg').textContent='Importando…';
+  try{const d=await api('/api/v1/farmacia/tienda/productos/importar',{method:'POST',body:{texto:$('impTexto').value}});$('impMsg').textContent=`${d.creados} productos cargados${d.errores.length?'. Revisá: '+d.errores.join(' · '):''}`;if(d.creados)$('impTexto').value='';cargarProductos()}
+  catch(e){$('impMsg').textContent=e.message}
+  $('impBtn').disabled=false;
+};
+
+const EST={pagado:['Nuevo · pagado','warn'],preparando:['Preparando','ok'],listo:['Listo para retirar','ok'],entregado:['Entregado','ok'],cancelado:['Cancelado','bad']};
+async function cargarPedidos(){
+  try{
+    const l=await api(`/api/v1/farmacia/tienda/pedidos?estado=${P_MODO}`);
+    $('pedidos').innerHTML=l.length?l.map(p=>{const e=EST[p.estado]||[p.estado,'warn'];const tel=String(p.telefono||'').replace(/\D/g,'');const abierto=['pagado','preparando','listo'].includes(p.estado);
+      return `<div class="item"><div class="between"><b>N° ${p.numero} · ${esc(p.nombre)}</b><span class="badge ${e[1]}">${e[0]}</span></div>
+        <div class="muted">${new Date(p.created_at).toLocaleString('es-AR')} · Retira en <b>${esc(p.sucursal)}</b> · ${pesos(p.total)}${p.comision>0?' · comisión '+pesos(p.comision):''}</div>
+        <ul style="margin:8px 0 0 18px;font-size:13.5px">${(p.items||[]).map(i=>`<li>${i.cantidad} × ${esc(i.nombre)}</li>`).join('')}</ul>
+        ${abierto?`<div class="flex" style="margin-top:10px">${p.estado==='pagado'?'<button class="btn sm" data-e="preparando">Preparando</button>':''}${p.estado!=='listo'?'<button class="btn sm" data-e="listo">Listo · avisar por WhatsApp</button>':''}<button class="btn sm" data-e="entregado">Entregado</button>${tel?`<a class="btn sec sm" href="https://wa.me/${tel.startsWith('54')?tel:'549'+tel.replace(/^0/,'')}" target="_blank" rel="noopener">WhatsApp</a>`:''}</div>`:''}
+        <div data-id="${p.id}"></div></div>`}).join(''):`<p class="muted">${P_MODO==='abiertos'?'No hay pedidos en curso.':'Sin pedidos en los últimos 60 días.'}</p>`;
+    $('pedidos').querySelectorAll('[data-e]').forEach(b=>b.onclick=async()=>{const id=b.closest('.item').querySelector('[data-id]').dataset.id;b.disabled=true;try{await api(`/api/v1/farmacia/tienda/pedidos/${id}/estado`,{method:'POST',body:{estado:b.dataset.e}});cargarPedidos()}catch(e){b.disabled=false;alert(e.message)}});
+  }catch(e){$('pedidos').innerHTML=`<p class="err">${esc(e.message)}</p>`}
+}
+$('pAb').onclick=()=>{P_MODO='abiertos';cargarPedidos()}; $('pTodos').onclick=()=>{P_MODO='todos';cargarPedidos()};
+setInterval(()=>{if(M&&!document.hidden)cargarPedidos()},60000);
+if(KEY) cargar(); else $('sinClave').classList.remove('hidden');
+</script>
+</body>
+</html>

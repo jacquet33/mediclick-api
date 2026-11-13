@@ -85,6 +85,8 @@ jobs:
                   MSAL_REPO_TOKEN: "${{ secrets.MSAL_REPO_TOKEN }}"
                   # Recordatorio por WhatsApp (API de WhatsApp Cloud de Meta). Vacíos = no se envía
                   WHATSAPP_TOKEN: "${{ secrets.WHATSAPP_TOKEN }}"
+                  MP_CLIENT_ID: "${{ vars.MP_CLIENT_ID }}"
+                  MP_CLIENT_SECRET: "${{ secrets.MP_CLIENT_SECRET }}"
                   MP_ACCESS_TOKEN: "${{ secrets.MP_ACCESS_TOKEN }}"
                   MP_PUBLIC_KEY: "${{ secrets.MP_PUBLIC_KEY }}"
                   MP_NOTIFICATION_URL: "https://tusrecetasmed.com/api/v1/payments/webhooks/mercadopago"

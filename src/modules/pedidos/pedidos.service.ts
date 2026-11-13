@@ -3,6 +3,7 @@ import * as crypto from 'crypto';
 import { DatabaseService } from '../../database/database.service';
 import { EmailService } from '../email/email.service';
 import { PharmacyService } from '../pharmacy/pharmacy.service';
+import { WhatsappReminderService } from '../reminders/whatsapp-reminder.service';
 
 const ESTADOS_FARMACIA = ['confirmado', 'listo', 'entregado', 'rechazado'] as const;
 const TEXTO_ESTADO: Record<string, string> = {
@@ -18,7 +19,7 @@ const TEXTO_ESTADO: Record<string, string> = {
 @Injectable()
 export class PedidosService {
   private readonly logger = new Logger('Pedidos');
-  constructor(private db: DatabaseService, private email: EmailService, private pharmacy: PharmacyService) {}
+  constructor(private db: DatabaseService, private email: EmailService, private pharmacy: PharmacyService, private wa: WhatsappReminderService) {}
 
   private base() { return process.env.BASE_URL || 'https://tusrecetasmed.com'; }
 
@@ -125,6 +126,16 @@ export class PedidosService {
         WHERE id = $1 AND pharmacy_id = $2 AND estado NOT IN ('entregado','cancelado') RETURNING id`,
       [id, ph.id, b.estado, total, b.mensaje ? String(b.mensaje).slice(0, 500) : null]);
     if (!r.rowCount) throw new BadRequestException('El pedido ya está cerrado o no es de esta farmacia');
+    if (b.estado === 'listo') {
+      const p = await this.db.queryOne<any>(
+        `SELECT pf.telefono, pf.modalidad, rx.verification_code AS codigo, pa.first_name FROM pedidos_farmacia pf
+           JOIN prescriptions rx ON rx.id = pf.prescription_id JOIN patients pa ON pa.id = rx.patient_id WHERE pf.id = $1`, [id]);
+      if (p && p.modalidad === 'retiro') {
+        let tel = String(p.telefono || '').replace(/\D/g, '').replace(/^0/, '');
+        tel = tel.startsWith('549') ? tel : tel.startsWith('54') ? '549' + tel.slice(2) : '549' + tel;
+        this.wa.avisoTienda(tel, 'tienda_pedido_listo', [p.first_name || 'Hola', p.codigo, ph.name, [ph.address, ph.city].filter(Boolean).join(', ')]).catch(() => undefined);
+      }
+    }
     return { ok: true };
   }
 

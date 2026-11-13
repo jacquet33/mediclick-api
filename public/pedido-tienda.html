@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1F4E45">
+<meta name="robots" content="noindex">
+<title>Tu compra — TusRecetasMed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#2F6F62;--deep:#1F4E45;--sage:#7F8F5E;--bg:#F5F7F5;--ink:#1d2320;--soft:#5d6862;--line:#e2e7e3}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100dvh;-webkit-font-smoothing:antialiased}
+.wrap{max-width:480px;margin:0 auto;padding:0 16px 32px}
+header{background:var(--deep);color:#fff;border-radius:0 0 24px 24px;padding:22px 20px;margin:0 -16px 20px;text-align:center}
+header .brand{font-size:13px;font-weight:600;opacity:.85}header .brand span{color:#C9D3B3}
+header h1{font-size:19px;margin-top:6px}
+.card{background:#fff;border-radius:16px;padding:18px;box-shadow:0 4px 18px rgba(20,40,30,.07);margin-bottom:14px}
+.estado{display:inline-block;padding:7px 14px;border-radius:999px;font-weight:700;font-size:14px}
+.e-enviado{background:#EEF2F7;color:#344B66}.e-confirmado,.e-listo{background:#E3F1EA;color:#1F6B47}
+.e-entregado{background:#E9ECEA;color:#3C4A43}.e-rechazado,.e-cancelado{background:#FCE8E8;color:#8A2B2B}
+.pasos{display:flex;justify-content:space-between;margin:18px 0 6px;position:relative}
+.pasos::before{content:'';position:absolute;top:11px;left:12px;right:12px;height:2px;background:var(--line)}
+.paso{position:relative;text-align:center;flex:1;font-size:11.5px;color:var(--soft)}
+.paso i{display:block;width:24px;height:24px;border-radius:50%;background:#fff;border:2px solid var(--line);margin:0 auto 6px;font-style:normal;line-height:20px;font-size:12px}
+.paso.ok i{background:var(--primary);border-color:var(--primary);color:#fff}.paso.ok{color:var(--ink);font-weight:600}
+.kv{display:grid;gap:10px;margin-top:6px}.kv span{display:block;font-size:12px;color:var(--soft)}.kv b{font-size:15px}
+.total{font-size:26px;font-weight:700;color:var(--deep)}
+.msg{background:#F6F8F3;border-left:3px solid var(--sage);padding:10px 12px;border-radius:8px;font-size:14px;margin-top:10px}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.btn{flex:1;min-width:140px;text-align:center;padding:12px;border-radius:12px;font-weight:600;font-size:14px;text-decoration:none;border:0;cursor:pointer;font-family:inherit}
+.btn.wa{background:#25D366;color:#fff}.btn.sec{background:#EEF1EE;color:var(--ink)}.btn.danger{background:none;color:#8A2B2B;border:1.5px solid #EBC6C6}
+.muted{font-size:12.5px;color:var(--soft);text-align:center;line-height:1.5;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><div class="brand">TusRecetas<span>Med</span></div><h1>Tu compra en la farmacia</h1></header>
+  <div id="c"><div class="card" style="text-align:center;color:var(--soft)">Cargando…</div></div>
+  <p class="muted">El cobro lo hace la farmacia por Mercado Pago. Retirás en la sucursal elegida cuando te avisemos por WhatsApp.</p>
+</div>
+<script>
+const t=new URLSearchParams(location.search).get('t')||'';
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pesos=n=>Number(n).toLocaleString('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:2});
+const CLASE={pendiente_pago:'enviado',pagado:'confirmado',preparando:'confirmado',listo:'listo',entregado:'entregado',cancelado:'cancelado'};
+async function cargar(){
+  const c=document.getElementById('c');
+  try{
+    const r=await fetch(`/api/v1/tienda/pedido/${encodeURIComponent(t)}`); if(!r.ok) throw 0;
+    const p=await r.json();
+    const orden=['pagado','preparando','listo','entregado'], idx=orden.indexOf(p.estado);
+    const tel=String(p.whatsapp||p.telefono||'').replace(/\D/g,'');
+    const wa=tel?`https://wa.me/${tel.startsWith('54')?tel:'549'+tel.replace(/^0/,'')}?text=${encodeURIComponent('Hola, te escribo por mi pedido N° '+p.numero+' de la tienda online.')}`:'';
+    c.innerHTML=`<div class="card" style="text-align:center">
+      <div style="font-size:13px;color:var(--soft);margin-bottom:8px">Pedido N° ${esc(p.numero)} · ${esc(p.tienda)}</div>
+      <span class="estado e-${CLASE[p.estado]||'enviado'}">${esc(p.estadoTexto)}</span>
+      ${p.estado==='pendiente_pago'?'<p style="font-size:13px;color:var(--soft);margin-top:10px">Si ya pagaste, el pago puede tardar unos minutos en acreditarse. Esta página se actualiza sola.</p>':''}
+      ${p.estado!=='cancelado'&&idx>=0?`<div class="pasos">${['Pagado','Preparando','Listo','Entregado'].map((n,i)=>`<div class="paso ${i<=idx?'ok':''}"><i>${i<=idx?'✓':i+1}</i>${n}</div>`).join('')}</div>`:''}
+    </div>
+    <div class="card"><div class="kv">
+      ${(p.items||[]).map(i=>`<div style="display:flex;justify-content:space-between;gap:10px"><span>${i.cantidad} × ${esc(i.nombre)}</span><b>${pesos(i.cantidad*i.precio)}</b></div>`).join('')}
+      <div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:10px"><span>Total</span><b class="total" style="font-size:20px">${pesos(p.total)}</b></div>
+    </div></div>
+    <div class="card"><div class="kv">
+      <div><span>Retirás en</span><b>${esc(p.sucursal)}</b></div>
+      <div><span>Dirección</span><b>${esc([p.direccion,p.ciudad].filter(Boolean).join(', '))}</b></div>
+      ${p.horario?`<div><span>Horario</span><b>${esc(p.horario)}</b></div>`:''}
+    </div>
+    <div class="btns">${wa?`<a class="btn wa" href="${wa}" target="_blank" rel="noopener">Escribir a la farmacia</a>`:''}<a class="btn sec" href="/f/${encodeURIComponent(p.slug)}">Volver a la tienda</a></div>
+    </div>`;
+  }catch{ c.innerHTML='<div class="card" style="text-align:center">No encontramos el pedido. Revisá el link.</div>'; }
+}
+cargar(); setInterval(()=>{ if(!document.hidden) cargar() },20000);
+</script>
+</body>
+</html>
