@@ -56,7 +56,7 @@ th{font-size:12px;color:var(--soft);font-weight:600}
     </div>
 
     <section data-s="pedidos">
-      <div class="card"><div class="row" id="stats"></div><p class="muted" id="comisionTxt" style="margin-top:10px"></p></div>
+      <div class="card"><div class="row" id="stats"></div><p class="muted" id="abonoTxt" style="margin-top:10px"></p></div>
       <div class="card"><div class="between"><h2 style="margin:0">Pedidos</h2><div class="flex"><button class="btn sec sm" id="pAb">En curso</button><button class="btn sec sm" id="pTodos">Últimos 60 días</button></div></div>
         <div id="pedidos" style="margin-top:12px"></div></div>
     </section>
@@ -79,6 +79,7 @@ th{font-size:12px;color:var(--soft);font-weight:600}
     </section>
 
     <section data-s="tienda" class="hidden">
+      <div class="card" id="abonoCard"><h2>Abono de la tienda online</h2><div id="abonoBox"></div></div>
       <div class="card"><h2>Tu tienda</h2>
         <div class="row">
           <label>Nombre visible<input id="tNombre"></label>
@@ -92,7 +93,7 @@ th{font-size:12px;color:var(--soft);font-weight:600}
         <div id="tLink" class="muted" style="margin-top:12px"></div>
       </div>
       <div class="card"><h2>Cobros con Mercado Pago</h2><div id="mpBox"></div>
-        <p class="muted" style="margin-top:10px">Los pagos van directo a la cuenta de Mercado Pago de la farmacia. Las primeras <b id="cLim">100</b> ventas de cada mes no tienen comisión; desde la siguiente, TusRecetasMed retiene el <b id="cPct">1</b>% de cada venta automáticamente.</p>
+        <p class="muted" style="margin-top:10px">Los pagos de tus clientes van directo a tu cuenta de Mercado Pago. TusRecetasMed no cobra comisión por venta.</p>
       </div>
       <div class="card"><h2>Qué se puede vender</h2><p class="muted">Perfumería, dermocosmética, higiene, bebé, ortopedia y medicamentos de venta libre. Los medicamentos <b>bajo receta</b> no se venden en la tienda: el paciente los pide con su receta electrónica y se dispensan en el mostrador.</p></div>
     </section>
@@ -114,6 +115,8 @@ async function cargar(){
   try{ M=await api('/api/v1/farmacia/tienda'); }catch(e){ $('sinClave').classList.remove('hidden'); return; }
   $('app').classList.remove('hidden'); $('phNombre').textContent=M.farmacia.nombre+(M.farmacia.ciudad?' · '+M.farmacia.ciudad:'');
   pintarTienda(); pintarSucursales(); pintarStats(); cargarPedidos();
+  const ab=new URLSearchParams(location.search).get('abono');
+  if(ab){ tab('tienda'); $('tMsg').textContent='Si completaste el pago, el abono se activa en unos minutos.'; history.replaceState(null,'','/farmacia-tienda'); }
   const q=new URLSearchParams(location.search).get('mp');
   if(q){ tab('tienda'); $('tMsg').textContent=q==='ok'?'✓ Mercado Pago conectado':'No se pudo conectar Mercado Pago. Probá de nuevo.'; history.replaceState(null,'','/farmacia-tienda'); }
   else if(!M.tienda) tab('tienda');
@@ -123,15 +126,26 @@ document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>tab(b.dataset.t));
 if(location.hash==='#pedidos') tab('pedidos');
 
 function pintarStats(){
-  const m=M.mes||{ventas:0,total:0,comision:0}, lim=M.comision.ventasSinComision;
-  $('stats').innerHTML=`<div class="stat"><span class="muted">Ventas del mes</span><b>${m.ventas}</b></div><div class="stat"><span class="muted">Vendido</span><b>${pesos(m.total)}</b></div><div class="stat"><span class="muted">Comisión</span><b>${pesos(m.comision)}</b></div>`;
-  $('comisionTxt').textContent=m.ventas<lim?`Te quedan ${lim-m.ventas} ventas sin comisión este mes. Después se aplica el ${M.comision.porcentaje}%.`:`Superaste las ${lim} ventas del mes: se aplica el ${M.comision.porcentaje}% de comisión.`;
-  $('cLim').textContent=lim; $('cPct').textContent=M.comision.porcentaje;
+  const m=M.mes||{ventas:0,total:0}, a=M.abono;
+  $('stats').innerHTML=`<div class="stat"><span class="muted">Ventas del mes</span><b>${m.ventas}</b></div><div class="stat"><span class="muted">Vendido</span><b>${pesos(m.total)}</b></div><div class="stat"><span class="muted">Abono</span><b style="font-size:16px">${a.alDia?'✓ Al día':'Sin abono'}</b></div>`;
+  $('abonoTxt').innerHTML=a.alDia?`Abono de ${pesos(a.precio)} por mes, sin comisión por venta.${a.proximoCobro?' Próximo cobro: '+new Date(a.proximoCobro).toLocaleDateString('es-AR')+'.':''}`:`<span class="badge warn">Tu tienda no está visible</span> Activá el abono de ${pesos(a.precio)} por mes en <a href="#" id="irAbono">Tienda y cobros</a>.`;
+  const ir=$('irAbono'); if(ir) ir.onclick=e=>{e.preventDefault();tab('tienda')};
+  pintarAbono();
+}
+function pintarAbono(){
+  const a=M.abono, est={authorized:['Activo','ok'],pending:['Pendiente de pago','warn'],paused:['Pausado','warn'],cancelled:['Cancelado','bad'],sin_abono:['Sin abono','warn']}[a.estado]||[a.estado,'warn'];
+  $('abonoBox').innerHTML=`<div class="between"><div><b style="font-size:22px;color:var(--deep)">${pesos(a.precio)}</b> <span class="muted">por mes · débito automático con Mercado Pago</span></div><span class="badge ${a.alDia?'ok':est[1]}">${a.alDia?'Al día':est[0]}</span></div>
+    <ul class="muted" style="margin:10px 0 0 18px"><li>Tienda online con tu catálogo y sucursales</li><li>Cobro online directo a tu cuenta, <b>sin comisión por venta</b></li><li>Avisos automáticos por WhatsApp: pedido recibido y listo para retirar</li></ul>
+    <div class="flex" style="margin-top:12px">${a.alDia?`<span class="muted">${a.proximoCobro?'Próximo cobro: '+new Date(a.proximoCobro).toLocaleDateString('es-AR'):''}</span><button class="btn sec sm" id="abonoOff">Cancelar abono</button>`
+      :`<button class="btn mp" id="abonoOn" ${a.pagosDisponibles?'':'disabled'}>${a.estado==='pending'?'Completar el pago':'Activar abono'} con Mercado Pago</button>${a.pagosDisponibles?'':'<span class="muted">Los pagos se están habilitando.</span>'}`}<span class="muted" id="abonoMsg"></span></div>
+    ${a.alDia?'':'<p class="muted" style="margin-top:8px">Podés armar el catálogo y las sucursales ahora: la tienda se publica cuando el abono está activo.</p>'}`;
+  const on=$('abonoOn'); if(on) on.onclick=async()=>{on.disabled=true;try{const d=await api('/api/v1/farmacia/tienda/abono',{method:'POST'});location.href=d.url}catch(e){$('abonoMsg').textContent=e.message;on.disabled=false}};
+  const off=$('abonoOff'); if(off) off.onclick=async()=>{if(!confirm('¿Cancelar el abono? La tienda deja de estar visible al terminar el período pagado.'))return;M=await api('/api/v1/farmacia/tienda/abono/cancelar',{method:'POST'});pintarStats()};
 }
 function pintarTienda(){
   const t=M.tienda||{};
   $('tNombre').value=t.nombre||M.farmacia.nombre; $('tSlug').value=t.slug||''; $('tWa').value=t.whatsapp||''; $('tLogo').value=t.logo_url||''; $('tDesc').value=t.descripcion||''; $('tActiva').checked=!!t.activa;
-  $('tLink').innerHTML=t.url?`Tu tienda: <a class="link" href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.url)}</a> <button class="btn sec sm" id="copiar">Copiar link</button>${t.activa?'':' <span class="badge warn">No publicada</span>'}${M.sucursales.length?'':' <span class="badge warn">Cargá al menos una sucursal</span>'}`:'';
+  $('tLink').innerHTML=t.url?`Tu tienda: <a class="link" href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.url)}</a> <button class="btn sec sm" id="copiar">Copiar link</button>${t.activa?'':' <span class="badge warn">No publicada</span>'}${M.abono.alDia?'':' <span class="badge warn">Sin abono activo</span>'}${M.sucursales.length?'':' <span class="badge warn">Cargá al menos una sucursal</span>'}`:'';
   const c=$('copiar'); if(c) c.onclick=()=>{navigator.clipboard?.writeText(t.url);c.textContent='Copiado ✓'};
   $('mpBox').innerHTML=!M.mpDisponible?'<p class="muted">El cobro online se está habilitando en TusRecetasMed. Mientras tanto podés armar el catálogo.</p>'
     :t.mpConectado?`<div class="flex"><span class="badge ok">✓ Mercado Pago conectado</span><span class="muted">Cuenta ${esc(t.mp_user_id||'')}</span><button class="btn sec sm" id="mpOff">Desconectar</button></div>`

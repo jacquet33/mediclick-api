@@ -238,6 +238,8 @@ export class MercadoPagoService {
         return;
       }
 
+      // Abono de la tienda online de una farmacia: lo gestiona TiendaService (consulta el preapproval)
+      if (externalRef.startsWith('farmacia:')) return;
       // external_reference = "doctorId|planType"
       const [doctorId] = externalRef.split('|');
 
@@ -331,6 +333,14 @@ export class MercadoPagoService {
       const externalRef = preapproval.external_reference;
 
       if (!externalRef) return;
+
+      // Abono de la tienda online de una farmacia
+      if (externalRef.startsWith('farmacia:')) {
+        await this.db.query(
+          `UPDATE farmacia_suscripciones SET estado = $2, proximo_cobro = $3, consultado_at = now(), updated_at = now() WHERE mp_preapproval_id = $1`,
+          [preapprovalId, (preapproval as any).status, (preapproval as any).next_payment_date || null]);
+        return;
+      }
 
       const [doctorId] = externalRef.split('|');
 

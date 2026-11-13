@@ -7,9 +7,10 @@ import { PharmacyService } from '../pharmacy/pharmacy.service';
 import { WhatsappReminderService } from '../reminders/whatsapp-reminder.service';
 
 const MP = 'https://api.mercadopago.com';
-/** Comisión: las primeras 100 ventas pagas del mes no pagan; desde la 101 se cobra el 1% */
-const VENTAS_SIN_COMISION = 100;
-const COMISION = 0.01;
+/** Abono mensual fijo de la tienda online (sin comisión por venta) */
+const PRECIO_TIENDA_DEFAULT = 19000;
+/** Días de gracia después del vencimiento del abono antes de pausar la tienda */
+const GRACIA_DIAS = 5;
 const ESTADOS_FARMACIA = ['preparando', 'listo', 'entregado', 'cancelado'];
 const TEXTO_ESTADO: Record<string, string> = {
   pendiente_pago: 'Esperando el pago', pagado: 'Pago recibido', preparando: 'La farmacia lo está preparando',
@@ -23,8 +24,9 @@ function slugify(t: string) {
 
 /**
  * Tienda online de cada farmacia: catálogo (perfumería, cuidado personal y venta libre), sucursales,
- * carrito y pago con Mercado Pago directo a la cuenta de la farmacia (marketplace: TusRecetasMed solo
- * retiene la comisión). Los medicamentos bajo receta no se venden acá: van por los pedidos con receta.
+ * carrito y pago con Mercado Pago directo a la cuenta de la farmacia. La farmacia paga un abono mensual
+ * fijo (TIENDA_PRECIO, $19.000) con débito automático; sin abono al día la tienda no se publica.
+ * Los medicamentos bajo receta no se venden acá: van por los pedidos con receta.
  * Requiere: MP_CLIENT_ID, MP_CLIENT_SECRET (app de Mercado Pago en modo marketplace) y ENCRYPTION_KEY.
  */
 @Injectable()
@@ -43,7 +45,7 @@ export class TiendaService {
       `SELECT t.pharmacy_id, t.slug, t.nombre, t.descripcion, t.logo_url, t.whatsapp, (t.mp_access_token_enc IS NOT NULL) AS cobra_online
          FROM farmacia_tiendas t JOIN pharmacies ph ON ph.id = t.pharmacy_id
         WHERE t.slug = $1 AND t.activa AND ph.is_active`, [String(slug || '').toLowerCase()]);
-    if (!t) throw new NotFoundException('Tienda no encontrada');
+    if (!t || !(await this.abonoAlDia(t.pharmacy_id))) throw new NotFoundException('Tienda no encontrada');
     const sucursales = (await this.db.query<any>(
       `SELECT id, nombre, direccion, ciudad, telefono, horario FROM farmacia_sucursales WHERE pharmacy_id = $1 AND activa ORDER BY nombre`, [t.pharmacy_id])).rows;
     const productos = (await this.db.query<any>(
@@ -56,7 +58,7 @@ export class TiendaService {
 
   async crearPedido(slug: string, b: { sucursalId: string; items: { productoId: string; cantidad: number }[]; nombre: string; telefono: string; email?: string }) {
     const t = await this.db.queryOne<any>(`SELECT * FROM farmacia_tiendas WHERE slug = $1 AND activa`, [String(slug || '').toLowerCase()]);
-    if (!t) throw new NotFoundException('Tienda no encontrada');
+    if (!t || !(await this.abonoAlDia(t.pharmacy_id))) throw new NotFoundException('Tienda no encontrada');
     if (!t.mp_access_token_enc) throw new BadRequestException('Esta farmacia todavía no tiene el cobro online activo');
     const suc = await this.db.queryOne<any>(`SELECT * FROM farmacia_sucursales WHERE id = $1 AND pharmacy_id = $2 AND activa`, [b.sucursalId, t.pharmacy_id]);
     if (!suc) throw new BadRequestException('Elegí la sucursal donde vas a retirar');
@@ -79,9 +81,7 @@ export class TiendaService {
     });
     const total = Math.round(items.reduce((a, i) => a + i.precio * i.cantidad, 0) * 100) / 100;
     if (total <= 0) throw new BadRequestException('El total del pedido no es válido');
-    const ventas = await this.db.queryOne<{ n: number }>(
-      `SELECT count(*)::int AS n FROM tienda_pedidos WHERE pharmacy_id = $1 AND pagado_at >= date_trunc('month', now() AT TIME ZONE 'America/Argentina/Buenos_Aires') AT TIME ZONE 'America/Argentina/Buenos_Aires'`, [t.pharmacy_id]);
-    const comision = (ventas?.n ?? 0) >= VENTAS_SIN_COMISION ? Math.round(total * COMISION * 100) / 100 : 0;
+    const comision = 0;
     const token = crypto.randomBytes(18).toString('base64url');
     const pedido = await this.db.queryOne<any>(
       `INSERT INTO tienda_pedidos (pharmacy_id, sucursal_id, token, nombre, telefono, email, items, total, comision)
@@ -94,7 +94,6 @@ export class TiendaService {
       body: JSON.stringify({
         items: items.map((i) => ({ id: i.productoId, title: i.nombre.slice(0, 250), quantity: i.cantidad, unit_price: i.precio, currency_id: 'ARS' })),
         payer: { name: nombre, email: b.email || undefined },
-        marketplace_fee: comision || undefined,
         external_reference: pedido.id,
         statement_descriptor: String(t.nombre).slice(0, 22),
         notification_url: `${this.base()}/api/v1/tienda/mp/webhook?pedido=${pedido.id}`,
@@ -164,7 +163,7 @@ export class TiendaService {
       farmacia: { nombre: ph.name, ciudad: ph.city },
       tienda: t ? { ...t, url: `${this.base()}/f/${t.slug}`, mpConectado: !!t.mp_conectado_at } : null,
       sucursales, mes, mpDisponible: this.mpDisponible,
-      comision: { ventasSinComision: VENTAS_SIN_COMISION, porcentaje: COMISION * 100 },
+      abono: { ...(await this.suscripcion(ph.id)), precio: this.precio, alDia: await this.abonoAlDia(ph.id), pagosDisponibles: !!this.config.get('MP_ACCESS_TOKEN') },
     };
   }
 
@@ -277,6 +276,76 @@ export class TiendaService {
         [p.nombre.split(' ')[0], String(p.numero), info?.tienda || ph.name, [info?.direccion, info?.ciudad].filter(Boolean).join(', ')]).catch(() => undefined);
     }
     return { ok: true };
+  }
+
+  // ─── Abono mensual de la tienda ───────────────────────
+  get precio() { return Number(this.config.get('TIENDA_PRECIO')) || PRECIO_TIENDA_DEFAULT; }
+
+  /** Estado del abono; se consulta a Mercado Pago como mucho una vez por hora (o siempre si está pendiente) */
+  private async suscripcion(phId: string) {
+    let s = await this.db.queryOne<any>(`SELECT * FROM farmacia_suscripciones WHERE pharmacy_id = $1`, [phId]);
+    const token = this.config.get<string>('MP_ACCESS_TOKEN');
+    if (s?.mp_preapproval_id && token && s.estado !== 'cancelled' &&
+        (s.estado === 'pending' || !s.consultado_at || Date.now() - new Date(s.consultado_at).getTime() > 3600_000)) {
+      const r = await fetch(`${MP}/preapproval/${encodeURIComponent(s.mp_preapproval_id)}`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15_000) }).catch(() => null);
+      const d: any = r && r.ok ? await r.json().catch(() => null) : null;
+      if (d?.status) {
+        s = await this.db.queryOne<any>(
+          `UPDATE farmacia_suscripciones SET estado = $2, proximo_cobro = $3, consultado_at = now(), updated_at = now() WHERE pharmacy_id = $1 RETURNING *`,
+          [phId, d.status, d.next_payment_date || null]);
+      }
+    }
+    return s ? { estado: s.estado as string, proximoCobro: s.proximo_cobro, monto: Number(s.monto) } : { estado: 'sin_abono', proximoCobro: null, monto: this.precio };
+  }
+
+  private async abonoAlDia(phId: string): Promise<boolean> {
+    const s = await this.suscripcion(phId);
+    if (s.estado !== 'authorized') return false;
+    return !s.proximoCobro || new Date(s.proximoCobro).getTime() + GRACIA_DIAS * 86400_000 > Date.now();
+  }
+
+  async suscribir(key: string) {
+    const ph = await this.pharmacy.autenticar(key);
+    const token = this.config.get<string>('MP_ACCESS_TOKEN');
+    if (!token) throw new ServiceUnavailableException('Los pagos todavía no están habilitados. Escribinos a support@tusrecetasmed.com');
+    if (!ph.email) throw new BadRequestException('La farmacia no tiene email cargado');
+    if (await this.abonoAlDia(ph.id)) throw new BadRequestException('El abono ya está activo');
+    const r = await fetch(`${MP}/preapproval`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        reason: 'Tienda online TusRecetasMed – abono mensual',
+        external_reference: `farmacia:${ph.id}`,
+        payer_email: ph.email,
+        auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: this.precio, currency_id: 'ARS' },
+        back_url: `${this.base()}/farmacia-tienda?abono=ok`,
+        status: 'pending',
+      }),
+      signal: AbortSignal.timeout(20_000),
+    });
+    const d: any = await r.json().catch(() => ({}));
+    if (!r.ok || !d.init_point) {
+      this.logger.warn(`Abono de tienda rechazado por MP: ${r.status} ${String(d?.message || '').slice(0, 150)}`);
+      throw new BadRequestException('No se pudo iniciar el abono en Mercado Pago. Probá de nuevo en unos minutos.');
+    }
+    await this.db.query(
+      `INSERT INTO farmacia_suscripciones (pharmacy_id, mp_preapproval_id, estado, monto, consultado_at) VALUES ($1,$2,'pending',$3, now())
+       ON CONFLICT (pharmacy_id) DO UPDATE SET mp_preapproval_id = EXCLUDED.mp_preapproval_id, estado = 'pending', monto = EXCLUDED.monto, proximo_cobro = NULL, consultado_at = now(), updated_at = now()`,
+      [ph.id, d.id, this.precio]);
+    return { url: d.init_point };
+  }
+
+  async cancelarAbono(key: string) {
+    const ph = await this.pharmacy.autenticar(key);
+    const s = await this.db.queryOne<any>(`SELECT mp_preapproval_id FROM farmacia_suscripciones WHERE pharmacy_id = $1`, [ph.id]);
+    const token = this.config.get<string>('MP_ACCESS_TOKEN');
+    if (s?.mp_preapproval_id && token) {
+      await fetch(`${MP}/preapproval/${encodeURIComponent(s.mp_preapproval_id)}`, {
+        method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' }), signal: AbortSignal.timeout(15_000),
+      }).catch(() => undefined);
+    }
+    await this.db.query(`UPDATE farmacia_suscripciones SET estado = 'cancelled', updated_at = now() WHERE pharmacy_id = $1`, [ph.id]);
+    return this.mia(key);
   }
 
   // ─── Mercado Pago (marketplace) ───────────────────────

@@ -61,6 +61,12 @@ export class TiendaFarmaciaController {
   @Post('pedidos/:id/estado')
   estado(@Headers('x-pharmacy-key') k: string, @Param('id') id: string, @Body('estado') e: string) { return this.svc.estadoPedido(k, id, e); }
 
+  @Post('abono')
+  abono(@Headers('x-pharmacy-key') k: string) { return this.svc.suscribir(k); }
+
+  @Post('abono/cancelar')
+  cancelarAbono(@Headers('x-pharmacy-key') k: string) { return this.svc.cancelarAbono(k); }
+
   @Get('mp/conectar')
   conectar(@Headers('x-pharmacy-key') k: string) { return this.svc.mpConectarUrl(k); }
 
