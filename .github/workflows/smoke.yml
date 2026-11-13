@@ -30,6 +30,9 @@ jobs:
           chk $B/api/v1/cobertura/estado
           chk "$B/api/v1/pedidos/farmacias?q=colon"
           chk $B/pedido
+          chk $B/farmacia-tienda
+          chk $B/f/no-existe
+          chk $B/api/v1/tienda/no-existe
           chk $B/api/v1/planes/mio
           curl -s $B/portal | grep -c 'id="loginForm"' | sed 's/^/SMOKE login-form=/'
           chk https://www.tusrecetasmed.com/ -I
