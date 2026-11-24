@@ -14,5 +14,6 @@ export class WhatsappAccountController {
   @Post() conectar(@CurrentUser() u: AuthUser, @Body() b: { code?: string; wabaId?: string; phoneNumberId?: string; coexistencia?: boolean }) { return this.svc.conectar(this.medico(u), b); }
   /** POST /whatsapp/account/prueba — manda la confirmación de ejemplo a un celular para comprobar la conexión */
   @Post('prueba') prueba(@CurrentUser() u: AuthUser, @Body() b: { phone?: string }) { return this.wa.prueba(this.medico(u), String(b?.phone || '')); }
+  @Post('compartir') compartir(@CurrentUser() u: AuthUser, @Body() b: { compartido?: boolean }) { return this.svc.compartir(this.medico(u), !!b?.compartido); }
   @Delete() desconectar(@CurrentUser() u: AuthUser) { return this.svc.desconectar(this.medico(u)); }
 }

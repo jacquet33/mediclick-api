@@ -85,10 +85,10 @@ export class WhatsappRespuestasService {
         WHERE a.status NOT IN ('cancelled','completed','no_show')
           AND (a.date + a.start_time) AT TIME ZONE 'America/Argentina/Buenos_Aires' > now() - interval '2 hours'
           AND right(regexp_replace(COALESCE(a.whatsapp_reminder_phone, p.phone, ''), '\\D', '', 'g'), 10) = $1
-          AND ($2::uuid IS NULL AND NOT EXISTS (SELECT 1 FROM doctor_whatsapp_accounts w WHERE w.doctor_id = od.doctor_id)
-               OR od.doctor_id = $2::uuid)
+          AND ($2::uuid[] IS NULL AND NOT EXISTS (SELECT 1 FROM doctor_whatsapp_accounts w WHERE w.doctor_id = od.doctor_id)
+               OR od.doctor_id = ANY($2::uuid[]))
         ORDER BY a.date, a.start_time LIMIT 1`,
-      [clave, cuenta?.doctor_id || null],
+      [clave, cuenta ? await this.cuentas.doctoresDelNumero(cuenta.doctor_id) : null],
     );
     const doctorId = turno?.doctor_id || cuenta?.doctor_id || null;
 

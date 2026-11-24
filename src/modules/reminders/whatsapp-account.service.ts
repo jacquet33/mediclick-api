@@ -35,8 +35,9 @@ export class WhatsappAccountService {
 
   async estado(doctorId: string) {
     const r = await this.db.queryOne(
-      `SELECT display_phone, verified_name, connected_at, templates FROM doctor_whatsapp_accounts WHERE doctor_id = $1`, [doctorId]);
+      `SELECT display_phone, verified_name, connected_at, templates, compartido FROM doctor_whatsapp_accounts WHERE doctor_id = $1`, [doctorId]);
     const d = await this.db.queryOne(`SELECT phone FROM doctors WHERE id = $1`, [doctorId]);
+    const delConsultorio = r ? null : await this.cuentaCompartida(doctorId);
     return {
       disponible: this.disponible,
       telefonoMedico: d?.phone || null,
@@ -48,6 +49,9 @@ export class WhatsappAccountService {
       nombre: r?.verified_name || null,
       conectadoEl: r?.connected_at || null,
       plantillas: r?.templates || null,
+      compartido: !!r?.compartido,
+      // Sin número propio: el WhatsApp del consultorio que comparte otro profesional
+      delConsultorio: delConsultorio ? { numero: delConsultorio.display_phone, nombre: delConsultorio.verified_name, medico: delConsultorio.medico } : null,
     };
   }
 
@@ -141,12 +145,47 @@ export class WhatsappAccountService {
   }
 
   /** Número y token del médico para enviar (null si no conectó su WhatsApp) */
+  /** WhatsApp del médico o, si no tiene, el que comparte su consultorio / clínica */
   async credenciales(doctorId: string): Promise<CredWa | null> {
     const key = this.config.get('ENCRYPTION_KEY');
     if (!key || !doctorId) return null;
-    const r = await this.db.queryOne(
+    let r = await this.db.queryOne(
       `SELECT phone_number_id, pgp_sym_decrypt(token_enc, $2) AS token FROM doctor_whatsapp_accounts WHERE doctor_id = $1`, [doctorId, key]).catch(() => null);
+    if (!r) {
+      const c = await this.cuentaCompartida(doctorId);
+      if (c) r = await this.db.queryOne(
+        `SELECT phone_number_id, pgp_sym_decrypt(token_enc, $2) AS token FROM doctor_whatsapp_accounts WHERE doctor_id = $1`, [c.doctor_id, key]).catch(() => null);
+    }
     return r ? { phoneNumberId: r.phone_number_id, token: r.token } : null;
+  }
+
+  /** Cuenta compartida por otro profesional de alguno de los consultorios del médico */
+  async cuentaCompartida(doctorId: string) {
+    return this.db.queryOne<any>(
+      `SELECT w.doctor_id, w.display_phone, w.verified_name, d.first_name || ' ' || d.last_name AS medico
+         FROM doctor_whatsapp_accounts w
+         JOIN doctors d ON d.id = w.doctor_id
+         JOIN organization_doctors o1 ON o1.doctor_id = w.doctor_id
+         JOIN organization_doctors o2 ON o2.organization_id = o1.organization_id
+        WHERE w.compartido AND o2.doctor_id = $1 AND w.doctor_id <> $1
+        ORDER BY w.connected_at LIMIT 1`, [doctorId]).catch(() => null);
+  }
+
+  /** Médicos cuyos avisos salen por el número de este médico (él y, si lo comparte, su equipo sin número propio) */
+  async doctoresDelNumero(ownerDoctorId: string): Promise<string[]> {
+    const r = await this.db.queryMany<any>(
+      `SELECT DISTINCT o2.doctor_id FROM doctor_whatsapp_accounts w
+         JOIN organization_doctors o1 ON o1.doctor_id = w.doctor_id
+         JOIN organization_doctors o2 ON o2.organization_id = o1.organization_id
+        WHERE w.doctor_id = $1 AND w.compartido
+          AND NOT EXISTS (SELECT 1 FROM doctor_whatsapp_accounts x WHERE x.doctor_id = o2.doctor_id AND x.doctor_id <> $1)`, [ownerDoctorId]).catch(() => []);
+    return Array.from(new Set([ownerDoctorId, ...r.map((x: any) => x.doctor_id)]));
+  }
+
+  async compartir(doctorId: string, compartido: boolean) {
+    const r = await this.db.query(`UPDATE doctor_whatsapp_accounts SET compartido = $2 WHERE doctor_id = $1`, [doctorId, !!compartido]);
+    if (!r.rowCount) throw new BadRequestException('Primero conectá tu WhatsApp');
+    return this.estado(doctorId);
   }
 
   async conectados(): Promise<Set<string>> {
