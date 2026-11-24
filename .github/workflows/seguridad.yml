@@ -1,0 +1,19 @@
+name: Seguridad del sitio
+on: workflow_dispatch
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Encabezados, TLS y rutas sensibles
+        run: |
+          B=https://tusrecetasmed.com
+          echo "== Encabezados de /"; curl -sSI $B/ | grep -iE "^(HTTP|strict-transport|content-security|x-frame|x-content-type|referrer-policy|permissions-policy|server|x-powered-by|cross-origin)" || true
+          echo "== Encabezados de /api/v1/health"; curl -sSI $B/api/v1/health | grep -iE "^(HTTP|strict-transport|x-frame|x-content-type|server|x-powered-by|access-control)" || true
+          echo "== HTTP -> HTTPS"; curl -sSI http://tusrecetasmed.com/ | grep -iE "^(HTTP|location)" || true
+          echo "== www"; curl -sSI https://www.tusrecetasmed.com/ | grep -iE "^(HTTP|location)" || true
+          echo "== TLS"; for v in tls1 tls1_1 tls1_2 tls1_3; do printf "%s: " $v; echo | timeout 8 openssl s_client -connect tusrecetasmed.com:443 -servername tusrecetasmed.com -$v 2>/dev/null | grep -q "BEGIN CERTIFICATE" && echo acepta || echo rechaza; done
+          echo | openssl s_client -connect tusrecetasmed.com:443 -servername tusrecetasmed.com 2>/dev/null | openssl x509 -noout -issuer -enddate
+          echo "== Rutas sensibles"
+          for p in /.env /.git/config /.git/HEAD /package.json /docker-compose.yml /api/docs /api/docs-json /swagger /api/v1/admin/pharmacies /api/v1/patients /dump.rdb /server-status /.well-known/security.txt /robots.txt /sitemap.xml; do printf "%-32s %s\n" "$p" "$(curl -s -o /dev/null -w '%{http_code} %{size_download}B' $B$p)"; done
+          echo "== CORS desde otro origen"; curl -sSI -H "Origin: https://evil.example" $B/api/v1/health | grep -i "access-control-allow" || echo "sin CORS abierto"
+          echo "== Login: limite de intentos"; for i in $(seq 1 12); do curl -s -o /dev/null -w '%{http_code} ' -X POST -H 'Content-Type: application/json' -d '{"email":"nadie@example.com","password":"x"}' $B/api/v1/auth/login; done; echo
