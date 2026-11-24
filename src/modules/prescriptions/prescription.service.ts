@@ -76,12 +76,17 @@ export class PrescriptionService {
               rx.issued_at, rx.expires_at, rx.verification_code, rx.notes, rx.cuir, rx.content_hash, rx.signed_at, rx.created_at, rx.updated_at,
               rx.digital_signed_at,
               p.first_name || ' ' || p.last_name AS patient_name, p.phone AS patient_phone, p.email AS patient_email,
-              d.first_name || ' ' || d.last_name AS doctor_name
+              d.first_name || ' ' || d.last_name AS doctor_name,
+              COALESCE((SELECT json_agg(json_build_object('medication_name', i.medication_name, 'generic_name', i.generic_name,
+                         'dosage', i.dosage, 'frequency', i.frequency, 'duration', i.duration, 'quantity', i.quantity,
+                         'presentation', i.presentation, 'pharmaceutical_form', i.pharmaceutical_form) ORDER BY i.sort_order, i.created_at)
+                 FROM prescription_items i WHERE i.prescription_id = rx.id), '[]'::json) AS items
        FROM prescriptions rx
        JOIN patients p ON p.id = rx.patient_id
        JOIN doctors d ON d.id = rx.doctor_id
        ${where}
-       ORDER BY rx.issued_at DESC`,
+       ORDER BY rx.issued_at DESC
+       LIMIT 500`,
       params,
     );
   }
