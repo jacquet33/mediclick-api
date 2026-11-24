@@ -58,5 +58,7 @@ export class PharmacyAdminController {
   @Post() crear(@CurrentUser() u: AuthUser, @Body() dto: any) { return this.service.crear(this.admin(u), dto); }
   @Post(':id/regenerate-key') regenerar(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.service.regenerar(this.admin(u), id); }
   @Post(':id/activate') activar(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.service.activar(this.admin(u), id, true); }
+  @Post(':id/cortesia-on') cortesiaOn(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.service.cortesia(this.admin(u), id, true); }
+  @Post(':id/cortesia-off') cortesiaOff(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.service.cortesia(this.admin(u), id, false); }
   @Post(':id/deactivate') desactivar(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.service.activar(this.admin(u), id, false); }
 }

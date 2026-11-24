@@ -134,6 +134,7 @@ function pintarStats(){
 }
 function pintarAbono(){
   const a=M.abono, est={authorized:['Activo','ok'],pending:['Pendiente de pago','warn'],paused:['Pausado','warn'],cancelled:['Cancelado','bad'],sin_abono:['Sin abono','warn']}[a.estado]||[a.estado,'warn'];
+  if(a.cortesia){$('abonoBox').innerHTML='<div class="between"><b>Tienda sin cargo</b><span class="badge ok">Activa</span></div><p class="muted" style="margin-top:8px">TusRecetasMed te habilitó la tienda online sin abono.</p>';return}
   $('abonoBox').innerHTML=`<div class="between"><div><b style="font-size:22px;color:var(--deep)">${pesos(a.precio)}</b> <span class="muted">por mes · débito automático con Mercado Pago</span></div><span class="badge ${a.alDia?'ok':est[1]}">${a.alDia?'Al día':est[0]}</span></div>
     <ul class="muted" style="margin:10px 0 0 18px"><li>Tienda online con tu catálogo y sucursales</li><li>Cobro online directo a tu cuenta, <b>sin comisión por venta</b></li><li>Avisos automáticos por WhatsApp: pedido recibido y listo para retirar</li></ul>
     <div class="flex" style="margin-top:12px">${a.alDia?`<span class="muted">${a.proximoCobro?'Próximo cobro: '+new Date(a.proximoCobro).toLocaleDateString('es-AR'):''}</span><button class="btn sec sm" id="abonoOff">Cancelar abono</button>`

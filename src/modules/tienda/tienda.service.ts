@@ -163,7 +163,7 @@ export class TiendaService {
       farmacia: { nombre: ph.name, ciudad: ph.city },
       tienda: t ? { ...t, url: `${this.base()}/f/${t.slug}`, mpConectado: !!t.mp_conectado_at } : null,
       sucursales, mes, mpDisponible: this.mpDisponible,
-      abono: { ...(await this.suscripcion(ph.id)), precio: this.precio, alDia: await this.abonoAlDia(ph.id), pagosDisponibles: !!this.config.get('MP_ACCESS_TOKEN') },
+      abono: { ...(await this.suscripcion(ph.id)), precio: this.precio, alDia: await this.abonoAlDia(ph.id), cortesia: !!ph.tienda_cortesia, pagosDisponibles: !!this.config.get('MP_ACCESS_TOKEN') },
     };
   }
 
@@ -299,6 +299,8 @@ export class TiendaService {
   }
 
   private async abonoAlDia(phId: string): Promise<boolean> {
+    const c = await this.db.queryOne<any>(`SELECT tienda_cortesia FROM pharmacies WHERE id = $1`, [phId]);
+    if (c?.tienda_cortesia) return true;
     const s = await this.suscripcion(phId);
     if (s.estado !== 'authorized') return false;
     return !s.proximoCobro || new Date(s.proximoCobro).getTime() + GRACIA_DIAS * 86400_000 > Date.now();

@@ -194,7 +194,7 @@ export class PharmacyService {
     await this.mustAdmin(adminId);
     return this.db.queryMany(
       `SELECT ph.id, ph.name, ph.cuit, ph.habilitacion, ph.pharmacist_name, ph.pharmacist_license, ph.email, ph.phone,
-              ph.address, ph.city, ph.province, ph.api_key_prefix, ph.is_active, ph.created_at, ph.last_used_at, ph.self_registered, ph.reviewed,
+              ph.address, ph.city, ph.province, ph.api_key_prefix, ph.is_active, ph.created_at, ph.last_used_at, ph.self_registered, ph.reviewed, ph.tienda_cortesia,
               (SELECT COUNT(*)::int FROM prescription_dispensations d WHERE d.pharmacy_id = ph.id) AS dispensas
        FROM pharmacies ph ORDER BY ph.created_at DESC`);
   }
@@ -218,6 +218,14 @@ export class PharmacyService {
     const r = await this.db.queryOne(`UPDATE pharmacies SET api_key_hash = $2, api_key_prefix = $3 WHERE id = $1 RETURNING id, name`, [id, k.hash, k.prefix]);
     if (!r) throw new NotFoundException('Farmacia no encontrada');
     return { ...r, apiKey: k.key };
+  }
+
+  /** Tienda online sin cargo (pruebas o farmacias piloto) */
+  async cortesia(adminId: string, id: string, on: boolean) {
+    await this.mustAdmin(adminId);
+    const r = await this.db.query(`UPDATE pharmacies SET tienda_cortesia = $2 WHERE id = $1`, [id, on]);
+    if (!r.rowCount) throw new NotFoundException('Farmacia no encontrada');
+    return { ok: true };
   }
 
   async activar(adminId: string, id: string, activo: boolean) {

@@ -1070,8 +1070,9 @@
           </div><button class="btn btn-sm btn-primary" id="phCrear">Crear y generar clave</button></div>
         <div class="card"><div class="card-title">🏪 Farmacias (${l.length})</div>
           ${l.length ? l.map((f) => `<div class="appt-row"><div class="who"><strong>${e(f.name)}</strong><small>${e([f.city, f.province, f.cuit && 'CUIT ' + f.cuit, f.pharmacist_name].filter(Boolean).join(' · '))}</small><small>Clave ${e(f.api_key_prefix)}… · ${f.dispensas} dispensas · último uso ${f.last_used_at ? fmtDate(f.last_used_at) : 'nunca'}</small></div>
-            <div class="side"><span class="badge-sm ${f.is_active ? 'confirmed' : 'cancelled'}">${f.is_active ? 'Activa' : 'Deshabilitada'}</span>${f.self_registered ? '<span class="badge-sm pending">Se registró sola</span>' : ''}<div class="acts">
+            <div class="side"><span class="badge-sm ${f.is_active ? 'confirmed' : 'cancelled'}">${f.is_active ? 'Activa' : 'Deshabilitada'}</span>${f.self_registered ? '<span class="badge-sm pending">Se registró sola</span>' : ''}${f.tienda_cortesia ? '<span class="badge-sm confirmed">Tienda sin cargo</span>' : ''}<div class="acts">
               <button class="btn btn-sm btn-soft" onclick="farmaciaAccion('${f.id}','regenerate-key')">Nueva clave</button>
+              <button class="btn btn-sm btn-soft" onclick="farmaciaAccion('${f.id}','${f.tienda_cortesia ? 'cortesia-off' : 'cortesia-on'}')">${f.tienda_cortesia ? 'Quitar tienda sin cargo' : 'Tienda sin cargo'}</button>
               <button class="btn btn-sm ${f.is_active ? 'btn-no' : 'btn-ok'}" onclick="farmaciaAccion('${f.id}','${f.is_active ? 'deactivate' : 'activate'}')">${f.is_active ? 'Deshabilitar' : 'Habilitar'}</button></div></div></div>`).join('') : '<p class="muted">Todavía no hay farmacias habilitadas.</p>'}
         </div>`;
       $('phCrear').onclick = async () => {
