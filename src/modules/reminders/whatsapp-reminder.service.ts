@@ -57,6 +57,14 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
     if (this.timer) clearInterval(this.timer);
   }
 
+  /**
+   * Los avisos de turnos salen siempre desde el WhatsApp de cada médico. El número central de la plataforma
+   * no se usa para los médicos (solo para la tienda de farmacias), salvo que se active WHATSAPP_CENTRAL_MEDICOS=true.
+   */
+  get centralMedicos(): boolean {
+    return this.habilitado && this.config.get<string>('WHATSAPP_CENTRAL_MEDICOS') === 'true';
+  }
+
   get habilitado(): boolean {
     return !!this.config.get('WHATSAPP_TOKEN');
   }
@@ -120,7 +128,7 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
     const numero = WhatsappReminderService.normalizarCelular(phone);
     if (!numero) throw new BadRequestException('Revisá el número: código de área y número, sin 0 ni 15');
     const cred = await this.cuentas.credenciales(doctorId);
-    if (!cred && !this.habilitado) throw new BadRequestException('Primero conectá tu WhatsApp Business');
+    if (!cred && !this.centralMedicos) throw new BadRequestException('Primero conectá tu WhatsApp Business');
     const cuenta = await this.db.queryOne(`SELECT display_phone FROM doctor_whatsapp_accounts WHERE doctor_id = $1`, [doctorId]);
     const propio = String(cuenta?.display_phone || '').replace(/\D/g, '');
     if (propio && (propio === numero || propio === '54' + numero.slice(3))) {
@@ -189,9 +197,9 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
       `SELECT od.doctor_id FROM appointments a JOIN organization_doctors od ON od.id = a.org_doctor_id WHERE a.id = $1`, [appt.id]);
     const cred = await this.cuentas.credenciales(medico?.doctor_id);
     const plantilla = cred ? 'confirmacion_turno' : this.config.get<string>('WHATSAPP_TEMPLATE_CONFIRM');
-    const cupo = (cred || this.habilitado) && plantilla ? await this.planes.puedeEnviarWaAuto(medico?.doctor_id) : { ok: true };
+    const cupo = (cred || this.centralMedicos) && plantilla ? await this.planes.puedeEnviarWaAuto(medico?.doctor_id) : { ok: true };
     if (!cupo.ok) confirmacion = 'limite';
-    else if ((cred || this.habilitado) && plantilla) {
+    else if ((cred || this.centralMedicos) && plantilla) {
       const t = await this.db.queryOne(
         `SELECT p.first_name, d.first_name || ' ' || d.last_name AS doctor_name,
                 to_char(a.date, 'DD/MM') AS fecha, extract(dow from a.date)::int AS dow, to_char(a.start_time, 'HH24:MI') AS hora
@@ -207,7 +215,7 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
         this.logger.warn(`Confirmación WhatsApp ${appt.id}: ${e.message}`);
       }
     }
-    return { ok: true, phone: nuevo, appointmentId: appt.id, confirmacion, automatico: !!cred || this.habilitado };
+    return { ok: true, phone: nuevo, appointmentId: appt.id, confirmacion, automatico: !!cred || this.centralMedicos };
   }
 
   /** Envía los recordatorios cuyo turno empieza dentro de las próximas 24 h (hora de Argentina) */
@@ -233,7 +241,7 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
                AND (date + start_time) AT TIME ZONE 'America/Argentina/Buenos_Aires' <= now() + interval '24 hours'
              LIMIT 50 FOR UPDATE SKIP LOCKED)
           RETURNING a.id`,
-        [this.habilitado],
+        [this.centralMedicos],
       );
       let enviados = 0, errores = 0;
       for (const { id } of pendientes) {
@@ -293,13 +301,13 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
       [doctorId],
     );
     const propio = !!(await this.cuentas.credenciales(doctorId));
-    return { modo: r.whatsapp_reminder_mode, todos: r.whatsapp_reminder_all, automaticoDisponible: this.habilitado || propio, whatsappPropio: propio,
+    return { modo: r.whatsapp_reminder_mode, todos: r.whatsapp_reminder_all, automaticoDisponible: this.centralMedicos || propio, whatsappPropio: propio,
       respuestasAuto: r.wa_respuestas_auto !== false, respuestaTexto: r.wa_respuesta_texto || '' };
   }
 
   async setModo(doctorId: string, modo?: string, todos?: boolean, respuestasAuto?: boolean, respuestaTexto?: string) {
     if (modo && !['manual', 'auto'].includes(modo)) throw new BadRequestException('Modo inválido');
-    if (modo === 'auto' && !this.habilitado && !(await this.cuentas.credenciales(doctorId))) throw new BadRequestException('Para el envío automático conectá tu WhatsApp Business. Mientras tanto usá el modo manual.');
+    if (modo === 'auto' && !this.centralMedicos && !(await this.cuentas.credenciales(doctorId))) throw new BadRequestException('Para el envío automático conectá tu WhatsApp Business. Mientras tanto usá el modo manual.');
     await this.db.query(
       `INSERT INTO doctor_reminder_settings (doctor_id, whatsapp_reminder_mode, whatsapp_reminder_all) VALUES ($1, COALESCE($2,'manual'), COALESCE($3,true))
        ON CONFLICT (doctor_id) DO UPDATE SET whatsapp_reminder_mode = COALESCE($2, doctor_reminder_settings.whatsapp_reminder_mode),
@@ -354,17 +362,10 @@ export class WhatsappReminderService implements OnModuleInit, OnModuleDestroy {
     return r;
   }
 
-  /** Envía una plantilla. Con `cred` sale desde el WhatsApp Business del médico; si no, desde el número central */
+  /** Envía una plantilla desde el WhatsApp del médico (`cred`). El número central solo para la tienda o si WHATSAPP_CENTRAL_MEDICOS=true */
   private async enviarPlantilla(to: string, vars: string[], plantilla?: string, cred?: CredWa | null): Promise<string | null> {
-    if (cred) {
-      // Número propio del médico: si sus plantillas todavía no están aprobadas o el número no terminó
-      // de registrarse, el aviso sale igual desde el número central de TusRecetasMed
-      try { return await this.enviarPlantillaNumero(to, vars, plantilla, cred); }
-      catch (e: any) {
-        if (!/13200[0-9]|133010|133000|131047|template/i.test(String(e?.message))) throw e;
-        this.logger.warn(`Número del médico todavía no habilitado (${String(e.message).slice(0, 80)}): sale por el número central`);
-      }
-    }
+    if (cred) return this.enviarPlantillaNumero(to, vars, plantilla, cred);
+    if (!this.centralMedicos && !String(plantilla || '').startsWith('tienda_')) throw new Error('El médico no tiene su WhatsApp conectado');
     return this.enviarPlantillaNumero(to, vars, plantilla, null);
   }
 

@@ -12,7 +12,7 @@ export class WhatsappReminderController {
   /** GET /reminders/whatsapp/config — modo del médico (manual | auto) */
   @Get('config')
   getConfig(@CurrentUser() user: AuthUser) {
-    if (user.userType !== 'doctor') return { modo: 'manual', todos: true, automaticoDisponible: this.wa.habilitado };
+    if (user.userType !== 'doctor') return { modo: 'manual', todos: true, automaticoDisponible: this.wa.centralMedicos };
     return this.wa.getModo(user.doctorId);
   }
 
