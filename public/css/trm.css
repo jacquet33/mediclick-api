@@ -220,3 +220,21 @@ footer.trm-foot a{color:var(--soft)}footer.trm-foot a:hover{color:var(--cara)}
 .trust-item span{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
 @media(max-width:900px){.trust-row{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:520px){.trust-row{grid-template-columns:1fr}}
+
+/* Mini demos de "Cómo funciona" */
+.step p b{color:var(--ink,#1d2320);font-weight:600}
+.demo{margin-top:14px;padding:12px;border-radius:12px;background:#F4F6F3;display:flex;flex-direction:column;gap:8px;font-size:12.5px}
+.demo-search{background:#fff;border:1px solid #e2e7e3;border-radius:999px;padding:7px 12px;color:#5d6862}
+.demo-doc{display:flex;gap:10px;align-items:flex-start;background:#fff;border-radius:10px;padding:10px}
+.demo-av{width:34px;height:34px;border-radius:50%;background:#DDE9E3;color:#2F6F62;display:grid;place-items:center;font-weight:700;font-size:12px;flex:none}
+.demo-doc b{font-size:13px}.demo-doc small{display:block;color:#5d6862;margin-top:1px}
+.demo-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.demo-tags span{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:999px;background:#EEF5F2;color:#2F6F62}
+.demo-next{color:#5d6862}.demo-next b{color:#1F6B47}
+.demo-days{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.demo-days span,.demo-slots span{background:#fff;border:1px solid #e2e7e3;border-radius:10px;text-align:center;padding:6px 0;color:#5d6862}
+.demo-days span b{display:block;font-size:15px;color:#1d2320}
+.demo-days .on,.demo-slots .on{background:#2F6F62;border-color:#2F6F62;color:#fff}.demo-days .on b{color:#fff}
+.demo-days .off,.demo-slots .off{opacity:.4;text-decoration:line-through}
+.demo-slots{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.demo-ok{background:#E3F1EA;color:#1F6B47;font-weight:600;border-radius:10px;padding:8px 10px}
