@@ -64,10 +64,12 @@ export class WhatsappAccountService {
   }
 
   /** El médico terminó el registro integrado: se cambia el código por un token y se guarda su número */
-  async conectar(doctorId: string, dto: { code?: string; wabaId?: string; phoneNumberId?: string }) {
+  async conectar(doctorId: string, dto: { code?: string; wabaId?: string; phoneNumberId?: string; coexistencia?: boolean }) {
     if (!this.disponible) throw new BadRequestException('La conexión con WhatsApp todavía no está habilitada en la plataforma');
-    const code = String(dto?.code || ''), wabaId = String(dto?.wabaId || ''), phoneId = String(dto?.phoneNumberId || '');
-    if (!code || !/^\d+$/.test(wabaId) || !/^\d+$/.test(phoneId)) throw new BadRequestException('Faltan datos de Meta. Probá conectar de nuevo.');
+    const code = String(dto?.code || ''), wabaId = String(dto?.wabaId || '');
+    let phoneId = String(dto?.phoneNumberId || '');
+    const coexistencia = !!dto?.coexistencia;
+    if (!code || !/^\d+$/.test(wabaId) || (phoneId && !/^\d+$/.test(phoneId))) throw new BadRequestException('Faltan datos de Meta. Probá conectar de nuevo.');
 
     const q = new URLSearchParams({ client_id: this.config.get('META_APP_ID')!, client_secret: this.config.get('META_APP_SECRET')!, code });
     const tr = await fetch(`${GRAPH}/oauth/access_token?${q}`, { signal: AbortSignal.timeout(15_000) });
@@ -75,11 +77,26 @@ export class WhatsappAccountService {
     if (!tr.ok || !tj.access_token) throw new BadRequestException('Meta no aceptó la conexión: ' + (tj?.error?.message || tr.status));
     const token = tj.access_token as string;
 
+    // Con la app de WhatsApp Business (coexistencia) Meta solo informa la cuenta: el número se busca en ella
+    if (!phoneId) {
+      const nums: any = await this.graph(`${wabaId}/phone_numbers?fields=id,display_phone_number`, token).catch(() => ({}));
+      phoneId = String(nums?.data?.[0]?.id || '');
+      if (!/^\d+$/.test(phoneId)) throw new BadRequestException('Meta no informó el número conectado. Probá de nuevo en unos minutos.');
+    }
     const info = await this.graph(`${phoneId}?fields=display_phone_number,verified_name`, token).catch(() => ({} as any));
-    // Registrar el número en la Cloud API (sin esto Meta rechaza los envíos con 133010), con un PIN de dos pasos aleatorio.
-    const pin = String(Math.floor(100000 + Math.random() * 900000));
-    await this.graph(`${phoneId}/register`, token, { method: 'POST', body: { messaging_product: 'whatsapp', pin } })
-      .catch((e) => this.logger.warn(`register ${phoneId}: ${e.message}`));
+    if (coexistencia) {
+      // El número sigue funcionando en la app del celular: NO se registra (eso lo pasaría a solo API).
+      // Meta pide sincronizar contactos e historial dentro de las 24 h para habilitar los envíos.
+      for (const sync_type of ['smb_app_state_sync', 'history']) {
+        await this.graph(`${phoneId}/smb_app_data`, token, { method: 'POST', body: { messaging_product: 'whatsapp', sync_type } })
+          .catch((e) => this.logger.warn(`smb_app_data ${sync_type} ${phoneId}: ${e.message}`));
+      }
+    } else {
+      // Número solo para la API: registrarlo en la Cloud API (sin esto Meta rechaza los envíos con 133010)
+      const pin = String(Math.floor(100000 + Math.random() * 900000));
+      await this.graph(`${phoneId}/register`, token, { method: 'POST', body: { messaging_product: 'whatsapp', pin } })
+        .catch((e) => this.logger.warn(`register ${phoneId}: ${e.message}`));
+    }
     // Que los avisos (entregado, leído, respuestas) de su número lleguen a nuestro webhook
     await this.graph(`${wabaId}/subscribed_apps`, token, { method: 'POST' }).catch((e) => this.logger.warn(`subscribed_apps ${wabaId}: ${e.message}`));
     const plantillas = await this.crearPlantillas(wabaId, token);
@@ -96,7 +113,7 @@ export class WhatsappAccountService {
     await this.db.query(
       `INSERT INTO doctor_reminder_settings (doctor_id, whatsapp_reminder_mode) VALUES ($1, 'auto')
        ON CONFLICT (doctor_id) DO UPDATE SET whatsapp_reminder_mode = 'auto', updated_at = now()`, [doctorId]);
-    this.logger.log(`WhatsApp conectado para el médico ${doctorId} (${info.display_phone_number || phoneId})`);
+    this.logger.log(`WhatsApp conectado para el médico ${doctorId} (${info.display_phone_number || phoneId}${coexistencia ? ', con la app de WhatsApp Business' : ''})`);
     return this.estado(doctorId);
   }
 

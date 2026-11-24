@@ -1035,7 +1035,7 @@ async function conectarWa(coexistencia){
     let sesion={};
     const onMsg=(ev)=>{
       if(!/facebook\.com$/.test(new URL(ev.origin).hostname))return;
-      try{const d=typeof ev.data==='string'?JSON.parse(ev.data):ev.data;if(d?.type==='WA_EMBEDDED_SIGNUP'){if(d.event==='FINISH'||d.event==='FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING'||d.event==='FINISH_ONLY_WABA')sesion=d.data||{};else if(d.event==='CANCEL')m.textContent='Conexión cancelada.'}}catch{}
+      try{const d=typeof ev.data==='string'?JSON.parse(ev.data):ev.data;if(d?.type==='WA_EMBEDDED_SIGNUP'){if(d.event==='FINISH'||d.event==='FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING'||d.event==='FINISH_ONLY_WABA'){sesion=d.data||{};sesion.coex=d.event==='FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING'}else if(d.event==='CANCEL')m.textContent='Conexión cancelada.'}}catch{}
     };
     window.addEventListener('message',onMsg);
     // El SDK de Facebook exige una función común (no async) como callback
@@ -1043,7 +1043,7 @@ async function conectarWa(coexistencia){
       m.textContent='Guardando…';
       try{
         await new Promise(r=>setTimeout(r,800)); // el aviso con el número llega justo antes o después
-        await apiFetch('/api/v1/whatsapp/account',{method:'POST',body:{code,wabaId:sesion.waba_id,phoneNumberId:sesion.phone_number_id}});
+        await apiFetch('/api/v1/whatsapp/account',{method:'POST',body:{code,wabaId:sesion.waba_id,phoneNumberId:sesion.phone_number_id,coexistencia:!!sesion.coex}});
         renderWaCuenta();
       }catch(e){m.textContent=e.message;m.style.color='var(--danger)'}
     };
