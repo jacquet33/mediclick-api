@@ -9,11 +9,11 @@
 <meta property="og:title" content="TusRecetasMed para médicos">
 <meta property="og:description" content="Recetas electrónicas, turnos online e historia clínica. Gratis para siempre.">
 <meta property="og:site_name" content="TusRecetasMed">
-<meta name="theme-color" content="#F7F2EA">
+<meta name="theme-color" content="#1F4E45">
 <link rel="icon" type="image/svg+xml" href="/img/logo.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/css/trm.css">
+<link rel="stylesheet" href="/css/trm.css?v=trust1">
 <script src="/js/captcha.js"></script>
 <style>
 /* Agenda de escritorio (mockup) */
@@ -63,7 +63,7 @@
       <ul class="checks">
         <li>Recetas electrónicas ilimitadas, con firma y QR</li>
         <li>Tu página de turnos: tusrecetasmed.com/tu-nombre</li>
-        <li>Recordatorios por WhatsApp para que no falten</li>
+        <li>Confirmaciones y recordatorios automáticos por WhatsApp, desde tu número</li>
       </ul>
       <div class="ctas">
         <a href="/medicos#alta" class="btn btn-pri">Crear mi cuenta gratis →</a>
@@ -86,6 +86,15 @@
     </div>
   </div>
 </header>
+
+<section class="trust" aria-label="Seguridad e integraciones">
+  <div class="wrap trust-row">
+    <div class="trust-item"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#25D366" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.4 14.2c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l2 .9c.3.1.5.2.5.3.1.2.1.7-.1 1.4Z"/></svg><div><b>Integración oficial con WhatsApp Business</b><span>App aprobada por Meta · negocio verificado</span></div></div>
+    <div class="trust-item"><svg class="ic"><use href="#i-shield"/></svg><div><b>Datos cifrados</b><span>HTTPS con TLS 1.3 · copias diarias</span></div></div>
+    <div class="trust-item"><svg class="ic"><use href="#i-doc"/></svg><div><b>Normativa argentina</b><span>Leyes 25.326, 26.529 y 27.553</span></div></div>
+    <div class="trust-item"><svg class="ic"><use href="#i-rx"/></svg><div><b>Medicamentos oficiales</b><span>Listado de datos abiertos, actualizado cada semana</span></div></div>
+  </div>
+</section>
 
 <section class="sec" id="como">
   <div class="wrap">
@@ -125,14 +134,16 @@
       <p class="sub">Pensado con médicos argentinos: obras sociales, matrícula y receta electrónica.</p>
     </div>
     <div class="bento">
-      <div class="trm-card w3" data-reveal><svg class="ic lg"><use href="#i-rx"/></svg><h3>Recetas electrónicas ilimitadas</h3><p>Buscador de medicamentos, recetas frecuentes y alertas de alergias e interacciones. Cada receta sale con firma electrónica, código único y QR para la farmacia.</p></div>
+      <div class="trm-card w3" data-reveal><svg class="ic lg"><use href="#i-rx"/></svg><h3>Recetas electrónicas ilimitadas</h3><p>Buscador con más de 8.700 presentaciones del listado oficial, cobertura PAMI, plantillas y repetir recetas. Cada receta sale firmada, con código único y QR para la farmacia.</p></div>
       <div class="trm-card w3" data-reveal><svg class="ic lg"><use href="#i-cal"/></svg><h3>Agenda y turnos online</h3><p>Tu link propio para compartir por WhatsApp o Instagram. Los pacientes eligen día y horario, con o sin obra social, y vos lo ves al instante.</p></div>
-      <div class="trm-card w2" data-reveal><svg class="ic"><use href="#i-chat"/></svg><h3>Recordatorios por WhatsApp</h3><p>Un toque y le llega el recordatorio al paciente. Menos ausencias.</p></div>
-      <div class="trm-card w2" data-reveal><svg class="ic"><use href="#i-doc"/></svg><h3>Historia clínica</h3><p>Evoluciones, antecedentes, estudios y línea de tiempo. Inalterable, como pide la Ley 26.529.</p></div>
-      <div class="trm-card w2" data-reveal><svg class="ic"><use href="#i-spark"/></svg><h3>Asistente <span class="tag-new">Nuevo</span></h3><p>Dictá la consulta y se ordena sola. Resumen del paciente en segundos.</p></div>
-      <div class="trm-card w2" data-reveal><svg class="ic"><use href="#i-card"/></svg><h3>Obras sociales</h3><p>El paciente indica su cobertura y credencial al reservar. Vos lo tenés en el turno.</p></div>
-      <div class="trm-card w2" data-reveal><svg class="ic"><use href="#i-phone"/></svg><h3>App iPhone y Android</h3><p>Tu agenda y tus pacientes en el bolsillo, también para tu secretaria.</p></div>
-      <div class="trm-card w2" data-reveal><svg class="ic"><use href="#i-shield"/></svg><h3>Datos protegidos</h3><p>Conexión cifrada, copias de seguridad diarias y registro de cada acceso.</p></div>
+      <div class="trm-card w2" data-reveal><svg class="ic"><use href="#i-chat"/></svg><h3>WhatsApp automático</h3><p>Confirmación al reservar y recordatorio el día anterior, desde tu propio número. El paciente responde SI o CANCELAR y la agenda se actualiza sola.</p></div>
+      <div class="trm-card w2" data-reveal><svg class="ic"><use href="#i-doc"/></svg><h3>Historia clínica</h3><p>Evoluciones, antecedentes, alergias, medicación y estudios. Inalterable y con registro de accesos, como pide la Ley 26.529.</p></div>
+      <div class="trm-card w2" data-reveal><svg class="ic"><use href="#i-search"/></svg><h3>Cobertura del paciente</h3><p>Obra social y número de afiliado en la ficha y en la receta, con consulta al padrón oficial.</p></div>
+      <div class="trm-card w2" data-reveal><svg class="ic"><use href="#i-card"/></svg><h3>Facturación a obras sociales</h3><p>Nomencladores, prestaciones y lotes para presentar a cada obra social sin planillas.</p></div>
+      <div class="trm-card w2" data-reveal><svg class="ic"><use href="#i-phone"/></svg><h3>App iPhone y Android</h3><p>Tu agenda, tus pacientes y tus recetas en el bolsillo, también para tu secretaria.</p></div>
+      <div class="trm-card w2" data-reveal><svg class="ic"><use href="#i-shield"/></svg><h3>Datos protegidos</h3><p>Conexión cifrada TLS 1.3, copias de seguridad diarias y registro de cada acceso.</p></div>
+      <div class="trm-card w3" data-reveal><svg class="ic lg"><use href="#i-qr"/></svg><h3>Red de farmacias</h3><p>Tu paciente manda la receta a la farmacia que elija desde el celular: la farmacia confirma stock y precio, y la retira sin esperar. Las farmacias validan y dispensan con el QR.</p></div>
+      <div class="trm-card w3" data-reveal><svg class="ic lg"><use href="#i-team"/></svg><h3>Consultorios y clínicas</h3><p>Varios profesionales, secretaria con permisos, lista y sala de espera, y métricas del consultorio en un solo panel.</p></div>
     </div>
   </div>
 </section>
@@ -250,7 +261,7 @@
   <div class="wrap">
     <a href="/" class="brand" style="font-size:16px"><img src="/img/logo.svg" alt="" style="width:24px;height:24px;border-radius:7px"><span>TusRecetas<em>Med</em></span></a>
     <div>© 2026 TusRecetasMed · Entre Ríos, Argentina</div>
-    <div style="flex-basis:100%;font-size:12px;color:var(--muted)">TusRecetasMed es un servicio de Alejandro Emanuel Jacquet · CUIT 20-34784480-3 · 12 de Abril 1097, piso 1, Colón (3280), Entre Ríos, Argentina · support@tusrecetasmed.com</div>
+    <div style="flex-basis:100%;font-size:12px;color:var(--muted)">TusRecetasMed es un servicio de Alejandro Emanuel Jacquet · CUIT 20-34784480-3 · Ferrari 971, piso 1, Colón (3280), Entre Ríos, Argentina · support@tusrecetasmed.com</div>
     <div><a href="/">Pacientes</a> · <a href="/terminos.html">Términos</a> · <a href="/privacidad.html">Privacidad</a> · <a href="mailto:support@tusrecetasmed.com">Contacto</a></div>
   </div>
 </footer>

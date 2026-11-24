@@ -210,3 +210,13 @@ footer.trm-foot a{color:var(--soft)}footer.trm-foot a:hover{color:var(--cara)}
 [data-reveal]{opacity:0;transform:translateY(22px);transition:opacity .7s cubic-bezier(.2,.7,.2,1) var(--d,0ms),transform .7s cubic-bezier(.2,.7,.2,1) var(--d,0ms)}
 [data-reveal].is-in{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}[data-reveal]{opacity:1;transform:none}html{scroll-behavior:auto}.mini-slots i{opacity:1}.mini-btn{opacity:1}}
+
+/* Franja de confianza */
+.trust{padding:26px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#fff}
+.trust-row{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.trust-item{display:flex;gap:10px;align-items:flex-start}
+.trust-item svg{width:26px;height:26px;flex:none;color:var(--primary,#2F6F62)}
+.trust-item b{display:block;font-size:14px;line-height:1.3}
+.trust-item span{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+@media(max-width:900px){.trust-row{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.trust-row{grid-template-columns:1fr}}

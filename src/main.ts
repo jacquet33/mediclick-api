@@ -313,9 +313,10 @@ async function bootstrap() {
     .split(',')
     .map(s => s.trim())
     .filter(Boolean);
-  // Dominios propios: siempre permitidos (el nuevo de Rispy Health y el anterior, mientras dure la migración)
-  if (allowedOrigins.length) {
-    for (const o of ['https://tusrecetasmed.com', 'https://medicos.rispy.io', 'https://mediclick.art3d-studio.com.ar']) {
+  // Dominios propios: siempre permitidos (el nuevo de Rispy Health y el anterior, mientras dure la migración).
+  // En producción nunca se abre a cualquier origen, aunque falte CORS_ORIGINS.
+  if (allowedOrigins.length || process.env.NODE_ENV === 'production') {
+    for (const o of ['https://tusrecetasmed.com', 'https://www.tusrecetasmed.com', 'https://medicos.rispy.io', 'https://mediclick.art3d-studio.com.ar']) {
       if (!allowedOrigins.includes(o)) allowedOrigins.push(o);
     }
   }
@@ -400,6 +401,16 @@ async function bootstrap() {
   });
   // Detrás de Traefik (red de Docker): tomar la IP real del cliente para límites y auditoría
   app.set('trust proxy', 'loopback, linklocal, uniquelocal');
+  // security.txt (RFC 9116): contacto para reportar vulnerabilidades
+  app.getHttpAdapter().getInstance().get('/.well-known/security.txt', (_req: any, res: any) => {
+    res.type('text/plain').send(
+      'Contact: mailto:support@tusrecetasmed.com\nExpires: 2027-12-31T23:59:59.000Z\nPreferred-Languages: es, en\nCanonical: https://tusrecetasmed.com/.well-known/security.txt\nPolicy: https://tusrecetasmed.com/privacidad\n');
+  });
+  // Permisos del navegador: cámara solo para escanear el QR de las recetas; nada de micrófono ni ubicación
+  app.use((_req: any, res: any, next: any) => {
+    res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(), payment=(self), usb=(), interest-cohort=()');
+    next();
+  });
   app.useStaticAssets(join(__dirname, '..', 'public'), { extensions: ['html'] });
   
   // Auto-convert snake_case → camelCase on all incoming JSON bodies.

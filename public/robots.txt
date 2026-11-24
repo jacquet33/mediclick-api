@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /portal
+Disallow: /api/
+Disallow: /farmacia
+Disallow: /farmacia-tienda
+Disallow: /pedido
+Disallow: /pedido-tienda
+Disallow: /verificar-receta
+Disallow: /payment-result
+
+Sitemap: https://tusrecetasmed.com/sitemap.xml
