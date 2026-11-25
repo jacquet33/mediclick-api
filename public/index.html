@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/trm.css?v=pasos1">
+<link rel="stylesheet" href="/css/flujo.css?v=1">
 <script src="/js/captcha.js"></script>
 <style>
 /* Buscador */
@@ -121,25 +122,11 @@
   <div class="wrap">
     <div class="sec-head" data-reveal>
       <span class="kicker">Cómo funciona</span>
-      <h2 class="title">Tres pasos y <em>listo</em></h2>
+      <h2 class="title">Del turno a la receta, <em>sin vueltas</em></h2>
+      <p class="sub">Mirá cómo funciona, o tocá la pantalla y probalo vos.</p>
     </div>
-    <div class="steps">
-      <div class="step" data-reveal><svg class="ic"><use href="#i-search"/></svg><h3>Buscá tu médico</h3><p>Por <b>especialidad</b>, <b>nombre</b> u <b>obra social</b>. En cada profesional ves la especialidad, la matrícula y la dirección del consultorio. Si filtrás por obra social, aparecen solo los que la atienden.</p>
-        <div class="demo" aria-hidden="true">
-          <div class="demo-search">🔍 Pediatría · OSDE</div>
-          <div class="demo-doc"><span class="demo-av">LM</span><div><b>Dra. Laura Méndez</b><small>Pediatría · M.P. 12.345</small><small>Urquiza 450, Colón</small><div class="demo-tags"><span>Atiende OSDE</span></div></div></div>
-          <div class="demo-next"><b>Ver turnos disponibles →</b></div>
-        </div></div>
-      <div class="step" data-reveal><svg class="ic"><use href="#i-cal"/></svg><h3>Elegí día y horario</h3><p>Tocás el día y aparecen <b>solo los horarios libres</b>. Completás nombre, DNI, celular y obra social en un minuto: <b>sin crear cuenta ni contraseña</b>, a cualquier hora.</p>
-        <div class="demo" aria-hidden="true">
-          <div class="demo-days"><span>Lun<b>16</b></span><span class="on">Mar<b>17</b></span><span>Mié<b>18</b></span><span class="off">Jue<b>19</b></span></div>
-          <div class="demo-slots"><span>9:00</span><span class="on">9:30</span><span class="off">10:00</span><span>10:30</span><span>11:00</span><span class="off">11:30</span></div>
-          <div class="demo-ok">✓ Turno reservado · martes 17, 9:30 hs</div>
-        </div></div>
-      <div class="step step-wa" data-reveal><span class="wa-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.4 14.2c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l2 .9c.3.1.5.2.5.3.1.2.1.7-.1 1.4Z"/></svg>Automático por WhatsApp</span><h3>Te avisamos por WhatsApp</h3><p>Al reservar te llega la <b>confirmación al instante</b> y, el día anterior, un <b>recordatorio automático</b>. Respondés <b>SI</b> para confirmar o <b>CANCELAR</b> si no podés ir.</p>
-        <div class="wa-chat" aria-hidden="true"><div class="wa-msg">✅ Tu turno con la Dra. Pérez quedó confirmado: jueves 14/11, 10:30 hs.</div><div class="wa-msg">⏰ Te recordamos tu turno de mañana a las 10:30. Respondé SI para confirmar.</div><div class="wa-msg yo">SI</div></div></div>
+    <div data-flujo="paciente" data-reveal></div>
     </div>
-  </div>
 </section>
 
 <section class="sec" style="padding-top:10px">
@@ -196,6 +183,7 @@
 </footer>
 
 <script src="/js/trm-ui.js"></script>
+<script src="/js/flujo.js?v=1" defer></script>
 <script>
 const API=window.location.origin;
 let searchTimer;

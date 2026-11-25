@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/trm.css?v=pasos1">
+<link rel="stylesheet" href="/css/flujo.css?v=1">
 <script src="/js/captcha.js"></script>
 <style>
 /* Agenda de escritorio (mockup) */
@@ -97,6 +98,17 @@
 </section>
 
 <section class="sec" id="como">
+  <div class="wrap">
+    <div class="sec-head" data-reveal>
+      <span class="kicker">Cómo funciona</span>
+      <h2 class="title">Turnos, avisos y recetas, <em>en piloto automático</em></h2>
+      <p class="sub">Así lo vive tu paciente y así llega a tu consultorio. Tocá la pantalla para probarlo.</p>
+    </div>
+    <div data-flujo="medico" data-reveal></div>
+  </div>
+</section>
+
+<section class="sec" id="antes">
   <div class="wrap">
     <div class="sec-head" data-reveal>
       <span class="kicker">Antes y después</span>
@@ -267,6 +279,7 @@
 </footer>
 
 <script src="/js/trm-ui.js"></script>
+<script src="/js/flujo.js?v=1" defer></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
