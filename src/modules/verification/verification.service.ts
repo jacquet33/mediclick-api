@@ -118,7 +118,31 @@ export class VerificationService implements OnModuleInit {
       this.logger.log(`Verificación REFEPS ${doctorId}: ${ok ? 'OK' : 'revisión manual'}`);
       if (ok) this.avisarResultado(doctorId, true).catch(() => {});
     }
+    this.avisarAdminsPendiente(doctorId).catch((e) => this.logger.warn(`Aviso a administradores: ${e.message}`));
     return this.estado(doctorId);
+  }
+
+  /** Avisa a los administradores que hay una matrícula para revisar a mano (compromiso: hasta 12 horas). */
+  private async avisarAdminsPendiente(doctorId: string) {
+    const d = await this.db.queryOne<any>(
+      `SELECT first_name, last_name, license_type, medical_license, medical_license_province, specialty, license_status
+         FROM doctors WHERE id = $1`, [doctorId]);
+    if (!d || d.license_status !== 'pending') return;
+    const admins = await this.db.queryMany<{ id: string; email: string }>(
+      `SELECT id, email FROM doctors WHERE is_platform_admin = true AND is_active = true`);
+    const quien = `${d.first_name || ''} ${d.last_name || ''}`.trim();
+    const mat = `${d.license_type || ''} ${d.medical_license || ''}${d.medical_license_province ? ' · ' + d.medical_license_province : ''}`;
+    const titulo = `Matrícula para verificar: ${quien}`;
+    const cuerpo = `${quien} (${d.specialty || 'sin especialidad'}) envió su matrícula ${mat}. Revisala en el panel de administración dentro de las 12 horas.`;
+    for (const a of admins) {
+      await this.db.query(
+        `INSERT INTO inbox_notifications (recipient_type, recipient_id, title, body, category, data)
+         VALUES ('doctor', $1, $2, $3, 'verificacion', '{"link":"/portal"}')`, [a.id, titulo, cuerpo]);
+      if (a.email) {
+        await this.email.send({ to: a.email, subject: titulo,
+          html: `<p>${cuerpo.replace(/</g, '&lt;')}</p><p><a href="https://tusrecetasmed.com/portal">Abrir el panel</a></p>` });
+      }
+    }
   }
 
   // ─── Panel del administrador de la plataforma ──────────────

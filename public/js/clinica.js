@@ -394,7 +394,7 @@
   function bannerVerificacion(v) {
     if (!v || v.puedeRecetar) return '';
     const txt = v.license_status === 'pending'
-      ? 'Tu matrícula está en revisión. Vas a poder emitir recetas cuando quede verificada.'
+      ? 'Tu matrícula está en revisión: la verificamos a mano en hasta 12 horas. Cuando quede verificada vas a poder emitir recetas y aparecer en el buscador de TusRecetasMed.'
       : v.license_status === 'rejected'
         ? `No pudimos verificar tu matrícula${v.license_verification_note ? ': ' + e(v.license_verification_note) : ''}. Revisá los datos y volvé a enviarlos.`
         : 'Para emitir recetas electrónicas válidas primero tenemos que verificar que sos médico/a (matrícula vigente).';
@@ -870,7 +870,7 @@
     const bloqueado = v.license_status === 'verified';
     m.innerHTML = `<div class="topbar"><h1>Matrícula y firma</h1><span class="badge-sm ${cls}" style="font-size:13px;padding:6px 14px">${lbl}</span></div>
       <div class="card"><div class="card-title">📇 Verificación profesional</div>
-        ${v.license_status === 'pending' ? `<p style="margin-bottom:12px">Recibimos tus datos y los estamos validando contra la Red Federal de Registros de Profesionales de la Salud (REFEPS – SISA) del Ministerio de Salud. Suele tardar menos de 24 h hábiles y te avisamos por email.</p>` : ''}
+        ${v.license_status === 'pending' ? `<p style="margin-bottom:12px">Recibimos tus datos. Verificamos tu matrícula a mano en el registro oficial en <b>hasta 12 horas</b> y te avisamos por email. Cuando quede verificada vas a poder emitir recetas y aparecer en el buscador de turnos.</p>` : ''}
         ${v.license_verification_note ? `<p style="font-size:13px;margin-bottom:10px"><b>Detalle:</b> ${e(v.license_verification_note)}</p>` : ''}
         <div class="kv"><div><span>Profesional</span><b>${e(v.title_prefix || '')} ${e(v.first_name)} ${e(v.last_name)}</b></div><div><span>DNI</span><b>${e(v.dni || '—')}${v.has_dni_document ? ' · foto ✓' : ''}</b></div><div><span>Matrícula</span><b>${v.license_type === 'MN' ? 'M.N.' : 'M.P.'} ${e(v.medical_license || '—')}${v.license_type === 'MP' && v.medical_license_province ? ' (' + e(v.medical_license_province) + ')' : ''}${v.has_document ? ' · foto ✓' : ''}</b></div><div><span>Especialidad</span><b>${e(v.specialty || '—')}</b></div>${bloqueado ? `<div><span>Verificada</span><b>${v.license_verified_at ? fmtDate(v.license_verified_at) : ''}</b></div>` : ''}</div>
         ${bloqueado ? `<p class="muted" style="margin-top:10px;font-size:12px">Si cambiás de matrícula escribinos a support@tusrecetasmed.com.</p>` : `<button class="btn btn-sm btn-outline" style="margin-top:12px" onclick="abrirMatricula(true)">Corregir mis datos</button>`}

@@ -35,7 +35,7 @@ export class DirectoryController {
         bs.public_slug
       FROM booking_settings bs
       JOIN organization_doctors od ON od.id = bs.org_doctor_id AND od.is_active = true
-      JOIN doctors d ON d.id = od.doctor_id AND d.is_active = true AND d.en_directorio = true
+      JOIN doctors d ON d.id = od.doctor_id AND d.is_active = true AND d.en_directorio = true AND d.license_status = 'verified'
       JOIN organizations o ON o.id = od.organization_id AND o.is_active = true
       WHERE bs.is_enabled = true
     `;
@@ -73,7 +73,7 @@ export class DirectoryController {
       FROM booking_settings bs
       JOIN organization_doctors od ON od.id = bs.org_doctor_id
       JOIN doctors d ON d.id = od.doctor_id
-      WHERE bs.is_enabled = true AND d.is_active = true AND d.en_directorio = true AND d.specialty IS NOT NULL
+      WHERE bs.is_enabled = true AND d.is_active = true AND d.en_directorio = true AND d.license_status = 'verified' AND d.specialty IS NOT NULL
       GROUP BY d.specialty ORDER BY count DESC
     `);
   }
@@ -86,7 +86,7 @@ export class DirectoryController {
       FROM booking_settings bs
       JOIN organization_doctors od ON od.id = bs.org_doctor_id
       JOIN organizations o ON o.id = od.organization_id
-      JOIN doctors d ON d.id = od.doctor_id AND d.is_active = true AND d.en_directorio = true
+      JOIN doctors d ON d.id = od.doctor_id AND d.is_active = true AND d.en_directorio = true AND d.license_status = 'verified'
       WHERE bs.is_enabled = true AND o.city IS NOT NULL
       GROUP BY o.city, o.province ORDER BY count DESC
     `);
