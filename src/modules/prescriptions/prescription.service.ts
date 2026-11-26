@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { PlanesService } from '../subscriptions/planes.service';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { VerificationService } from '../verification/verification.service';
 import { PrescriptionSigningService } from './prescription-signing.service';
@@ -42,6 +43,7 @@ export class PrescriptionService {
     private signing: PrescriptionSigningService,
     private digital: DigitalSignatureService,
     private centralRepo: CentralRepoService,
+    private planes: PlanesService,
   ) {}
 
   /** PDF firmado digitalmente (si existe) */
@@ -116,6 +118,14 @@ export class PrescriptionService {
   async create(orgId: string, doctorId: string, dto: any) {
     // Solo médicos con matrícula verificada (REFEPS o revisión manual)
     await this.verification.exigirVerificado(doctorId);
+    // Prueba gratis de 7 días; después hace falta un plan para emitir recetas nuevas
+    const plan = await this.planes.estado(doctorId);
+    if (!plan.puedeRecetar) {
+      throw new ForbiddenException('Tu prueba gratis de 7 días terminó. Elegí un plan en Mi plan (desde $13.000 por mes) para seguir emitiendo recetas.');
+    }
+    const cie = String(dto.diagnosisCode || dto.diagnosis_code || '').trim().toUpperCase();
+    if (cie && !/^[A-Z][0-9]{2}(\.[0-9A-Z]{1,2})?$/.test(cie)) throw new BadRequestException('Código CIE-10 inválido. Ej: J02.9');
+    if (cie) { dto.diagnosisCode = cie; dto.diagnosis_code = cie; }
 
     const patientId = dto.patientId || dto.patient_id;
     const items = (dto.items || []).filter((i: any) => (i.medicationName || i.medication_name || i.genericName || i.generic_name || '').trim());

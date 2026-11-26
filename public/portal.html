@@ -1101,7 +1101,7 @@ async function renderCrecimiento(elId){
   const el=document.getElementById(elId);if(!el||userType!=='doctor')return;
   const [m,r]=await Promise.all([apiFetch('/api/v1/metrics/time-saved').catch(()=>null),apiFetch('/api/v1/referrals/me').catch(()=>null)]);
   const link=r?.codigo?`${location.origin.includes("localhost")?location.origin:"https://tusrecetasmed.com"}/medicos?ref=${r.codigo}`:'';
-  const msg=`Hola! Estoy usando TusRecetasMed para turnos, historia clínica y recetas electrónicas. Es gratis para empezar y me ahorra mucho tiempo. Registrate acá: ${link}`;
+  const msg=`Hola! Estoy usando TusRecetasMed para turnos, historia clínica y recetas electrónicas. Tiene 7 días de prueba gratis y me ahorra mucho tiempo. Registrate acá: ${link}`;
   el.innerHTML=`${m?`<div class="card"><div class="card-title">⏱️ Este mes con TusRecetasMed</div>
       <div class="ahorro"><div><b>${m.minutos_ahorrados>=60?Math.floor(m.minutos_ahorrados/60)+' h '+(m.minutos_ahorrados%60)+' min':m.minutos_ahorrados+' min'}</b><span>ahorrados (estimado)</span></div>
       <div><b>${m.recetas_mes||0}</b><span>recetas${m.seg_promedio?' · '+m.seg_promedio+' s c/u':''}</span></div>
@@ -2150,10 +2150,9 @@ async function loadConfig(){
 // MI PLAN
 // ═══════════════════════════════════════════════════════════
 const PLAN_INCLUYE={
-  gratis:['1 profesional','<b>200 avisos automáticos por WhatsApp al mes</b> (≈100 turnos)','Recetas electrónicas ilimitadas','Turnos online, agenda e historia clínica','Recordatorios con un toque desde tu WhatsApp, sin límite','El paciente confirma o cancela respondiendo'],
-  profesional:['1 profesional + secretaria','<b>1.000 avisos automáticos por WhatsApp al mes</b> (≈500 turnos)','Todo lo de Gratis','Resumen del paciente, dictado e indicaciones listas para enviar','Estudios y documentos compartidos con el paciente','Sala de espera y lista de espera','Firma digital con certificado'],
-  consultorio:['Hasta 3 profesionales + secretarías','<b>3.000 avisos automáticos por WhatsApp al mes</b> para todo el equipo','Todo lo de Profesional, para cada médico','Agenda de todo el equipo y permisos','Facturación y obras sociales','Soporte prioritario'],
-  clinica:['Hasta 10 profesionales + secretarías','<b>Avisos automáticos por WhatsApp ilimitados</b>','Todo lo de Consultorio','Reportes del equipo y de ausentismo','Alta y migración asistida de pacientes','Soporte prioritario por WhatsApp. Más de 10 profesionales: a medida'],
+  profesional:['1 médico o consultorio + secretaria','<b>Recetas electrónicas ilimitadas</b>, con firma y QR','Turnos online, agenda e historia clínica','<b>1.000 avisos automáticos por WhatsApp al mes</b> (≈500 turnos)','Resumen del paciente, dictado e indicaciones listas para enviar','Estudios y documentos compartidos con el paciente','Sala de espera y lista de espera'],
+  consultorio:['<b>Hasta 5 profesionales</b> + secretarías','<b>3.000 avisos automáticos por WhatsApp al mes</b> para todo el equipo','Todo lo de Profesional, para cada médico','Agenda de todo el equipo y permisos','Facturación y obras sociales','Soporte prioritario'],
+  clinica:['Profesionales y secretarías según tu clínica','<b>Avisos automáticos por WhatsApp ilimitados</b>','Todo lo de Consultorio','Reportes del equipo y de ausentismo','Alta y migración asistida de pacientes','Soporte prioritario por WhatsApp','Precio a convenir según el tamaño y las integraciones'],
 };
 const pesos=n=>'$'+Number(n).toLocaleString('es-AR');
 const fechaAr=d=>{try{return new Date(d.length===10?d+'T12:00:00':d).toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'})}catch{return d}};
@@ -2167,24 +2166,27 @@ async function loadPlan(){
     :sub.estado==='billing_retry'?'⚠️ Mercado Pago no pudo cobrar la última cuota. Revisá tu medio de pago en Mercado Pago.'
     :sub.cancelada?`Cancelaste la renovación. Tu plan sigue hasta el ${fechaAr(sub.vence)}.`
     :sub.vence?`Se renueva solo el ${fechaAr(sub.vence)} por Mercado Pago.`:'';
-  const origen=p.origen==='lanzamiento'?`<p style="margin:6px 0 0;font-size:13px">🎁 <b>Lanzamiento:</b> tenés el plan Profesional sin costo hasta el <b>${fechaAr(p.promoHasta)}</b>. No hace falta que cargues ninguna tarjeta.</p>`
+  const prueba=p.origen==='prueba', vencido=p.origen==='vencido';
+  const origen=prueba?`<p style="margin:6px 0 0;font-size:13px">🎁 <b>Prueba gratis:</b> te ${p.diasPrueba===1?'queda 1 día':'quedan '+p.diasPrueba+' días'} con todo incluido, hasta el <b>${fechaAr(p.promoHasta)}</b>. Elegí tu plan antes para no cortar las recetas ni los avisos.</p>`
+    :vencido?`<p style="margin:6px 0 0;font-size:13px;color:var(--danger)">⚠️ <b>Tu prueba gratis terminó.</b> Tus pacientes, turnos e historias clínicas siguen disponibles, pero para emitir recetas y mandar avisos automáticos elegí un plan.</p>`
     :p.origen==='pago'?`<p style="margin:6px 0 0;font-size:13px">${estadoSub}</p>`:'';
-  const tarjeta=(id)=>{const pl=p.planes.find(x=>x.id===id),actual=p.plan===id&&p.origen!=='lanzamiento',pagando=sub&&sub.estado!=='pending'&&!sub.cancelada&&sub.plan===id;
-    const boton=id==='gratis'?'':(p.origen==='lanzamiento'&&id==='profesional')?`<p class="muted" style="font-size:12px;margin:0">✓ Incluido sin costo hasta el ${fechaAr(p.promoHasta)}. Te avisamos antes de que termine.</p>`:pagando?`<button class="btn btn-sm btn-outline" onclick="cancelarPlan()">Cancelar renovación</button>`
-      :`<button class="btn btn-sm btn-primary" onclick="mejorarPlan('${id}',this)">${p.origen==='lanzamiento'?'Suscribirme':'Pasarme a '+pl.nombre}</button>`;
+  const tarjeta=(id)=>{const pl=p.planes.find(x=>x.id===id),actual=p.plan===id&&p.origen==='pago',pagando=sub&&sub.estado!=='pending'&&!sub.cancelada&&sub.plan===id;
+    const hablemos=`<a class="btn btn-sm btn-outline" style="margin-top:6px" href="mailto:support@tusrecetasmed.com?subject=Plan%20Cl%C3%ADnica%20TusRecetasMed">Personalizar mi plan</a>`;
+    const boton=pagando?`<button class="btn btn-sm btn-outline" onclick="cancelarPlan()">Cancelar renovación</button>`
+      :`<button class="btn btn-sm btn-primary" onclick="mejorarPlan('${id}',this)">${p.origen==='pago'?'Pasarme a '+pl.nombre:'Suscribirme'}</button>${id==='clinica'?' '+hablemos:''}`;
     return `<div class="card" style="margin:0;${actual?'border:2px solid var(--primary)':''}">
       <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px">${pl.nombre}</b>${actual?'<span class="badge">Tu plan</span>':''}</div>
-      <div style="font-size:24px;font-weight:800;margin:6px 0">${pl.precio?pesos(pl.precio)+'<small style="font-size:12px;font-weight:500"> /mes</small>':'$0'}</div>
+      <div style="font-size:24px;font-weight:800;margin:6px 0">${id==='clinica'?'<small style="font-size:12px;font-weight:500">desde </small>':''}${pesos(pl.precio)}<small style="font-size:12px;font-weight:500"> /mes</small></div>
       <ul style="font-size:13px;padding-left:18px;margin:0 0 12px">${PLAN_INCLUYE[id].map(x=>`<li style="margin:4px 0">${x}</li>`).join('')}</ul>${boton}</div>`};
   main.innerHTML=`<div class="topbar"><h1>Mi plan</h1><div class="badge">${esc(p.nombre)}</div></div>
     <div class="card">
-      <div class="card-title">Tu plan actual: ${esc(p.nombre)}</div>${origen}
+      <div class="card-title">Tu plan actual: ${esc(prueba?"Prueba gratis (Profesional)":p.nombre)}</div>${origen}
       <div style="margin-top:14px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>💬 Avisos automáticos por WhatsApp este mes${w.compartido?' (todo el equipo)':''}</span><b>${w.limite<0?w.usados+' · ilimitados':w.usados+' de '+w.limite}</b></div>
       ${w.limite>0?`<div style="height:8px;background:var(--border,#E3EAE6);border-radius:6px;margin-top:6px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${pct>=90?'var(--danger)':'var(--primary)'}"></div></div>`:''}
       <p class="muted" style="font-size:12px;margin-top:6px">Cada turno usa hasta 2 avisos: la confirmación al reservar y el recordatorio del día anterior. Las respuestas a tus pacientes y los recordatorios que mandás con un toque no cuentan. Si llegás al tope, los recordatorios que faltan quedan en el Dashboard para enviarlos con un toque.</p>
       <p class="muted" style="font-size:12px">Meta cobra cada aviso en tu propia cuenta de WhatsApp Business (unos centavos de dólar por mensaje), aparte del plan.</p></div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:14px">${['gratis','profesional','consultorio','clinica'].map(tarjeta).join('')}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:14px">${['profesional','consultorio','clinica'].map(tarjeta).join('')}</div>
     <p id="planMsg" style="font-size:13px;margin-top:10px"></p>
     <p class="muted" style="font-size:12px;margin-top:6px">Los pagos se hacen con Mercado Pago (tarjeta de crédito, débito o dinero en cuenta) y se renuevan cada mes. Podés cancelar cuando quieras. ¿Dudas? support@tusrecetasmed.com</p>`;
 }

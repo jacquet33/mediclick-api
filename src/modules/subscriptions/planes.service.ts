@@ -9,10 +9,11 @@ export type PlanId = 'gratis' | 'profesional' | 'consultorio' | 'clinica';
  * (confirmación + recordatorio) por mes; -1 = sin límite. En Consultorio y Clínica el cupo es de todo el equipo.
  */
 export const PLANES: Record<PlanId, { nombre: string; precio: number; waAutoMes: number; profesionales: number; mpPlan?: string }> = {
-  gratis: { nombre: 'Gratis', precio: 0, waAutoMes: 200, profesionales: 1 },
-  profesional: { nombre: 'Profesional', precio: 9000, waAutoMes: 1000, profesionales: 1, mpPlan: 'pro' },
-  consultorio: { nombre: 'Consultorio', precio: 19000, waAutoMes: 3000, profesionales: 3, mpPlan: 'centro' },
-  clinica: { nombre: 'Clínica', precio: 39000, waAutoMes: -1, profesionales: 10, mpPlan: 'clinica' },
+  // 'gratis' = prueba vencida sin plan pago: se consulta todo, pero no se emiten recetas ni avisos automáticos
+  gratis: { nombre: 'Sin plan', precio: 0, waAutoMes: 0, profesionales: 1 },
+  profesional: { nombre: 'Profesional', precio: 13000, waAutoMes: 1000, profesionales: 1, mpPlan: 'pro' },
+  consultorio: { nombre: 'Consultorio', precio: 18000, waAutoMes: 3000, profesionales: 5, mpPlan: 'centro' },
+  clinica: { nombre: 'Clínica', precio: 40000, waAutoMes: -1, profesionales: -1, mpPlan: 'clinica' },
 };
 const PLAN_POR_PRODUCTO: Record<string, PlanId> = { pro: 'profesional', centro: 'consultorio', centro10: 'clinica', clinica: 'clinica' };
 const COMPARTIDOS = ['centro', 'centro10', 'clinica'];
@@ -22,19 +23,23 @@ const TIPOS_CUPO = ['confirmacion', 'recordatorio'];
 
 /**
  * Plan efectivo de cada médico: lo que pagó por Mercado Pago (o lo que le asignó un administrador),
- * o el lanzamiento (Profesional sin costo hasta PROMO_PRO_HASTA), o Gratis.
+ * o la prueba gratis (Profesional sin costo hasta doctors.prueba_hasta: 7 días desde el alta;
+ * los registrados antes del cambio conservan el lanzamiento hasta el 31/03/2027), o Sin plan.
  */
 @Injectable()
 export class PlanesService {
   private readonly logger = new Logger(PlanesService.name);
   constructor(private db: DatabaseService, private config: ConfigService) {}
 
-  /** Último día del lanzamiento con Profesional incluido (inclusive) */
-  get promoHasta(): string {
-    return this.config.get<string>('PROMO_PRO_HASTA') || '2027-03-31';
-  }
-  get promoVigente(): boolean {
-    return new Date() <= new Date(`${this.promoHasta}T23:59:59-03:00`);
+  static readonly DIAS_PRUEBA = 7;
+
+  /** Fin de la prueba gratis del médico (null si no hay dato: se trata como prueba vigente de 7 días). */
+  async pruebaHasta(doctorId: string): Promise<Date> {
+    const r = await this.db.queryOne<{ prueba_hasta: string | null; created_at: string }>(
+      `SELECT prueba_hasta, created_at FROM doctors WHERE id = $1`, [doctorId]);
+    if (r?.prueba_hasta) return new Date(r.prueba_hasta);
+    const base = r?.created_at ? new Date(r.created_at) : new Date();
+    return new Date(base.getTime() + PlanesService.DIAS_PRUEBA * 86400_000);
   }
 
   private inicioMes(): string {
@@ -80,15 +85,20 @@ export class PlanesService {
     const pagado: PlanId | null = vigente ? (PLAN_POR_PRODUCTO[String(sub.store_product_id || 'pro')] || 'profesional') : null;
     const compartido = !!pagado && COMPARTIDOS.includes(String(sub.store_product_id));
 
-    const plan: PlanId = pagado || (this.promoVigente ? 'profesional' : 'gratis');
-    const origen = pagado ? 'pago' : this.promoVigente ? 'lanzamiento' : 'gratis';
+    const hasta = await this.pruebaHasta(doctorId);
+    const enPrueba = hasta.getTime() > Date.now();
+    const plan: PlanId = pagado || (enPrueba ? 'profesional' : 'gratis');
+    const origen = pagado ? 'pago' : enPrueba ? 'prueba' : 'vencido';
+    const diasPrueba = enPrueba ? Math.ceil((hasta.getTime() - Date.now()) / 86400_000) : 0;
     const limite = PLANES[plan].waAutoMes;
     const usados = await this.usoWaMes(compartido ? await this.equipo(sub.doctor_id) : [doctorId]);
     return {
       plan,
       nombre: PLANES[plan].nombre,
-      origen,                                   // pago | lanzamiento | gratis
-      promoHasta: this.promoHasta,
+      origen,                                   // pago | prueba | vencido
+      promoHasta: hasta.toISOString(),          // fin de la prueba gratis
+      diasPrueba,
+      puedeRecetar: plan !== 'gratis',
       suscripcion: sub ? {
         estado: sub.status,                     // active | pending | billing_retry | grace_period
         medio: sub.store,
@@ -98,7 +108,7 @@ export class PlanesService {
         cancelada: !!sub.cancelled_at,
       } : null,
       whatsapp: { usados, limite, restantes: limite < 0 ? null : Math.max(0, limite - usados), compartido },
-      planes: Object.entries(PLANES).map(([id, p]) => ({ id, nombre: p.nombre, precio: p.precio, waAutoMes: p.waAutoMes, profesionales: p.profesionales })),
+      planes: Object.entries(PLANES).filter(([id]) => id !== 'gratis').map(([id, p]) => ({ id, nombre: p.nombre, precio: p.precio, waAutoMes: p.waAutoMes, profesionales: p.profesionales })),
       pagosDisponibles: !!this.config.get('MP_ACCESS_TOKEN'),
     };
   }
@@ -128,8 +138,11 @@ export class PlanesService {
     await this.db.query(
       `INSERT INTO inbox_notifications (recipient_type, recipient_id, title, body, category, data)
        VALUES ('doctor', $1, $2, $3, 'plan', '{"link":"/portal#plan"}')`,
-      [doctorId, `Llegaste a los ${limite} avisos automáticos del mes`,
-        'Los recordatorios que faltan quedan en el Dashboard para enviarlos con un toque desde tu WhatsApp. Con el plan Profesional los avisos automáticos son ilimitados.'],
+      limite === 0
+        ? [doctorId, 'Tu prueba gratis terminó: los avisos automáticos están pausados',
+            'Tus pacientes y turnos siguen disponibles. Para volver a mandar confirmaciones y recordatorios automáticos por WhatsApp y emitir recetas, elegí un plan en Mi plan.']
+        : [doctorId, `Llegaste a los ${limite} avisos automáticos del mes`,
+            'Los recordatorios que faltan quedan en el Dashboard para enviarlos con un toque desde tu WhatsApp. Si necesitás más, pasate a un plan con más avisos en Mi plan.'],
     );
     this.logger.log(`Médico ${doctorId} alcanzó el cupo de ${limite} avisos automáticos`);
   }

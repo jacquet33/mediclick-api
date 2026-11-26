@@ -72,7 +72,7 @@ input:focus,select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 
 .pl-btn.on{background:var(--primary);color:#fff}
 .planes{max-width:1180px;margin:40px auto 60px;padding:0 20px}
 .planes h2{text-align:center;font-size:30px;margin-bottom:8px}
-.pl-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.pl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:1040px;margin:0 auto}
 .pl{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;position:relative}
 .pl.dest{border:2px solid var(--primary);box-shadow:0 10px 30px rgba(154,107,63,.15)}
 .pl h3{font-size:20px}.pl-p{color:var(--text-soft,#7A6E62);font-size:13px;margin:2px 0 12px}
@@ -111,7 +111,7 @@ input:focus,select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 
       <div><span>⬆️</span>Traé tus pacientes desde Excel en un minuto</div>
       <div><span>📱</span>App para iPhone</div>
     </div>
-    <a class="cta" href="#alta">Crear mi consultorio gratis</a>
+    <a class="cta" href="#alta">Probar 7 días gratis</a>
   </div>
   <div class="mock">
     <p class="muted" style="margin-bottom:10px">Hoy · 6 turnos</p>
@@ -226,27 +226,22 @@ input:focus,select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 
 
 <section class="planes" id="planes">
   <h2>Precios claros, en pesos</h2>
-  <p class="muted" style="text-align:center;max-width:680px;margin:0 auto 6px">Emitir recetas nunca va a ser un extra pago. Precio final por mes, sin permanencia: cancelás cuando quieras.</p>
-  <p class="lanz">🚀 <b>Lanzamiento:</b> todo el plan Profesional incluido sin costo hasta el 31 de marzo de 2027. Los primeros 200 médicos mantienen el precio de lanzamiento por 12 meses.</p>
-  <div class="per"><button class="on" data-per="m">Mensual</button><button data-per="a">Anual <small>2 meses gratis</small></button></div>
+  <p class="muted" style="text-align:center;max-width:680px;margin:0 auto 6px">Recetas ilimitadas en todos los planes. Precio final por mes, sin permanencia: cancelás cuando quieras.</p>
+  <p class="lanz">🎁 <b>7 días gratis</b> con todo incluido, sin tarjeta. Después elegís tu plan.</p>
   <div class="pl-grid">
-    <div class="pl"><h3>Gratis</h3><p class="pl-p">1 profesional</p>
-      <div class="precio"><b>$0</b><span>para siempre, sin tarjeta</span></div>
-      <ul><li><b>200 avisos automáticos por WhatsApp al mes</b> (≈100 turnos)</li><li><b>Recetas electrónicas ilimitadas</b>, con firma y QR</li><li>Turnos online: tusrecetasmed.com/tu-nombre</li><li>Historia clínica con evoluciones y antecedentes</li><li>Recordatorios con un toque, sin límite</li><li>El paciente confirma o cancela respondiendo</li><li>App para iPhone y Android</li></ul>
-      <a href="#alta" class="pl-btn">Crear mi cuenta</a></div>
-    <div class="pl dest"><span class="pl-tag">El más elegido</span><h3>Profesional</h3><p class="pl-p">1 profesional + secretaria</p>
-      <div class="precio"><b data-m="$9.000" data-a="$7.500">$9.000</b><span data-m="por mes" data-a="por mes · $90.000 al año">por mes</span></div>
-      <ul><li><b>1.000 avisos automáticos por WhatsApp al mes</b> (≈500 turnos)</li><li>Todo lo de Gratis</li><li>Resumen del paciente, dictado e indicaciones listas para enviar</li><li>Estudios y documentos compartidos con el paciente</li><li>Sala de espera y lista de espera</li><li>Firma digital con certificado</li></ul>
-      <a href="#alta" class="pl-btn on">Empezar gratis</a></div>
-    <div class="pl"><h3>Consultorio</h3><p class="pl-p">Hasta 3 profesionales</p>
-      <div class="precio"><b data-m="$19.000" data-a="$15.833">$19.000</b><span data-m="por mes, todo el equipo" data-a="por mes · $190.000 al año">por mes, todo el equipo</span></div>
+    <div class="pl dest"><span class="pl-tag">El más elegido</span><h3>Profesional</h3><p class="pl-p">Por médico o consultorio</p>
+      <div class="precio"><b>$13.000</b><span>por mes</span></div>
+      <ul><li><b>Recetas electrónicas ilimitadas</b>, con firma y QR</li><li>1 profesional + secretaria</li><li>Turnos online: tusrecetasmed.com/tu-nombre</li><li>Historia clínica con evoluciones y antecedentes</li><li><b>1.000 avisos automáticos por WhatsApp al mes</b> (≈500 turnos)</li><li>Sala de espera, lista de espera y estudios compartidos</li><li>App para iPhone y Android</li></ul>
+      <a href="#alta" class="pl-btn on">Probar 7 días gratis</a></div>
+    <div class="pl"><h3>Consultorio</h3><p class="pl-p">Hasta 5 profesionales</p>
+      <div class="precio"><b>$18.000</b><span>por mes, todo el equipo</span></div>
       <ul><li><b>3.000 avisos automáticos por WhatsApp al mes</b> para todo el equipo</li><li>Todo lo de Profesional, para cada médico</li><li>Secretarías sin costo adicional</li><li>Agenda de todo el equipo y permisos</li><li>Facturación y obras sociales</li></ul>
-      <a href="#alta" class="pl-btn">Empezar gratis</a></div>
-    <div class="pl"><h3>Clínica</h3><p class="pl-p">Hasta 10 profesionales</p>
-      <div class="precio"><b data-m="$39.000" data-a="$32.500">$39.000</b><span data-m="por mes, todo incluido" data-a="por mes · $390.000 al año">por mes, todo incluido</span></div>
-      <ul><li><b>Avisos automáticos por WhatsApp ilimitados</b></li><li>Todo lo de Consultorio</li><li>Reportes del equipo y de ausentismo</li><li>Alta y migración asistida</li><li>Soporte prioritario por WhatsApp</li></ul>
-      <p class="pl-mas">Más de 10 profesionales o integraciones (HL7 FHIR): a medida</p>
-      <a href="mailto:support@tusrecetasmed.com?subject=TusRecetasMed%20para%20cl%C3%ADnicas" class="pl-btn">Hablemos</a></div>
+      <a href="#alta" class="pl-btn">Probar 7 días gratis</a></div>
+    <div class="pl"><h3>Clínica</h3><p class="pl-p">A convenir</p>
+      <div class="precio"><b><small style="font-size:.5em;font-weight:600">desde</small> $40.000</b><span>por mes, a tu medida</span></div>
+      <ul><li><b>Avisos automáticos por WhatsApp ilimitados</b></li><li>Profesionales y secretarías según tu clínica</li><li>Todo lo de Consultorio</li><li>Reportes del equipo y de ausentismo</li><li>Alta y migración asistida</li><li>Soporte prioritario por WhatsApp</li></ul>
+      <p class="pl-mas">Integraciones (HL7 FHIR) y condiciones especiales: a convenir</p>
+      <a href="mailto:support@tusrecetasmed.com?subject=Plan%20Cl%C3%ADnica%20TusRecetasMed" class="pl-btn">Personalizar mi plan</a></div>
   </div>
   <p class="muted" style="text-align:center;font-size:12px;margin-top:12px">Precios finales en pesos argentinos. Se actualizan como máximo una vez por trimestre, con aviso de 30 días.</p>
   <div class="mig"><b>¿Venís de otra plataforma?</b> Exportá tus pacientes a Excel o CSV y los importás desde <i>Pacientes → Importar desde Excel</i>: sin duplicados y sin empezar de cero. Si necesitás ayuda, escribinos a <a href="mailto:support@tusrecetasmed.com">support@tusrecetasmed.com</a> y lo hacemos con vos, sin costo.</div>

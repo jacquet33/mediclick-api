@@ -17,7 +17,7 @@ export class PlanesController {
   @Public()
   @Get('public/planes')
   publicos() {
-    return { planes: Object.entries(PLANES).map(([id, p]) => ({ id, nombre: p.nombre, precio: p.precio, waAutoMes: p.waAutoMes, profesionales: p.profesionales })), promoHasta: this.planes.promoHasta };
+    return { planes: Object.entries(PLANES).filter(([id]) => id !== 'gratis').map(([id, p]) => ({ id, nombre: p.nombre, precio: p.precio, waAutoMes: p.waAutoMes, profesionales: p.profesionales })), diasPrueba: PlanesService.DIAS_PRUEBA };
   }
 
   @Get('planes/mio')
