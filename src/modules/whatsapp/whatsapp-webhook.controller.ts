@@ -1,3 +1,4 @@
+import { QueueService } from '../../common/queue.service';
 import { Body, Controller, ForbiddenException, Get, HttpCode, Logger, Post, Query, Req, Res } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
@@ -20,7 +21,7 @@ import { WhatsappRespuestasService } from './whatsapp-respuestas.service';
 @Controller('api/v1/webhooks/whatsapp')
 export class WhatsappWebhookController {
   private readonly logger = new Logger('WhatsappWebhook');
-  constructor(private config: ConfigService, private db: DatabaseService, private respuestas: WhatsappRespuestasService) {}
+  constructor(private config: ConfigService, private db: DatabaseService, private respuestas: WhatsappRespuestasService, private colas: QueueService) {}
 
   @Get()
   verificar(@Query('hub.mode') mode: string, @Query('hub.verify_token') token: string, @Query('hub.challenge') challenge: string, @Res() res: Response) {
@@ -64,7 +65,9 @@ export class WhatsappWebhookController {
           );
         }
         // Respuestas automáticas (confirmar / cancelar / "te respondemos"): después de guardar, sin frenar el 200 a Meta
-        if ((v.messages || []).length) setImmediate(() => this.respuestas.procesar(v).catch((e) => this.logger.warn(`Respuestas: ${e.message}`)));
+        if ((v.messages || []).length && !(await this.colas.enviar('wa-respuesta', { v }))) {
+          setImmediate(() => this.respuestas.procesar(v).catch((e) => this.logger.warn(`Respuestas: ${e.message}`)));
+        }
         if (!(v.statuses || []).length && !(v.messages || []).length) {
           await this.db.query(`INSERT INTO whatsapp_events (kind, payload) VALUES ('other',$1)`, [ch]);
         }

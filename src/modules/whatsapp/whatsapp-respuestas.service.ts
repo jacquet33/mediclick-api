@@ -1,3 +1,4 @@
+import { QueueService } from '../../common/queue.service';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DatabaseService } from '../../database/database.service';
@@ -44,7 +45,10 @@ export class WhatsappRespuestasService {
     private turnos: AppointmentService,
     private push: PushNotificationService,
     private planes: PlanesService,
-  ) {}
+    private colas: QueueService,
+  ) {
+    this.colas.procesar('wa-respuesta', (d: { v: any }) => this.procesar(d.v));
+  }
 
   private get base() { return this.config.get<string>('BASE_URL') || 'https://tusrecetasmed.com'; }
 

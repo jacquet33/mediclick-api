@@ -1,3 +1,4 @@
+import { QueueService } from './common/queue.service';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
@@ -223,6 +224,7 @@ class HealthController {
     { provide: APP_GUARD, useClass: IpThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
     RedisService,
+    QueueService,
     ThrottlerRedisStorage,
     { provide: ThrottlerStorage, useExisting: ThrottlerRedisStorage }, // límites compartidos en Redis
     DatabaseService,

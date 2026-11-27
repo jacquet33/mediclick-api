@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { QueueService } from '../../common/queue.service';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { DatabaseService } from '../../database/database.service';
@@ -31,7 +32,28 @@ export class PushNotificationService {
     private db: DatabaseService,
     private config: ConfigService,
     private jwtService: JwtService,
-  ) {}
+    @Optional() private colas?: QueueService,
+  ) {
+    this.colas?.procesar('push', (j: { dt: { id: string; token: string; platform: string }; recipientType: string; userId: string; payload: PushPayload }) => this.entregar(j));
+  }
+
+  /** Entrega a un celular (lo corre la cola, con reintentos si APNs falla de forma transitoria). */
+  private async entregar(j: { dt: { id: string; token: string; platform: string }; recipientType: string; userId: string; payload: PushPayload }) {
+    const { dt, recipientType, userId, payload } = j;
+    try {
+      if (dt.platform === 'ios') await this.sendAPNs(dt.token, payload);
+      else this.logger.log(`[${dt.platform}] Would send to ${dt.token.substring(0, 20)}...`);
+      await this.logPush(dt.id, recipientType, userId, payload, 'sent');
+    } catch (err: any) {
+      const errMsg = err.message || 'Unknown error';
+      await this.logPush(dt.id, recipientType, userId, payload, 'failed', errMsg);
+      if (errMsg.includes('BadDeviceToken') || errMsg.includes('Unregistered') || errMsg.includes('410')) {
+        await this.db.query('UPDATE device_tokens SET is_active = false WHERE id = $1', [dt.id]);
+        return; // token muerto: no se reintenta
+      }
+      throw err;
+    }
+  }
 
   // ═══════════════════════════════════════════════════════════
   // DEVICE TOKEN MANAGEMENT
@@ -114,6 +136,16 @@ export class PushNotificationService {
     if (!tokens.length) {
       this.logger.debug(`No active tokens for ${column}=${userId}`);
       return { sent: 0, failed: 0, errors: [] };
+    }
+
+    // Con cola: se encola cada celular y se responde al instante
+    if (this.colas?.activa) {
+      let encolados = 0;
+      for (const dt of tokens) {
+        if (await this.colas.enviar('push', { dt: { id: dt.id, token: dt.token, platform: dt.platform }, recipientType, userId, payload })) encolados++;
+        else await this.entregar({ dt, recipientType, userId, payload }).catch(() => {});
+      }
+      return { sent: encolados, failed: 0, errors: [] };
     }
 
     let sent = 0;

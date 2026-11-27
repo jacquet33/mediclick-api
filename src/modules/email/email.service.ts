@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { QueueService } from '../../common/queue.service';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 /**
@@ -30,8 +31,11 @@ export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private transporter: any = null;
 
-  constructor(private config: ConfigService) {
+  constructor(private config: ConfigService, @Optional() private colas?: QueueService) {
     this.initTransporter();
+    this.colas?.procesar('email', async (o: EmailOptions) => {
+      if (!(await this.enviarAhora(o))) throw new Error('SMTP no aceptó el mail');
+    });
   }
 
   private async initTransporter() {
@@ -64,7 +68,13 @@ export class EmailService {
 
   // ─── ENVIAR ──────────────────────────────────────────────
 
+  /** Encola el mail (se manda aparte, con reintentos). Sin cola, lo manda en el momento. */
   async send(options: EmailOptions): Promise<boolean> {
+    if (this.transporter && this.colas && (await this.colas.enviar('email', options))) return true;
+    return this.enviarAhora(options);
+  }
+
+  private async enviarAhora(options: EmailOptions): Promise<boolean> {
     const from = this.config.get('SMTP_FROM') || 'TusRecetasMed <no-reply@tusrecetasmed.com>';
 
     if (!this.transporter) {
