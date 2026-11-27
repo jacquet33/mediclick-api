@@ -76,6 +76,11 @@ export class VerificationService implements OnModuleInit {
       throw new BadRequestException('La foto del DNI no es válida o es muy grande');
     }
     if (dto.dniDocument) await this.db.query(`UPDATE doctors SET dni_document = $2 WHERE id = $1`, [doctorId, dto.dniDocument]);
+    // Para validar que quien se registra es el profesional, hacen falta las fotos del DNI y de la credencial
+    const docs = await this.db.queryOne<{ dni: boolean; cred: boolean }>(
+      `SELECT dni_document IS NOT NULL AS dni, license_document IS NOT NULL AS cred FROM doctors WHERE id = $1`, [doctorId]);
+    if (!docs?.dni && !dto.dniDocument) throw new BadRequestException('Subí una foto clara del frente de tu DNI');
+    if (!docs?.cred && !dto.document) throw new BadRequestException('Subí una foto clara de tu credencial de matrícula');
     // La misma matrícula no puede estar verificada en otra cuenta
     const otra = await this.db.queryOne(
       `SELECT id FROM doctors WHERE id <> $1 AND license_status = 'verified'
@@ -99,7 +104,14 @@ export class VerificationService implements OnModuleInit {
     // Verificación automática contra REFEPS si hay credenciales SISA
     const r = await this.refeps.consultar(dni, matricula);
     if (r.consultado) {
-      const ok = r.encontrado && r.esMedico && r.matriculaVigente && r.coincideMatricula;
+      // REFEPS confirma que el profesional existe, no que quien se registra sea esa persona:
+      // nunca se aprueba solo. Queda pendiente y el administrador valida identidad con las fotos.
+      const refepsOk = r.encontrado && r.esMedico && r.matriculaVigente && r.coincideMatricula;
+      const yo = await this.db.queryOne<{ first_name: string; last_name: string }>(`SELECT first_name, last_name FROM doctors WHERE id = $1`, [doctorId]);
+      const norm = (x: string) => (x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z ]/g, ' ').split(/\s+/).filter((w) => w.length > 1);
+      const refNom = new Set(norm(r.nombre || ''));
+      const coincideNombre = refNom.size > 0 && norm(`${yo?.first_name} ${yo?.last_name}`).filter((w) => refNom.has(w)).length >= 2;
+      const ok = false;
       await this.db.query(
         `UPDATE doctors SET refeps_data = $2,
                 license_status = CASE WHEN $3 THEN 'verified' ELSE 'pending' END,
@@ -109,7 +121,7 @@ export class VerificationService implements OnModuleInit {
                 license_verification_note = $4
          WHERE id = $1`,
         [doctorId, JSON.stringify(r.raw || { error: r.error }), ok,
-         ok ? 'Matrícula vigente en REFEPS' :
+         refepsOk ? `✓ REFEPS: médico/a con matrícula vigente que coincide. Nombre ${coincideNombre ? 'coincide' : 'NO coincide'} con el registrado. Falta validar identidad con las fotos del DNI y la credencial.` :
            r.error ? `REFEPS no respondió (${r.error}); queda para revisión manual` :
            !r.encontrado ? 'DNI no encontrado en REFEPS; queda para revisión manual' :
            !r.esMedico ? 'En REFEPS no figura como médico/a' :
