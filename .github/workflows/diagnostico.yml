@@ -67,5 +67,5 @@ jobs:
           echo "DOMINIO es-nuestro=$(curl -s -m 10 https://tusrecetasmed.com/api/v1/health | grep -c mediclick-api) ns=$(dig +short NS tusrecetasmed.com | tr "\n" ,) apunta-al-vps=$( [ "$(dig +short tusrecetasmed.com A | tail -1)" = "$(dig +short $HOST A | tail -1)" ] || [ "$(dig +short tusrecetasmed.com A | tail -1)" = "$HOST" ] && echo si || echo no)" >> out.txt
           echo "DOMINIO reserva $(curl -s -m 10 -o /dev/null -w "%{http_code} %{size_download}" https://tusrecetasmed.com/reservar.html || true) viejo $(curl -s -m 10 -o /dev/null -w "%{http_code} %{redirect_url}" https://tuconsultorio.rispy.io/portal || true) rispy.io-sin-salud=$(curl -s -m 10 https://rispy.io/ | grep -c -i "consultorio" )" >> out.txt
           echo "PUERTOS desde-internet 3100=$(curl -s -m 8 -o /dev/null -w %{http_code} http://$HOST:3100/api/v1/health || true) 5432=$(timeout 5 bash -c "</dev/tcp/$HOST/5432" 2>/dev/null && echo ABIERTO || echo cerrado) 6379=$(timeout 5 bash -c "</dev/tcp/$HOST/6379" 2>/dev/null && echo ABIERTO || echo cerrado)" >> out.txt
-          { grep -E '^(WA3|WA |WHK)' out.txt; } | while IFS= read -r l; do echo "::notice::$l"; done
+          { grep -E '^(WA3|WA |WHK|BUS )' out.txt; } | while IFS= read -r l; do echo "::notice::$l"; done
           rm -f k
