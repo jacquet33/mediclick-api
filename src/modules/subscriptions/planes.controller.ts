@@ -23,6 +23,27 @@ export class PlanesController {
   @Get('planes/mio')
   mio(@CurrentUser() u: AuthUser) { return this.planes.estado(this.medico(u)); }
 
+  /**
+   * GET /app/acceso — ¿puede usar la app móvil? Las apps son solo para cuentas con plan pago
+   * (el alta y el pago se hacen en la web). Secretarías: si algún profesional del consultorio paga.
+   */
+  @Get('app/acceso')
+  async accesoApp(@CurrentUser() u: AuthUser) {
+    const no = { permitido: false, motivo: 'Tu cuenta no tiene un plan activo. Para usar la app, activá tu plan desde la web de TusRecetasMed. Después volvé a abrir la app.' };
+    if (u.isPlatformAdmin) return { permitido: true };
+    if (u.userType === 'doctor' && u.doctorId) {
+      const e = await this.planes.estado(u.doctorId);
+      return e.origen === 'pago' ? { permitido: true, plan: e.plan } : no;
+    }
+    if (u.userType === 'staff' && u.organizationId) {
+      for (const d of await this.planes.doctoresDeOrganizacion(u.organizationId)) {
+        if ((await this.planes.estado(d)).origen === 'pago') return { permitido: true };
+      }
+      return { ...no, motivo: 'El consultorio no tiene un plan activo. Pedile al profesional titular que lo active desde la web de TusRecetasMed.' };
+    }
+    return { permitido: false, motivo: 'La app de TusRecetasMed es para profesionales de la salud.' };
+  }
+
   /** Inicia el pago mensual en Mercado Pago y devuelve el link de checkout */
   @Post('planes/mejorar')
   async mejorar(@CurrentUser() u: AuthUser, @Body() b: { plan?: string }) {

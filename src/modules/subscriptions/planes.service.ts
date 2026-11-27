@@ -33,6 +33,12 @@ export class PlanesService {
 
   static readonly DIAS_PRUEBA = 7;
 
+  async doctoresDeOrganizacion(orgId: string): Promise<string[]> {
+    const r = await this.db.queryMany<{ doctor_id: string }>(
+      `SELECT doctor_id FROM organization_doctors WHERE organization_id = $1 AND is_active = true`, [orgId]).catch(() => []);
+    return r.map((x) => x.doctor_id);
+  }
+
   /** Fin de la prueba gratis del médico (null si no hay dato: se trata como prueba vigente de 7 días). */
   async pruebaHasta(doctorId: string): Promise<Date> {
     const r = await this.db.queryOne<{ prueba_hasta: string | null; created_at: string }>(

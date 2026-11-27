@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
@@ -12,6 +12,7 @@ export interface GoogleLoginDto {
   /** 'patient' desde el portal web: si no hay cuenta se crea un paciente. Sin valor (apps) o 'doctor': se crea médico. */
   intent?: 'patient' | 'doctor';
   organizationId?: string;
+  soloExistente?: boolean;
 }
 
 export interface AppleLoginDto {
@@ -24,6 +25,7 @@ export interface AppleLoginDto {
   email?: string;           // Apple solo lo manda la primera vez
   intent?: 'patient' | 'doctor';
   organizationId?: string;
+  soloExistente?: boolean;
 }
 
 interface OAuthProfile {
@@ -64,7 +66,7 @@ export class OAuthService {
     );
     if (existing?.user_type === 'patient') return this.auth.buildPatientSession(existing);
     if (existing?.user_type === 'staff') return this.auth.buildStaffSession(existing);
-    if (existing?.user_type === 'doctor' || dto.intent !== 'patient') return this.findOrCreateDoctor(profile);
+    if (existing?.user_type === 'doctor' || dto.intent !== 'patient') return this.findOrCreateDoctor(profile, dto.soloExistente);
 
     // 3. Paciente nuevo desde el portal
     return this.createPatientFromOAuth(profile, dto.organizationId);
@@ -150,7 +152,7 @@ export class OAuthService {
     );
     if (existing?.user_type === 'patient') return this.auth.buildPatientSession(existing);
     if (existing?.user_type === 'staff') return this.auth.buildStaffSession(existing);
-    if (existing?.user_type === 'doctor' || dto.intent !== 'patient') return this.findOrCreateDoctor(profile);
+    if (existing?.user_type === 'doctor' || dto.intent !== 'patient') return this.findOrCreateDoctor(profile, dto.soloExistente);
 
     // 3. Paciente nuevo desde el portal
     return this.createPatientFromOAuth(profile, dto.organizationId);
@@ -213,7 +215,7 @@ export class OAuthService {
   // BUSCAR O CREAR DOCTOR (compartido Google/Apple)
   // ═══════════════════════════════════════════════════════════
 
-  private async findOrCreateDoctor(profile: OAuthProfile) {
+  private async findOrCreateDoctor(profile: OAuthProfile, soloExistente = false) {
     // 1. Buscar por provider + providerId en oauth_accounts
     let oauthAccount = await this.db.queryOne(
       `SELECT doctor_id FROM oauth_accounts 
@@ -225,8 +227,10 @@ export class OAuthService {
     let isNewUser = false;
 
     if (oauthAccount) {
-      // Ya existe → login
+      // Ya existe → login (si la cuenta sigue activa)
       doctorId = oauthAccount.doctor_id;
+      const activo = await this.db.queryOne(`SELECT is_active FROM doctors WHERE id = $1`, [doctorId]);
+      if (!activo?.is_active) throw new UnauthorizedException('Esta cuenta está dada de baja. Escribinos a support@tusrecetasmed.com.');
       
       // Actualizar último login
       await this.db.query(
@@ -236,9 +240,13 @@ export class OAuthService {
     } else {
       // No existe → buscar por email o crear nuevo
       let doctor = await this.db.queryOne(
-        `SELECT id FROM doctors WHERE email = $1`,
+        `SELECT id, is_active FROM doctors WHERE lower(email) = lower($1)`,
         [profile.email],
       );
+      if (doctor && !doctor.is_active) throw new UnauthorizedException('Esta cuenta está dada de baja. Escribinos a support@tusrecetasmed.com.');
+      if (!doctor && soloExistente) {
+        throw new NotFoundException('No encontramos una cuenta con ese email. Creala en tusrecetasmed.com y después ingresá en la app.');
+      }
 
       if (doctor) {
         // Doctor existe con ese email → vincular cuenta OAuth

@@ -1,7 +1,6 @@
 import {
   IsEmail, IsString, IsNotEmpty, MinLength, MaxLength,
-  IsOptional, IsUUID, Matches, IsIn,
-} from 'class-validator';
+  IsOptional, IsUUID, Matches, IsIn, IsBoolean } from 'class-validator';
 
 // ─── Login ───────────────────────────────────────────────
 
@@ -192,6 +191,11 @@ export class GoogleLoginDto {
   @IsNotEmpty()
   idToken: string;
 
+  /** Desde las apps: solo cuentas ya creadas en la web (no se dan de alta médicos nuevos) */
+  @IsOptional()
+  @IsBoolean()
+  soloExistente?: boolean;
+
   @IsOptional()
   @IsIn(['patient', 'doctor'])
   intent?: 'patient' | 'doctor';
@@ -202,6 +206,10 @@ export class GoogleLoginDto {
 }
 
 export class AppleLoginDto {
+  @IsOptional()
+  @IsBoolean()
+  soloExistente?: boolean;
+
   @IsOptional()
   @IsIn(['patient', 'doctor'])
   intent?: 'patient' | 'doctor';
