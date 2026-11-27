@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Delete, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Put, Post, Delete, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { DoctorId } from '../../common/decorators/current-user.decorator';
 import { ProfileService } from './profile.service';
 import { UpdateProfileDto, UpdateSignatureDto } from '../../common/dto/profile.dto';
@@ -30,6 +30,13 @@ export class ProfileController {
     @Body() dto: UpdateSignatureDto,
   ) {
     return this.profileService.uploadSignature(doctorId, dto.image);
+  }
+
+  /** POST /api/v1/profile/eliminar-cuenta — baja de la cuenta pedida por el médico */
+  @Post('eliminar-cuenta')
+  @HttpCode(HttpStatus.OK)
+  eliminarCuenta(@DoctorId() doctorId: string, @Body() b: { motivo?: string }) {
+    return this.profileService.eliminarCuenta(doctorId, b?.motivo);
   }
 
   /** DELETE /api/v1/profile/signature — remove signature */
