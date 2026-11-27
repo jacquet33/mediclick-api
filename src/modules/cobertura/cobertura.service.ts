@@ -40,8 +40,79 @@ export class CoberturaService {
   private readonly logger = new Logger('Cobertura');
   constructor(private db: DatabaseService, private config: ConfigService) {}
 
+  /** Bus de interoperabilidad del Ministerio (credencial NO-FHIR de dominios.msal.gob.ar) */
+  get busDisponible(): boolean {
+    return !!(this.config.get('BUS_APP_NOMBRE') && this.config.get('BUS_APP_CLAVE'));
+  }
   get disponible(): boolean {
-    return !!(this.config.get('SISA_USUARIO') && this.config.get('SISA_CLAVE'));
+    return this.busDisponible || !!(this.config.get('SISA_USUARIO') && this.config.get('SISA_CLAVE'));
+  }
+
+  private busToken: { valor: string; vence: number } | null = null;
+  private get busUrl() { return (this.config.get<string>('BUS_URL') || 'https://bus.msal.gob.ar').replace(/\/$/, ''); }
+  private get codDominio() { return this.config.get<string>('BUS_ISSUER') || 'https://tusrecetasmed.com'; }
+
+  private async loginBus(forzar = false): Promise<string> {
+    if (!forzar && this.busToken && this.busToken.vence > Date.now()) return this.busToken.valor;
+    const r = await fetch(this.config.get<string>('BUS_NOFHIR_LOGIN_URL') || `${this.busUrl}/masterfile-federacion-service/api/usuarios/aplicacion/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ nombre: this.config.get('BUS_APP_NOMBRE'), clave: this.config.get('BUS_APP_CLAVE'), codDominio: this.codDominio }),
+      signal: AbortSignal.timeout(20_000),
+    });
+    const j: any = await r.json().catch(() => ({}));
+    if (!r.ok || !j?.token) throw new Error(`login bus ${r.status} ${j?.name || ''}`.trim());
+    // Se renueva cada 20 minutos (y antes si el bus responde 401)
+    this.busToken = { valor: j.token, vence: Date.now() + 20 * 60_000 };
+    return j.token;
+  }
+
+  private async coberturasBus(dni: string, idSexo: 1 | 2): Promise<{ status: number; lista: any[] }> {
+    const url = `${this.config.get<string>('BUS_COBERTURA_URL') || `${this.busUrl}/masterfile-federacion-service/api/personas/cobertura`}?nroDocumento=${dni}&idSexo=${idSexo}`;
+    for (let intento = 0; intento < 2; intento++) {
+      const token = await this.loginBus(intento > 0);
+      const r = await fetch(url, { headers: { token, codDominio: this.codDominio, Accept: 'application/json' }, signal: AbortSignal.timeout(20_000) });
+      if (r.status === 401 && intento === 0) continue;
+      const j: any = await r.json().catch(() => null);
+      return { status: r.status, lista: Array.isArray(j) ? j : [] };
+    }
+    return { status: 401, lista: [] };
+  }
+
+  /** PUCO por el bus. Sin sexo consulta los dos y usa el que tenga datos. */
+  private async consultarBus(dni: string, sexo?: string): Promise<ResultadoCobertura> {
+    const fuente = 'Padrón oficial PUCO (Ministerio de Salud)';
+    const consultadoAt = new Date().toISOString();
+    try {
+      const sexos: (1 | 2)[] = sexo === 'F' ? [1] : sexo === 'M' ? [2] : [1, 2];
+      const res = [] as { status: number; lista: any[] }[];
+      for (const s of sexos) res.push(await this.coberturasBus(dni, s));
+      if (res.every((x) => x.status === 401)) {
+        this.logger.warn('Bus PUCO: credencial rechazada');
+        return { estado: 'error', coberturas: [], fuente, consultadoAt, mensaje: 'El Ministerio rechazó la credencial del sistema. Avisanos a support@tusrecetasmed.com.' };
+      }
+      if (res.every((x) => x.status >= 500 || x.status === 0)) {
+        return { estado: 'error', coberturas: [], fuente, consultadoAt, mensaje: 'El padrón no respondió. Probá en unos minutos.' };
+      }
+      const conDatos = res.filter((x) => x.status === 200 && x.lista.length);
+      if (conDatos.length > 1) {
+        const a = JSON.stringify(conDatos[0].lista.map((c) => c.rnos).sort()), b = JSON.stringify(conDatos[1].lista.map((c) => c.rnos).sort());
+        if (a !== b) return { estado: 'multiple', coberturas: [], fuente, consultadoAt, mensaje: 'Hay más de una persona con ese DNI: indicá el sexo del paciente.' };
+      }
+      const lista = conDatos[0]?.lista || [];
+      const coberturas: CoberturaPadron[] = lista.map((c: any) => ({
+        nombre: String(c.cobertura || 'Obra social').trim(), rnos: c.rnos ? String(c.rnos) : null,
+        tipo: null, origen: c.servicio || 'PUCO', vigenciaDesde: null, actualizado: c.fechaConsulta || null,
+      })).filter((c, i, a) => a.findIndex((x) => x.nombre === c.nombre && x.rnos === c.rnos) === i);
+      const sinCob = coberturas.length === 0;
+      return {
+        estado: sinCob ? 'sin_cobertura' : 'ok', coberturas, fuente, consultadoAt,
+        mensaje: sinCob ? 'Sin obra social en el padrón: puede ser particular o tener una prepaga sin derivación de aportes.'
+          : `${coberturas.length} cobertura${coberturas.length === 1 ? '' : 's'} en el padrón.`,
+      };
+    } catch (e: any) {
+      this.logger.warn(`Bus PUCO sin respuesta: ${e.message}`);
+      return { estado: 'error', coberturas: [], fuente, consultadoAt, mensaje: 'El padrón no respondió. Probá en unos minutos.' };
+    }
   }
 
   async consultar(dniRaw: string, sexoRaw?: string, usuarioId?: string, patientId?: string, orgId?: string): Promise<ResultadoCobertura> {
@@ -51,7 +122,7 @@ export class CoberturaService {
     const ahora = new Date().toISOString();
     if (!this.disponible) {
       return { estado: 'no_configurado', coberturas: [], fuente: 'SISA – Ministerio de Salud', consultadoAt: ahora,
-        mensaje: 'La validación automática se activa cuando se cargue la cuenta SISA del consultorio. Mientras tanto podés consultar en la Superintendencia de Servicios de Salud.' };
+        mensaje: 'La validación automática con el padrón todavía no está activa. Mientras tanto podés consultar en la Superintendencia de Servicios de Salud.' };
     }
     // Caché de 24 h: el padrón se actualiza una vez por mes y el servicio tiene cupo diario
     const cache = await this.db.queryOne<{ resultado: ResultadoCobertura }>(
@@ -60,7 +131,7 @@ export class CoberturaService {
     let res: ResultadoCobertura;
     if (cache) res = { ...cache.resultado, enCache: true };
     else {
-      res = await this.consultarSisa(dni, sexo);
+      res = this.busDisponible ? await this.consultarBus(dni, sexo) : await this.consultarSisa(dni, sexo);
       await this.db.query(`INSERT INTO cobertura_consultas (dni, sexo, resultado, consultado_por) VALUES ($1, $2, $3, $4)`,
         [dni, sexo || null, JSON.stringify(res), usuarioId || null]).catch(() => undefined);
     }
