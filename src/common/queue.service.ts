@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnApplicationShutdown, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import PgBoss from 'pg-boss';
+import PgBoss = require('pg-boss');
 
 /**
  * Colas de trabajo persistentes sobre la misma base Postgres (pg-boss, esquema "pgboss").
