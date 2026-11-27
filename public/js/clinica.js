@@ -872,7 +872,7 @@
       <div class="card"><div class="card-title">📇 Verificación profesional</div>
         ${v.license_status === 'pending' ? `<p style="margin-bottom:12px">Recibimos tus datos. Verificamos tu matrícula a mano en el registro oficial en <b>hasta 12 horas</b> y te avisamos por email. Cuando quede verificada vas a poder emitir recetas y aparecer en el buscador de turnos.</p>` : ''}
         ${v.license_verification_note ? `<p style="font-size:13px;margin-bottom:10px"><b>Detalle:</b> ${e(v.license_verification_note)}</p>` : ''}
-        <div class="kv"><div><span>Profesional</span><b>${e(v.title_prefix || '')} ${e(v.first_name)} ${e(v.last_name)}</b></div><div><span>DNI</span><b>${e(v.dni || '—')}${v.has_dni_document ? ' · foto ✓' : ''}</b></div><div><span>Matrícula</span><b>${v.license_type === 'MN' ? 'M.N.' : 'M.P.'} ${e(v.medical_license || '—')}${v.license_type === 'MP' && v.medical_license_province ? ' (' + e(v.medical_license_province) + ')' : ''}${v.has_document ? ' · foto ✓' : ''}</b></div><div><span>Especialidad</span><b>${e(v.specialty || '—')}</b></div>${bloqueado ? `<div><span>Verificada</span><b>${v.license_verified_at ? fmtDate(v.license_verified_at) : ''}</b></div>` : ''}</div>
+        <div class="kv"><div><span>Profesional</span><b>${e(v.title_prefix || '')} ${e(v.first_name)} ${e(v.last_name)}</b></div><div><span>DNI</span><b>${e(v.dni || '—')}${v.has_dni_document ? ' · frente ✓' : ''}${v.has_dni_document_back ? ' · dorso ✓' : ''}</b></div><div><span>Matrícula</span><b>${v.license_type === 'MN' ? 'M.N.' : 'M.P.'} ${e(v.medical_license || '—')}${v.license_type === 'MP' && v.medical_license_province ? ' (' + e(v.medical_license_province) + ')' : ''}${v.has_document ? ' · foto ✓' : ''}</b></div><div><span>Especialidad</span><b>${e(v.specialty || '—')}</b></div>${bloqueado ? `<div><span>Verificada</span><b>${v.license_verified_at ? fmtDate(v.license_verified_at) : ''}</b></div>` : ''}</div>
         ${bloqueado ? `<p class="muted" style="margin-top:10px;font-size:12px">Si cambiás de matrícula escribinos a support@tusrecetasmed.com.</p>` : `<button class="btn btn-sm btn-outline" style="margin-top:12px" onclick="abrirMatricula(true)">Corregir mis datos</button>`}
       </div>
       <div class="card"><div class="card-title">✍️ Firma para las recetas</div>
@@ -910,7 +910,7 @@
     _alta = _alta || {
       prefijo: v.title_prefix || 'Dr.', nombre: v.first_name || '', apellido: v.last_name || '', dni: v.dni || '',
       tipo: v.license_type === 'MN' ? 'MN' : 'MP', prov: v.medical_license_province || '', mat: v.medical_license || '', esp: v.specialty || '',
-      dniFoto: null, credFoto: null,
+      dniFoto: null, dniDorso: null, credFoto: null,
     };
     const A = _alta, m = main();
     const foto = (id, txt, ya, sel) => `<label class="alta-file" for="${id}"><input id="${id}" type="file" accept="image/*" capture="environment" hidden>
@@ -926,7 +926,8 @@
          <div class="field"><label for="aTdoc">Tipo de identificación *</label><select id="aTdoc"><option>DNI</option></select></div>
          <div class="field"><label for="aDni">Nº de documento *</label><input id="aDni" value="${e(A.dni)}" inputmode="numeric" placeholder="Sin puntos"></div>
        </div>
-       ${foto('aDniFoto', 'Foto del frente de tu DNI', v.has_dni_document, A.dniFoto)}`,
+       ${foto('aDniFoto', 'Foto del frente de tu DNI', v.has_dni_document, A.dniFoto)}
+       ${foto('aDniDorso', 'Foto del dorso de tu DNI', v.has_dni_document_back, A.dniDorso)}`,
       `<h2 class="alta-h">Matrícula</h2><p class="alta-sub">Tal como figura en tu credencial. Si tenés nacional y provincial, cargá la que usás para recetar.</p>
        <div class="alta-grid">
          <div class="field"><label for="aTipo">Tipo de matrícula *</label><select id="aTipo"><option value="MP" ${A.tipo === 'MP' ? 'selected' : ''}>Provincial (M.P.)</option><option value="MN" ${A.tipo === 'MN' ? 'selected' : ''}>Nacional (M.N.)</option></select></div>
@@ -954,7 +955,7 @@
       if (paso === 1) Object.assign(A, { tipo: $('aTipo').value, prov: $('aProv').value, mat: $('aMat').value.trim(), esp: $('aEsp').value.trim() });
     };
     const fotoInput = (id, clave) => { const i = $(id); if (i) i.onchange = async () => { const f = i.files[0]; if (!f) return; try { A[clave] = await leerImagen(f, 1400); guardarCampos(); asistenteAlta(v, paso); } catch (ex) { err(ex.message); } }; };
-    fotoInput('aDniFoto', 'dniFoto'); fotoInput('aCredFoto', 'credFoto');
+    fotoInput('aDniFoto', 'dniFoto'); fotoInput('aDniDorso', 'dniDorso'); fotoInput('aCredFoto', 'credFoto');
     if (paso === 1) { const t = $('aTipo'), box = $('aProvBox'); const f = () => (box.style.display = t.value === 'MP' ? '' : 'none'); t.onchange = f; f(); }
     if (paso === 2) enlazarFirma(true);
     if ($('aAtras')) $('aAtras').onclick = () => { guardarCampos(); asistenteAlta(v, paso - 1); };
@@ -965,6 +966,7 @@
         if (!A.nombre || !A.apellido) return err('Completá tu nombre y apellido');
         if (A.dni.length < 7 || A.dni.length > 9) return err('Ingresá un número de DNI válido, sin puntos');
         if (!A.dniFoto && !v.has_dni_document) return err('Subí una foto clara del frente de tu DNI');
+        if (!A.dniDorso && !v.has_dni_document_back) return err('Subí una foto clara del dorso de tu DNI');
         return asistenteAlta(v, 1);
       }
       if (paso === 1) {
@@ -974,8 +976,8 @@
         btn.disabled = true; btn.textContent = 'Enviando…';
         try {
           await apiFetch('/api/v1/profile', { method: 'PUT', body: { titlePrefix: A.prefijo, firstName: A.nombre, lastName: A.apellido } });
-          await apiFetch('/api/v1/verification', { method: 'POST', body: { dni: A.dni, licenseType: A.tipo, province: A.tipo === 'MP' ? A.prov : undefined, medicalLicense: A.mat, specialty: A.esp, document: A.credFoto || undefined, dniDocument: A.dniFoto || undefined } });
-          _verif = null; A.dniFoto = A.credFoto = null;
+          await apiFetch('/api/v1/verification', { method: 'POST', body: { dni: A.dni, licenseType: A.tipo, province: A.tipo === 'MP' ? A.prov : undefined, medicalLicense: A.mat, specialty: A.esp, document: A.credFoto || undefined, dniDocument: A.dniFoto || undefined, dniDocumentBack: A.dniDorso || undefined } });
+          _verif = null; A.dniFoto = A.dniDorso = A.credFoto = null;
           const nv = await verificacion(true);
           return asistenteAlta(nv || v, 2);
         } catch (ex) { btn.disabled = false; btn.textContent = 'Enviar para verificar'; return err(ex.message); }
@@ -1047,7 +1049,7 @@
             <span class="muted">${d.license_requested_at ? 'Enviada ' + fmtDate(d.license_requested_at) : 'Registrado ' + fmtDate(d.created_at)}</span></div>
           <div class="kv" style="margin-top:10px"><div><span>DNI</span><b>${e(d.dni || '—')}</b></div><div><span>Matrícula</span><b>${d.license_type === 'MN' ? 'M.N.' : 'M.P.'} ${e(String(d.medical_license || '').startsWith('PENDING_') ? '—' : d.medical_license)}${d.medical_license_province ? ' (' + e(d.medical_license_province) + ')' : ''}</b></div><div><span>Especialidad</span><b>${e(d.specialty || '—')}</b></div><div><span>REFEPS</span><b>${d.refeps_data ? e(JSON.stringify(d.refeps_data).slice(0, 160)) : 'sin consulta automática'}</b></div></div>
           ${d.license_verification_note ? `<p class="muted" style="margin-top:6px">${e(d.license_verification_note)}</p>` : ''}
-          ${d.license_document ? `<img src="${d.license_document}" alt="Credencial" style="max-width:100%;max-height:320px;border-radius:10px;margin-top:10px;border:1px solid #E6EDE9">` : ''}
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:10px">${[['DNI · frente', d.dni_document], ['DNI · dorso', d.dni_document_back], ['Credencial', d.license_document]].map(([t, src]) => `<figure style="margin:0"><figcaption class="muted" style="font-size:12px;margin-bottom:4px">${t}</figcaption>${src && /^data:image\//.test(src) ? `<a href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="${t}" style="width:100%;max-height:260px;object-fit:contain;border-radius:10px;border:1px solid #E6EDE9;background:#fff"></a>` : '<div class="muted" style="font-size:12px;border:1px dashed #E6EDE9;border-radius:10px;padding:18px;text-align:center">Sin foto</div>'}</figure>`).join('')}</div>
           <div class="flex" style="margin-top:10px">${d.license_status !== 'verified' ? `<button class="btn btn-sm btn-ok" onclick="resolverMatricula('${d.id}',true,'${estado}')">✓ Aprobar</button>` : ''}${d.license_status !== 'rejected' ? `<button class="btn btn-sm btn-no" onclick="resolverMatricula('${d.id}',false,'${estado}')">✕ Rechazar</button>` : ''}</div>
         </div>`).join('') : '<div class="card"><p class="muted center">No hay solicitudes en este estado.</p></div>'}`;
     } catch (ex) { m.innerHTML = `<div class="card"><p class="error">${e(ex.message)}</p></div>`; }

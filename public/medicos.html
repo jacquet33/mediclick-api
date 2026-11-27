@@ -143,9 +143,12 @@ input:focus,select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 
           <div class="f"><label>Apellido(s) <i>*</i></label><input id="apellido" autocomplete="family-name" placeholder="Apellido(s)"></div>
           <div class="f"><label>Tipo de identificación <i>*</i></label><select id="tipoDoc"><option>DNI</option></select></div>
           <div class="f"><label>N° de documento <i>*</i></label><input id="dni" inputmode="numeric" placeholder="Sin puntos"><p class="hint hidden" id="refepsHint"></p></div>
-          <div class="f full"><label>Foto del documento <i>*</i></label>
-            <label class="drop" id="dniDrop"><span style="font-size:26px">📇</span><span>Subir imagen</span><input type="file" accept="image/*" id="dniFoto" hidden></label>
-            <p class="muted" style="margin-top:6px">Subí una imagen de tu documento de identidad. Nos permite reforzar la seguridad y evitar la posible suspensión de tu cuenta.</p>
+          <div class="f"><label>Foto del DNI · frente <i>*</i></label>
+            <label class="drop" id="dniDrop"><span style="font-size:26px">📇</span><span>Subir frente</span><input type="file" accept="image/*" id="dniFoto" hidden></label></div>
+          <div class="f"><label>Foto del DNI · dorso <i>*</i></label>
+            <label class="drop" id="dniDorsoDrop"><span style="font-size:26px">🔄</span><span>Subir dorso</span><input type="file" accept="image/*" id="dniDorso" hidden></label></div>
+          <div class="f full">
+            <p class="muted" style="margin-top:0">Subí fotos claras del frente y del dorso de tu DNI. Nos permite reforzar la seguridad y evitar la posible suspensión de tu cuenta.</p>
             <p class="hint e hidden" id="dniFotoErr">El campo es obligatorio</p></div>
         </div>
       </div>
@@ -257,7 +260,7 @@ const PROV=['Buenos Aires','Ciudad de Buenos Aires','Catamarca','Chaco','Chubut'
 const ESP=['Clínica médica','Medicina general y familiar','Pediatría','Ginecología y obstetricia','Cardiología','Dermatología','Traumatología y ortopedia','Oftalmología','Otorrinolaringología','Neurología','Psiquiatría','Endocrinología','Gastroenterología','Neumonología','Nefrología','Urología','Reumatología','Infectología','Oncología','Hematología','Nutrición','Cirugía general','Diagnóstico por imágenes','Medicina del deporte','Geriatría','Alergia e inmunología','Kinesiología y fisiatría'];
 $('provMat').innerHTML=$('provCons').innerHTML=PROV.map(p=>`<option ${p==='Entre Ríos'?'selected':''}>${p}</option>`).join('');
 $('esps').innerHTML=ESP.map(e=>`<option value="${e}">`).join('');
-const D={prefijo:'Dr.',tipoMat:'MP',avatar:null,dniFoto:null,credFoto:null};
+const D={prefijo:'Dr.',tipoMat:'MP',avatar:null,dniFoto:null,dniDorso:null,credFoto:null};
 let paso=1;
 function seg(id,key){$(id).querySelectorAll('button').forEach(b=>b.onclick=()=>{$(id).querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));D[key]=b.dataset.v;if(key==='tipoMat')$('provBox').style.display=D.tipoMat==='MP'?'':'none'})}
 seg('prefijo','prefijo');seg('tipoMat','tipoMat');
@@ -268,6 +271,7 @@ $('avatar').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{D.avat
 // Muestra la foto elegida dentro del recuadro sin borrar el <input> (antes se borraba y fallaba appendChild)
 function verFoto(dropId,input,src,alt){const d=$(dropId);d.querySelectorAll(':scope > :not(input)').forEach(n=>n.remove());const im=document.createElement('img');im.src=src;im.alt=alt;d.insertBefore(im,input);const c=document.createElement('span');c.className='cambiar';c.textContent='Cambiar foto';d.insertBefore(c,input)}
 $('dniFoto').onchange=async e=>{const inp=e.target,f=inp.files[0];if(!f)return;try{D.dniFoto=await leerImg(f,1400);verFoto('dniDrop',inp,D.dniFoto,'DNI');$('dniFotoErr').classList.add('hidden')}catch(x){$('dniFotoErr').textContent=x.message;$('dniFotoErr').classList.remove('hidden')}};
+$('dniDorso').onchange=async e=>{const inp=e.target,f=inp.files[0];if(!f)return;try{D.dniDorso=await leerImg(f,1400);verFoto('dniDorsoDrop',inp,D.dniDorso,'DNI dorso');$('dniFotoErr').classList.add('hidden')}catch(x){$('dniFotoErr').textContent=x.message;$('dniFotoErr').classList.remove('hidden')}};
 $('credFoto').onchange=async e=>{const inp=e.target,f=inp.files[0];if(!f)return;try{D.credFoto=await leerImg(f,1400);verFoto('credDrop',inp,D.credFoto,'Credencial')}catch(x){alert(x.message)}};
 // REFEPS al escribir el DNI (como en el registro de SISA)
 let tRef=null;
@@ -280,7 +284,7 @@ $('dni').oninput=()=>{clearTimeout(tRef);const d=$('dni').value.replace(/\D/g,''
 $('n1').onclick=()=>{
   const falta=!$('nombre').value.trim()?'nombre':!$('apellido').value.trim()?'apellido':$('dni').value.replace(/\D/g,'').length<7?'dni':'';
   if(falta){$(falta).focus();$(falta).style.borderColor='var(--bad)';return}
-  if(!D.dniFoto){$('dniFotoErr').classList.remove('hidden');return}
+  if(!D.dniFoto||!D.dniDorso){$('dniFotoErr').textContent=!D.dniFoto?'Subí la foto del frente del DNI':'Subí la foto del dorso del DNI';$('dniFotoErr').classList.remove('hidden');return}
   if(!$('consultorio').value) $('consultorio').value=`Consultorio ${D.prefijo} ${$('apellido').value.trim()}`;
   ir(2)};
 $('v2').onclick=()=>ir(1);$('v3').onclick=()=>ir(2);
@@ -307,7 +311,7 @@ $('crear').onclick=async()=>{
     try{const u={...(s.user||s.doctor||{}),first_name:$('nombre').value.trim(),last_name:$('apellido').value.trim(),full_name:`${D.prefijo} ${$('nombre').value.trim()} ${$('apellido').value.trim()}`};localStorage.setItem('mediclick_token',token);localStorage.setItem('mediclick_refreshToken',s.refreshToken||'');localStorage.setItem('mediclick_userId',u?.id||u?.user_id||'');localStorage.setItem('mediclick_userType','doctor');localStorage.setItem('mediclick_user',JSON.stringify(u));localStorage.setItem('mediclick_orgs',JSON.stringify(s.organizations||[]))}catch{}
     const avisos=[];
     try{const rf=localStorage.getItem('tc_ref');if(rf){await api('/api/v1/referrals/claim',{method:'POST',token,org,body:{code:rf}}).catch(()=>{});localStorage.removeItem('tc_ref')}}catch{}
-    await api('/api/v1/verification',{method:'POST',token,org,body:{dni:$('dni').value,licenseType:D.tipoMat,province:D.tipoMat==='MP'?$('provMat').value:undefined,medicalLicense:$('matricula').value.trim(),specialty:$('especialidad').value.trim(),dniDocument:D.dniFoto,document:D.credFoto||undefined}}).catch(e=>avisos.push('Matrícula: '+e.message));
+    await api('/api/v1/verification',{method:'POST',token,org,body:{dni:$('dni').value,licenseType:D.tipoMat,province:D.tipoMat==='MP'?$('provMat').value:undefined,medicalLicense:$('matricula').value.trim(),specialty:$('especialidad').value.trim(),dniDocument:D.dniFoto,dniDocumentBack:D.dniDorso,document:D.credFoto||undefined}}).catch(e=>avisos.push('Matrícula: '+e.message));
     await api('/api/v1/profile',{method:'PUT',token,org,body:{titlePrefix:D.prefijo,avatarUrl:D.avatar||undefined}}).catch(()=>{});
     if(org) await api('/api/v1/organizations/'+org,{method:'PUT',token,org,body:{name:$('consultorio').value.trim(),phone:$('telCons').value.trim()||undefined,address:$('direccion').value.trim()||undefined,city:$('ciudad').value.trim()||undefined,province:$('provCons').value}}).catch(()=>{});
     const bk=await api('/api/v1/booking/settings',{token,org}).catch(()=>null);

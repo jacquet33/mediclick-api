@@ -11,7 +11,8 @@ export interface SolicitudVerificacion {
   province?: string;
   specialty?: string;
   document?: string; // foto de la credencial (data URL)
-  dniDocument?: string; // foto del DNI (data URL)
+  dniDocument?: string; // foto del frente del DNI (data URL)
+  dniDocumentBack?: string; // foto del dorso del DNI (data URL)
 }
 
 @Injectable()
@@ -43,7 +44,7 @@ export class VerificationService implements OnModuleInit {
               COALESCE(license_status, 'unverified') AS license_status, license_requested_at, license_verified_at,
               license_verified_by, license_verification_note, license_document IS NOT NULL AS has_document,
               signature_image IS NOT NULL AS has_signature, is_platform_admin,
-              title_prefix, dni_document IS NOT NULL AS has_dni_document
+              title_prefix, dni_document IS NOT NULL AS has_dni_document, dni_document_back IS NOT NULL AS has_dni_document_back
        FROM doctors WHERE id = $1`,
       [doctorId],
     );
@@ -75,11 +76,16 @@ export class VerificationService implements OnModuleInit {
     if (dto.dniDocument && (!/^data:image\/(jpeg|png|webp);base64,/.test(dto.dniDocument) || dto.dniDocument.length > 2_000_000)) {
       throw new BadRequestException('La foto del DNI no es válida o es muy grande');
     }
+    if (dto.dniDocumentBack && (!/^data:image\/(jpeg|png|webp);base64,/.test(dto.dniDocumentBack) || dto.dniDocumentBack.length > 2_000_000)) {
+      throw new BadRequestException('La foto del dorso del DNI no es válida o es muy grande');
+    }
     if (dto.dniDocument) await this.db.query(`UPDATE doctors SET dni_document = $2 WHERE id = $1`, [doctorId, dto.dniDocument]);
+    if (dto.dniDocumentBack) await this.db.query(`UPDATE doctors SET dni_document_back = $2 WHERE id = $1`, [doctorId, dto.dniDocumentBack]);
     // Para validar que quien se registra es el profesional, hacen falta las fotos del DNI y de la credencial
     const docs = await this.db.queryOne<{ dni: boolean; cred: boolean }>(
-      `SELECT dni_document IS NOT NULL AS dni, license_document IS NOT NULL AS cred FROM doctors WHERE id = $1`, [doctorId]);
+      `SELECT dni_document IS NOT NULL AS dni, dni_document_back IS NOT NULL AS dorso, license_document IS NOT NULL AS cred FROM doctors WHERE id = $1`, [doctorId]);
     if (!docs?.dni && !dto.dniDocument) throw new BadRequestException('Subí una foto clara del frente de tu DNI');
+    if (!(docs as any)?.dorso && !dto.dniDocumentBack) throw new BadRequestException('Subí una foto clara del dorso de tu DNI');
     if (!docs?.cred && !dto.document) throw new BadRequestException('Subí una foto clara de tu credencial de matrícula');
     // La misma matrícula no puede estar verificada en otra cuenta
     const otra = await this.db.queryOne(
@@ -170,7 +176,7 @@ export class VerificationService implements OnModuleInit {
     return this.db.queryMany(
       `SELECT id, first_name, last_name, email, phone, dni, medical_license, license_type, medical_license_province,
               specialty, license_status, license_requested_at, license_verified_at, license_verified_by,
-              license_verification_note, license_document, dni_document, refeps_data, created_at
+              license_verification_note, license_document, dni_document, dni_document_back, refeps_data, created_at
        FROM doctors
        WHERE COALESCE(license_status, 'unverified') = $1
        ORDER BY license_requested_at DESC NULLS LAST, created_at DESC LIMIT 200`,
@@ -228,7 +234,7 @@ export class VerificationService implements OnModuleInit {
          <ul style="font-size:15px;line-height:1.45;padding-left:20px;margin:0 0 16px"><li style="margin:6px 0">Cargá tu firma en <b>Configuración → Matrícula y firma</b> si todavía no lo hiciste.</li><li style="margin:6px 0">Compartí tu link de turnos con tus pacientes para que reserven online.</li></ul>`
       : `<p style="font-size:15px;line-height:1.55;margin:0 0 12px">No pudimos validar tu matrícula con los datos que cargaste.</p>
          ${nota ? `<p style="font-size:14px;line-height:1.5;background:#FFF6E5;border:1px solid #F1DFC0;border-radius:10px;padding:10px 12px;margin:0 0 14px"><b>Motivo:</b> ${esc(nota)}</p>` : ''}
-         <p style="font-size:15px;line-height:1.55;margin:0 0 16px">Revisá el número y el tipo de matrícula y subí fotos <b>claras y legibles</b> del frente de tu DNI y de tu credencial (no selfies ni fotos borrosas).</p>`;
+         <p style="font-size:15px;line-height:1.55;margin:0 0 16px">Revisá el número y el tipo de matrícula y subí fotos <b>claras y legibles</b> del frente y del dorso de tu DNI y de tu credencial (no selfies ni fotos borrosas).</p>`;
     const html = `<!doctype html><html><body style="margin:0;background:#F5F1EA;font-family:Helvetica,Arial,sans-serif;color:#2B241F">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F1EA;padding:24px 0"><tr><td align="center">
 <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#fff;border-radius:16px;overflow:hidden">
