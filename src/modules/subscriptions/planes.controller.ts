@@ -27,6 +27,13 @@ export class PlanesController {
    * GET /app/acceso — ¿puede usar la app móvil? Las apps son solo para cuentas con plan pago
    * (el alta y el pago se hacen en la web). Secretarías: si algún profesional del consultorio paga.
    */
+  /** POST /admin/planes/cortesia { email, plan, meses } — plan sin cargo (solo administradores) */
+  @Post('admin/planes/cortesia')
+  cortesia(@CurrentUser() u: AuthUser, @Body() b: { email?: string; plan?: string; meses?: number }) {
+    const plan = (['profesional', 'consultorio', 'clinica'] as const).find((x) => x === b?.plan) || 'profesional';
+    return this.planes.asignarCortesia(u.doctorId, String(b?.email || ''), plan, Number(b?.meses || 1));
+  }
+
   @Get('app/acceso')
   async accesoApp(@CurrentUser() u: AuthUser) {
     const no = { permitido: false, motivo: 'Tu cuenta no tiene un plan activo. Para usar la app, activá tu plan desde la web de TusRecetasMed. Después volvé a abrir la app.' };

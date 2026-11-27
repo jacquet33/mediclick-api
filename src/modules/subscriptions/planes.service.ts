@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DatabaseService } from '../../database/database.service';
 
@@ -32,6 +32,25 @@ export class PlanesService {
   constructor(private db: DatabaseService, private config: ConfigService) {}
 
   static readonly DIAS_PRUEBA = 7;
+
+  /** Plan sin cargo asignado por un administrador (pilotos, cuenta de revisión de las tiendas). */
+  async asignarCortesia(adminId: string, email: string, plan: 'profesional' | 'consultorio' | 'clinica', meses: number) {
+    const adm = await this.db.queryOne(`SELECT is_platform_admin FROM doctors WHERE id = $1`, [adminId]);
+    if (!adm?.is_platform_admin) throw new ForbiddenException('Solo administradores de la plataforma');
+    const d = await this.db.queryOne<{ id: string; first_name: string; last_name: string }>(
+      `SELECT id, first_name, last_name FROM doctors WHERE lower(email) = lower($1) AND is_active = true`, [String(email || '').trim()]);
+    if (!d) throw new BadRequestException('No hay un médico activo con ese email');
+    const producto = PLANES[plan]?.mpPlan || 'pro';
+    const m = Math.min(Math.max(Math.round(meses || 1), 1), 24);
+    await this.db.query(
+      `UPDATE subscriptions SET status = 'cancelled', cancelled_at = now() WHERE doctor_id = $1 AND store = 'manual' AND status IN ('active','grace_period')`, [d.id]);
+    await this.db.query(
+      `INSERT INTO subscriptions (doctor_id, plan, status, store, store_product_id, current_period_start, current_period_end)
+       VALUES ($1, 'pro', 'active', 'manual', $2, now(), now() + ($3 || ' months')::interval)`, [d.id, producto, String(m)]);
+    await this.db.query(`INSERT INTO audit_logs (doctor_id, action, entity_type, details) VALUES ($1, 'plan_cortesia', 'doctor', $2)`,
+      [adminId, JSON.stringify({ doctor: d.id, plan, meses: m })]).catch(() => {});
+    return { ok: true, medico: `${d.first_name} ${d.last_name}`.trim(), plan: PLANES[plan].nombre, meses: m };
+  }
 
   async doctoresDeOrganizacion(orgId: string): Promise<string[]> {
     const r = await this.db.queryMany<{ doctor_id: string }>(

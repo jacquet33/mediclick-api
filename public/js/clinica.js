@@ -1045,9 +1045,21 @@
       const l = await apiFetch('/api/v1/admin/servicios');
       main.innerHTML = `<div class="topbar"><h1>Servicios de la plataforma</h1><button class="btn btn-sm btn-outline" onclick="navigateTo('matricula')">← Volver</button></div>
         <p class="muted" style="margin-bottom:12px">Lo que prendas o apagues acá se aplica al instante en la web y en las apps de iPhone y Android, sin publicar una versión nueva.</p>
+        <div class="card"><b style="font-size:15px">🎁 Plan sin cargo para un médico</b><p class="muted" style="margin:4px 0 10px">Para pilotos o la cuenta de revisión de App Store / Google Play. Con un plan activo pueden usar las apps.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="cortEmail" type="email" placeholder="Email del médico" style="flex:2;min-width:200px">
+          <select id="cortPlan" style="flex:1"><option value="profesional">Profesional</option><option value="consultorio">Consultorio</option><option value="clinica">Clínica</option></select>
+          <select id="cortMeses" style="flex:1"><option value="1">1 mes</option><option value="3" selected>3 meses</option><option value="6">6 meses</option><option value="12">12 meses</option></select>
+          <button class="btn btn-sm btn-primary" onclick="asignarCortesia()">Asignar</button></div><p id="cortMsg" class="muted" style="margin:8px 0 0"></p></div>
         ${l.map((x) => `<div class="card"><div class="flex-between" style="gap:12px;flex-wrap:wrap"><div><b style="font-size:15px">${e(x.nombre)}</b> <span class="badge-sm ${x.activo ? 'confirmed' : 'cancelled'}">${x.activo ? 'Activo' : 'Apagado'}</span><p class="muted" style="margin:4px 0 0">${e(x.detalle)}</p></div>
           <button class="btn btn-sm ${x.activo ? 'btn-no' : 'btn-ok'}" onclick="cambiarServicio('${x.id}', ${!x.activo})">${x.activo ? 'Apagar' : 'Prender'}</button></div></div>`).join('')}`;
     } catch (ex) { main.innerHTML = `<div class="card"><p class="muted">${e(ex.message)}</p></div>`; }
+  };
+  window.asignarCortesia = async function () {
+    const msg = $('cortMsg');
+    try {
+      const r = await apiFetch('/api/v1/admin/planes/cortesia', { method: 'POST', body: { email: $('cortEmail').value, plan: $('cortPlan').value, meses: +$('cortMeses').value } });
+      msg.textContent = `✓ ${r.medico}: plan ${r.plan} sin cargo por ${r.meses} mes(es).`;
+    } catch (ex) { msg.textContent = '⚠️ ' + ex.message; }
   };
   window.cambiarServicio = async function (id, activo) {
     if (!confirm(activo ? '¿Prender este servicio para todos los médicos?' : '¿Apagar este servicio para todos los médicos?')) return;
