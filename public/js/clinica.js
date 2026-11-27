@@ -884,7 +884,7 @@
         <p class="muted" style="margin-bottom:10px">Con tu certificado de firma digital (archivo .p12 / .pfx emitido por un certificador licenciado: AC ONTI, AC Modernización, etc.) cada receta queda firmada digitalmente dentro del PDF y cualquier lector (Adobe, la farmacia) puede validarla. La clave privada y la contraseña <b>nunca salen de tu equipo</b>.</p>
         <div id="certBox"><div class="spinner" style="margin:10px 0"></div></div>
       </div>
-      ${v.is_platform_admin ? `<div class="card"><div class="card-title">🛡️ Administración</div><div class="flex" style="flex-wrap:wrap"><button class="btn btn-sm btn-primary" onclick="abrirActividad()">📈 Altas y accesos</button><button class="btn btn-sm btn-outline" onclick="abrirVerificaciones()">Revisar matrículas pendientes</button><button class="btn btn-sm btn-outline" onclick="abrirFarmaciasAdmin()">Farmacias habilitadas</button><button class="btn btn-sm btn-outline" onclick="abrirPedidosDatos()">Pedidos de datos personales</button></div></div>` : ''}`;
+      ${v.is_platform_admin ? `<div class="card"><div class="card-title">🛡️ Administración</div><div class="flex" style="flex-wrap:wrap"><button class="btn btn-sm btn-primary" onclick="abrirActividad()">📈 Altas y accesos</button><button class="btn btn-sm btn-outline" onclick="abrirVerificaciones()">Revisar matrículas pendientes</button><button class="btn btn-sm btn-outline" onclick="abrirFarmaciasAdmin()">Farmacias habilitadas</button><button class="btn btn-sm btn-outline" onclick="abrirPedidosDatos()">Pedidos de datos personales</button><button class="btn btn-sm btn-outline" onclick="abrirServicios()">⚙️ Servicios de la plataforma</button></div></div>` : ''}`;
     enlazarFirma();
     const c = await certificadoActual();
     const box = $('certBox');
@@ -1037,6 +1037,23 @@
   }
 
   // ─── Panel de verificaciones (administrador de la plataforma) ───
+  // Interruptores de servicios de la plataforma (solo administradores). Se aplican en la web y en las apps sin publicar versión nueva.
+  window.abrirServicios = async function () {
+    const main = $('mainContent');
+    main.innerHTML = '<div class="topbar"><h1>Servicios de la plataforma</h1></div><div class="card"><p class="muted">Cargando…</p></div>';
+    try {
+      const l = await apiFetch('/api/v1/admin/servicios');
+      main.innerHTML = `<div class="topbar"><h1>Servicios de la plataforma</h1><button class="btn btn-sm btn-outline" onclick="navigateTo('matricula')">← Volver</button></div>
+        <p class="muted" style="margin-bottom:12px">Lo que prendas o apagues acá se aplica al instante en la web y en las apps de iPhone y Android, sin publicar una versión nueva.</p>
+        ${l.map((x) => `<div class="card"><div class="flex-between" style="gap:12px;flex-wrap:wrap"><div><b style="font-size:15px">${e(x.nombre)}</b> <span class="badge-sm ${x.activo ? 'confirmed' : 'cancelled'}">${x.activo ? 'Activo' : 'Apagado'}</span><p class="muted" style="margin:4px 0 0">${e(x.detalle)}</p></div>
+          <button class="btn btn-sm ${x.activo ? 'btn-no' : 'btn-ok'}" onclick="cambiarServicio('${x.id}', ${!x.activo})">${x.activo ? 'Apagar' : 'Prender'}</button></div></div>`).join('')}`;
+    } catch (ex) { main.innerHTML = `<div class="card"><p class="muted">${e(ex.message)}</p></div>`; }
+  };
+  window.cambiarServicio = async function (id, activo) {
+    if (!confirm(activo ? '¿Prender este servicio para todos los médicos?' : '¿Apagar este servicio para todos los médicos?')) return;
+    try { await apiFetch(`/api/v1/admin/servicios/${id}`, { method: 'PUT', body: { activo } }); abrirServicios(); } catch (ex) { alert(ex.message); }
+  };
+
   window.abrirVerificaciones = async function (estado = 'pending') {
     const m = main(); m.innerHTML = '<div class="spinner"></div>';
     try {

@@ -1,3 +1,5 @@
+import { PlataformaService } from './modules/plataforma/plataforma.service';
+import { PlataformaController } from './modules/plataforma/plataforma.controller';
 import { QueueService } from './common/queue.service';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -128,7 +130,7 @@ import { SkipThrottle } from './common/decorators/throttle.decorator';
 @SkipThrottle()
 @Controller('api/v1')
 class HealthController {
-  constructor(private db: DatabaseService, private config: ConfigService) {}
+  constructor(private db: DatabaseService, private config: ConfigService, private plataforma: PlataformaService) {}
 
   @Get('health')
   async health() {
@@ -147,8 +149,10 @@ class HealthController {
   }
 
   @Get('public/config')
-  publicConfig() {
+  async publicConfig() {
     return {
+      // Servicios prendidos desde el panel de administración (p. ej. receta electrónica)
+      ...(await this.plataforma.publica()),
       googleClientId: this.config.get('GOOGLE_CLIENT_ID_WEB') || this.config.get('GOOGLE_CLIENT_ID') || '',
       appleSignInEnabled: !!this.config.get('APPLE_CLIENT_ID'),
       // Clave pública de Cloudflare Turnstile (captcha). Vacía = sin captcha
@@ -171,6 +175,7 @@ class HealthController {
     AuthController,
     AuthSessionController,
     WhatsappWebhookController,
+    PlataformaController,
     InboxController,
     WhatsappAccountController,
     PlanesController,
@@ -225,6 +230,7 @@ class HealthController {
     { provide: APP_GUARD, useClass: AuthGuard },
     RedisService,
     QueueService,
+    PlataformaService,
     ThrottlerRedisStorage,
     { provide: ThrottlerStorage, useExisting: ThrottlerRedisStorage }, // límites compartidos en Redis
     DatabaseService,

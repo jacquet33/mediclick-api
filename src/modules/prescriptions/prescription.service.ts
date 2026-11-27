@@ -1,3 +1,4 @@
+import { PlataformaService } from '../plataforma/plataforma.service';
 import { PlanesService } from '../subscriptions/planes.service';
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
@@ -44,6 +45,7 @@ export class PrescriptionService {
     private digital: DigitalSignatureService,
     private centralRepo: CentralRepoService,
     private planes: PlanesService,
+    private plataforma: PlataformaService,
   ) {}
 
   /** PDF firmado digitalmente (si existe) */
@@ -118,6 +120,10 @@ export class PrescriptionService {
   async create(orgId: string, doctorId: string, dto: any) {
     // Solo médicos con matrícula verificada (REFEPS o revisión manual)
     await this.verification.exigirVerificado(doctorId);
+    // Interruptor de la plataforma: se prende cuando ReNaPDiS aprueba TusRecetasMed
+    if (!(await this.plataforma.activo('recetas'))) {
+      throw new ForbiddenException('La receta electrónica de TusRecetasMed se habilita en los próximos días, cuando el Ministerio de Salud complete la inscripción de la plataforma. Te avisamos apenas esté disponible.');
+    }
     // Prueba gratis de 7 días; después hace falta un plan para emitir recetas nuevas
     const plan = await this.planes.estado(doctorId);
     if (!plan.puedeRecetar) {

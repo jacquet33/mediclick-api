@@ -1920,8 +1920,11 @@ async function loadRecetas(){
   try{
     const _rxs=await apiFetch('/api/v1/prescriptions');
     const rxs=asList(_rxs);
+    const _cfg=await fetch('/api/v1/public/config').then(r=>r.json()).catch(()=>({}));
+    const rxOff=_cfg&&_cfg.servicios&&_cfg.servicios.recetas===false;
     main.innerHTML=`
       <div class="topbar"><h1>Recetas</h1></div>
+      ${rxOff?`<div class="card" style="border-left:4px solid #C98A12"><b>💊 La receta electrónica llega en los próximos días</b><p class="muted" style="margin:6px 0 0">Estamos completando la inscripción de TusRecetasMed en el registro nacional del Ministerio de Salud (ReNaPDiS). Apenas esté aprobada se habilita sola acá y en la app, sin que tengas que hacer nada. Mientras tanto podés usar turnos, agenda, avisos por WhatsApp e historia clínica.</p></div>`:''}
       <div class="card"><div class="table-wrap"><table>
         <tr><th>Paciente</th><th>Diagnóstico</th><th>CIE-10</th><th>Estado</th><th>Vence</th><th></th></tr>
         ${rxs.map(r=>`<tr>
